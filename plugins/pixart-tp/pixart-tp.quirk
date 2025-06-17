@@ -1,0 +1,3 @@
+[HIDRAW\VEN_093A&DEV_31B9]
+Plugin = pixart_tp
+GType = FuPxiTpDevice
