@@ -9,6 +9,7 @@
 #include "fu-pxi-tp-common.h"
 #include "fu-pxi-tp-device.h"
 #include "fu-pxi-tp-firmware.h"
+#include "fu-pxi-tp-register.h"
 #include "fu-pxi-tp-struct.h"
 
 /* this can be set using Flags=example in the quirk file  */
@@ -16,10 +17,288 @@
 
 struct _FuPxiTpDevice {
 	FuHidrawDevice parent_instance;
+	guint8 sram_select;
 	guint16 start_addr;
 };
 
 G_DEFINE_TYPE(FuPxiTpDevice, fu_pxi_tp_device, FU_TYPE_HIDRAW_DEVICE)
+
+static gboolean
+fu_pxi_tp_device_flash_execute(FuDevice *device,
+			       guint8 inst_cmd,
+			       guint32 ccr_cmd,
+			       guint16 data_cnt,
+			       GError **error)
+{
+	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
+
+	g_message("fu_pxi_tp_device_flash_execute.");
+
+	guint8 out_val;
+
+	WRITE_REG(0x04, 0x2c, inst_cmd);
+
+	WRITE_REG(0x04, 0x40, (ccr_cmd >> 0) & 0xff);
+	WRITE_REG(0x04, 0x41, (ccr_cmd >> 8) & 0xff);
+	WRITE_REG(0x04, 0x42, (ccr_cmd >> 16) & 0xff);
+	WRITE_REG(0x04, 0x43, (ccr_cmd >> 24) & 0xff);
+
+	WRITE_REG(0x04, 0x44, (data_cnt >> 0) & 0xff);
+	WRITE_REG(0x04, 0x45, (data_cnt >> 8) & 0xff);
+
+	WRITE_REG(0x04, 0x56, 0x01);
+
+	for (guint i = 0; i < 10; i++) {
+		fu_device_sleep(device, 1);
+		READ_REG(0x04, 0x56, &out_val);
+		if (out_val == 0)
+			break;
+	}
+
+	if (out_val != 0) {
+		g_prefix_error(error, "Flash executes failure.");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean
+fu_pxi_tp_device_flash_write_enable(FuDevice *device, GError **error)
+{
+	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
+
+	g_message("fu_pxi_tp_device_flash_write_enable.");
+
+	guint8 out_val;
+
+	if (!fu_pxi_tp_device_flash_execute(device, 0x00, 0x00000106, 0, error))
+		return FALSE;
+
+	for (guint i = 0; i < 10; i++) {
+		if (!fu_pxi_tp_device_flash_execute(device, 0x01, 0x01000105, 1, error))
+			return FALSE;
+		fu_device_sleep(device, 1);
+		READ_REG(0x04, 0x1c, &out_val);
+		if ((out_val & 0x02) == 0x02)
+			break;
+	}
+
+	if ((out_val & 0x02) != 0x02) {
+		g_prefix_error(error, "Flash write enable failure.");
+		g_message("Flash write enable failure.");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean
+fu_pxi_tp_device_flash_wait_busy(FuDevice *device, GError **error)
+{
+	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
+
+	g_message("fu_pxi_tp_device_flash_wait_busy.");
+
+	guint8 out_val;
+
+	for (guint i = 0; i < 1000; i++) {
+		if (!fu_pxi_tp_device_flash_execute(device, 0x01, 0x01000105, 1, error))
+			return FALSE;
+		fu_device_sleep(device, 1);
+		READ_REG(0x04, 0x1c, &out_val);
+		if ((out_val & 0x01) == 0x00)
+			break;
+	}
+
+	if ((out_val & 0x01) != 0x00) {
+		g_prefix_error(error, "Flash wait busy failure.");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean
+fu_pxi_tp_device_flash_erase_sector(FuDevice *device, guint8 sector_cnt, GError **error)
+{
+	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
+
+	g_message("Start Erase Sector.");
+
+	guint32 flash_address = (guint32)(sector_cnt) * 4096;
+
+	if (!fu_pxi_tp_device_flash_wait_busy(device, error))
+		return FALSE;
+
+	if (!fu_pxi_tp_device_flash_write_enable(device, error))
+		return FALSE;
+
+	WRITE_REG(0x04, 0x48, (flash_address >> 0) & 0xff);
+	WRITE_REG(0x04, 0x49, (flash_address >> 8) & 0xff);
+	WRITE_REG(0x04, 0x4a, (flash_address >> 16) & 0xff);
+	WRITE_REG(0x04, 0x4b, (flash_address >> 24) & 0xff);
+
+	if (!fu_pxi_tp_device_flash_execute(device, 0x00, 0x00002520, 0, error))
+		return FALSE;
+
+	g_message("Start Erase Sector Completed.");
+
+	return TRUE;
+}
+
+static gboolean
+fu_pxi_tp_device_flash_program_256b_to_flash(FuDevice *device,
+					     guint8 sector,
+					     guint8 page,
+					     GError **error)
+{
+	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
+
+	g_message("Start Flash Program.");
+
+	guint32 flash_address = (guint32)(sector) * 4096 + (guint32)(page) * 256;
+
+	if (!fu_pxi_tp_device_flash_wait_busy(device, error))
+		return FALSE;
+
+	if (!fu_pxi_tp_device_flash_write_enable(device, error))
+		return FALSE;
+
+	WRITE_REG(0x04, 0x48, (flash_address >> 0) & 0xff);
+	WRITE_REG(0x04, 0x49, (flash_address >> 8) & 0xff);
+	WRITE_REG(0x04, 0x4a, (flash_address >> 16) & 0xff);
+	WRITE_REG(0x04, 0x4b, (flash_address >> 24) & 0xff);
+
+	if (!fu_pxi_tp_device_flash_execute(device, 0x84, 0x01002502, 256, error))
+		return FALSE;
+
+	g_message("Flash Program Compeleted.");
+
+	return TRUE;
+}
+
+static gboolean
+fu_pxi_tp_device_write_sram_256b(FuDevice *device, const guint8 *data, GError **error)
+{
+	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
+
+	g_message("Write 256 bytes");
+
+	WRITE_REG(0x06, 0x10, 0x00);
+	WRITE_REG(0x06, 0x11, 0x00);
+
+	WRITE_REG(0x06, 0x09, self->sram_select);
+
+	WRITE_REG(0x06, 0x0a, 0x00);
+	if (!fu_pxi_tp_register_burst_write(self, data, 256, error)) {
+		g_prefix_error(error, "Burst write buffer failure.");
+		g_message("Burst write buffer failure.");
+		return FALSE;
+	}
+	WRITE_REG(0x06, 0x0a, 0x01);
+
+	return TRUE;
+}
+
+static gboolean
+fu_pxi_tp_device_update_flash_process(FuDevice *device,
+				      guint32 data_size,
+				      guint8 start_sector,
+				      GByteArray *data,
+				      GError **error)
+{
+	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
+
+	g_message("fu_pxi_tp_device_update_flash_process");
+
+	guint8 sector_cnt = 0;
+	guint8 page_cnt = 0;
+	guint16 offset = 0;
+	guint8 max_sector_cnt = (data_size >> 12) + (((data_size & 0x00000fff) == 0) ? 0 : 1);
+
+	g_message("test 1");
+
+	WRITE_REG(0x01, 0x2c, 0xaa);
+	fu_device_sleep(device, 30);
+	WRITE_REG(0x01, 0x2d, 0xcc);
+
+	fu_device_sleep(device, 10);
+
+	WRITE_REG(0x02, 0x0d, 0x02);
+
+	for (sector_cnt = 0; sector_cnt < max_sector_cnt; sector_cnt++) {
+		if (!fu_pxi_tp_device_flash_erase_sector(device,
+							 start_sector + sector_cnt,
+							 error)) {
+			g_prefix_error(error, "Flash erase failure.");
+			g_message("Error: %s", (*error)->message);
+			return FALSE;
+		}
+	}
+
+	for (sector_cnt = 0; sector_cnt < max_sector_cnt; sector_cnt++) {
+		for (page_cnt = 1; page_cnt < 16; page_cnt++) {
+			offset = (sector_cnt * 4096) + (page_cnt * 256);
+
+			g_message("offset: %u", offset);
+
+			g_autoptr(GByteArray) buf = g_byte_array_new();
+
+			g_byte_array_append(buf, &data->data[offset], 256);
+
+			for (int i = 0; i < 256; i++) {
+				g_message("Buffer: %02X", buf->data[i]);
+			}
+
+			if (!fu_pxi_tp_device_write_sram_256b(device, buf->data, error)) {
+				g_prefix_error(error, "Write SRAM failure.");
+				g_message("Error: %s", (*error)->message);
+				return FALSE;
+			}
+			if (!fu_pxi_tp_device_flash_program_256b_to_flash(device,
+									  start_sector + sector_cnt,
+									  page_cnt,
+									  error)) {
+				g_prefix_error(error, "Flash program failure.");
+				g_message("Error: %s", (*error)->message);
+				return FALSE;
+			}
+
+			// fu_byte_array_set_size(buf->data, 256, 0xFF);
+
+			// for (int i = 0; i < 256; i ++){
+			// 	g_message("Clear Buffer: %02X", &buf->data[i]);
+			// }
+		}
+
+		offset = sector_cnt * 4096;
+
+		g_autoptr(GByteArray) buf = g_byte_array_new();
+
+		g_byte_array_append(buf, &data->data[offset], 256);
+
+		if (!fu_pxi_tp_device_write_sram_256b(device, buf->data, error)) {
+			g_prefix_error(error, "Write SRAM failure.");
+			g_message("Error: %s", (*error)->message);
+			return FALSE;
+		}
+		if (!fu_pxi_tp_device_flash_program_256b_to_flash(device,
+								  start_sector + sector_cnt,
+								  0,
+								  error)) {
+			g_prefix_error(error, "Flash program failure.");
+			g_message("Error: %s", (*error)->message);
+			return FALSE;
+		}
+	}
+
+	g_message("Engineer mode exit.");
+
+	WRITE_REG(0x01, 0x2c, 0xaa);
+	fu_device_sleep(device, 30);
+	WRITE_REG(0x01, 0x2d, 0xbb);
+}
 
 static void
 fu_pxi_tp_device_to_string(FuDevice *device, guint idt, GString *str)
@@ -96,7 +375,22 @@ static gboolean
 fu_pxi_tp_device_setup(FuDevice *device, GError **error)
 {
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
+	guint8 out_val;
+	fu_pxi_tp_register_user_read(self, 0, 0, &out_val, error);
+	g_message("out_val = 0x%02X (%u)", out_val, out_val);
 
+	WRITE_REG(0x06, 0x72, 0xaa);
+	fu_pxi_tp_register_read(self, 6, 0x72, &out_val, error);
+	g_message("out_val = 0x%02X (%u)", out_val, out_val);
+
+	g_autoptr(GByteArray) buf = g_byte_array_new();
+
+	fu_byte_array_set_size(buf, 4096, 0xAA);
+
+	self->start_addr = 0;
+	self->sram_select = 0x0f;
+
+	fu_pxi_tp_device_update_flash_process(device, 4096, 0, buf, error);
 	// /* HidrawDevice->setup */
 	// if (!FU_DEVICE_CLASS(fu_pxi_tp_device_parent_class)->setup(device, error))
 	// 	return FALSE;
@@ -248,6 +542,7 @@ fu_pxi_tp_device_write_firmware(FuDevice *device,
 		return FALSE;
 	if (!fu_pxi_tp_device_write_blocks(self, chunks, fu_progress_get_child(progress), error))
 		return FALSE;
+
 	fu_progress_step_done(progress);
 
 	/* TODO: verify each block */
@@ -305,6 +600,7 @@ fu_pxi_tp_device_init(FuPxiTpDevice *self)
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UNSIGNED_PAYLOAD);
 	fu_device_add_icon(FU_DEVICE(self), "icon-name");
 }
+
 static void
 fu_pxi_tp_device_finalize(GObject *object)
 {
