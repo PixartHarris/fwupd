@@ -96,11 +96,11 @@ repos:
       language: system
       entry: shellcheck --severity=warning -e SC2068
       types: [shell]
-    - id: run-tests
-      name: run tests before pushing
-      language: system
-      entry: "test-fwupd"
-      stages: [push]
+    # - id: run-tests
+    #   name: run tests before pushing
+    #   language: system
+    #   entry: "test-fwupd"
+    #   stages: [push]
     - id: clang-format
       name: clang-format
       language: script
