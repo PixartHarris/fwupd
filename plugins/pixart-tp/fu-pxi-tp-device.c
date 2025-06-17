@@ -12,7 +12,7 @@
 #include "fu-pxi-tp-struct.h"
 
 /* this can be set using Flags=example in the quirk file  */
-#define FU_PXI_TP_DEVICE_FLAG_EXAMPLE "example"
+// #define FU_PXI_TP_DEVICE_FLAG_EXAMPLE "example"
 
 struct _FuPxiTpDevice {
 	FuHidrawDevice parent_instance;
@@ -81,13 +81,13 @@ fu_pxi_tp_device_probe(FuDevice *device, GError **error)
 {
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
 
-	/* FuHidrawDevice->probe */
-	if (!FU_DEVICE_CLASS(fu_pxi_tp_device_parent_class)->probe(device, error))
-		return FALSE;
+	// /* FuHidrawDevice->probe */
+	// if (!FU_DEVICE_CLASS(fu_pxi_tp_device_parent_class)->probe(device, error))
+	// 	return FALSE;
 
-	/* TODO: probe the device for properties available before it is opened */
-	if (fu_device_has_private_flag(device, FU_PXI_TP_DEVICE_FLAG_EXAMPLE))
-		self->start_addr = 0x100;
+	// /* TODO: probe the device for properties available before it is opened */
+	// if (fu_device_has_private_flag(device, FU_PXI_TP_DEVICE_FLAG_EXAMPLE))
+	// 	self->start_addr = 0x100;
 
 	return TRUE;
 }
@@ -97,12 +97,12 @@ fu_pxi_tp_device_setup(FuDevice *device, GError **error)
 {
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
 
-	/* HidrawDevice->setup */
-	if (!FU_DEVICE_CLASS(fu_pxi_tp_device_parent_class)->setup(device, error))
-		return FALSE;
+	// /* HidrawDevice->setup */
+	// if (!FU_DEVICE_CLASS(fu_pxi_tp_device_parent_class)->setup(device, error))
+	// 	return FALSE;
 
 	/* TODO: get the version and other properties from the hardware while open */
-	fu_device_set_version(device, "1.2.3");
+	// fu_device_set_version(device, "1.2.3");
 
 	/* success */
 	return TRUE;
@@ -300,14 +300,11 @@ fu_pxi_tp_device_init(FuPxiTpDevice *self)
 	self->start_addr = 0x5000;
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_TRIPLET);
 	fu_device_set_remove_delay(FU_DEVICE(self), FU_DEVICE_REMOVE_DELAY_RE_ENUMERATE);
-	fu_device_add_protocol(FU_DEVICE(self), "com.pxi.tp");
+	fu_device_add_protocol(FU_DEVICE(self), "com.pixart.tp");
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UNSIGNED_PAYLOAD);
 	fu_device_add_icon(FU_DEVICE(self), "icon-name");
-	fu_device_register_private_flag(FU_DEVICE(self), FU_PXI_TP_DEVICE_FLAG_EXAMPLE);
-	fu_hid_device_add_flag(FU_HID_DEVICE(self), FU_HID_DEVICE_FLAG_RETRY_FAILURE);
 }
-
 static void
 fu_pxi_tp_device_finalize(GObject *object)
 {
@@ -320,19 +317,24 @@ fu_pxi_tp_device_finalize(GObject *object)
 static void
 fu_pxi_tp_device_class_init(FuPxiTpDeviceClass *klass)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS(klass);
-	FuDeviceClass *device_class = FU_DEVICE_CLASS(klass);
-	object_class->finalize = fu_pxi_tp_device_finalize;
-	device_class->to_string = fu_pxi_tp_device_to_string;
-	device_class->probe = fu_pxi_tp_device_probe;
-	device_class->setup = fu_pxi_tp_device_setup;
-	device_class->reload = fu_pxi_tp_device_reload;
-	device_class->prepare = fu_pxi_tp_device_prepare;
-	device_class->cleanup = fu_pxi_tp_device_cleanup;
-	device_class->attach = fu_pxi_tp_device_attach;
-	device_class->detach = fu_pxi_tp_device_detach;
-	device_class->prepare_firmware = fu_pxi_tp_device_prepare_firmware;
-	device_class->write_firmware = fu_pxi_tp_device_write_firmware;
-	device_class->set_quirk_kv = fu_pxi_tp_device_set_quirk_kv;
-	device_class->set_progress = fu_pxi_tp_device_set_progress;
+	g_message("fu_pxi_tp_device_class_init");
+	// GObjectClass *object_class = G_OBJECT_CLASS(klass);
+	// FuDeviceClass *device_class = FU_DEVICE_CLASS(klass);
+	// object_class->finalize = fu_pxi_device_finalize;
+	// device_class->to_string = fu_pxi_device_to_string;
+	// device_class->probe = fu_pxi_device_probe;
+	// device_class->setup = fu_pxi_device_setup;
+	// device_class->reload = fu_pxi_device_reload;
+	// device_class->prepare = fu_pxi_device_prepare;
+	// device_class->cleanup = fu_pxi_device_cleanup;
+	// device_class->attach = fu_pxi_device_attach;
+	// device_class->detach = fu_pxi_device_detach;
+	// device_class->prepare_firmware = fu_pxi_device_prepare_firmware;
+	// device_class->write_firmware = fu_pxi_device_write_firmware;
+	// device_class->set_quirk_kv = fu_pxi_device_set_quirk_kv;
+	// device_class->set_progress = fu_pxi_device_set_progress;
+	FuDeviceClass *klass_device = FU_DEVICE_CLASS(klass);
+	klass_device->probe = fu_pxi_tp_device_probe;
+	klass_device->setup = fu_pxi_tp_device_setup;
+	klass_device->write_firmware = fu_pxi_tp_device_write_firmware;
 }

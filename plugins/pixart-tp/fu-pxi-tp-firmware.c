@@ -46,10 +46,15 @@ fu_pxi_tp_firmware_validate(FuFirmware *firmware,
 			    gsize offset,
 			    GError **error)
 {
-	// return fu_struct_pxi_tp_header_validate_stream(stream,
-	// 					     offset,
-	// 					     error);
-	/* success */
+	// ✅ 假設只接受至少 4 bytes 的 firmware
+	g_autoptr(GBytes) fw = fu_firmware_get_bytes(firmware, error);
+	if (fw == NULL || g_bytes_get_size(fw) < 4) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_INVALID_FILE,
+			    "Firmware too small or empty");
+		return FALSE;
+	}
 	return TRUE;
 }
 
@@ -60,15 +65,24 @@ fu_pxi_tp_firmware_parse(FuFirmware *firmware,
 			 GError **error)
 {
 	FuPxiTpFirmware *self = FU_PXI_TP_FIRMWARE(firmware);
-	g_autoptr(GByteArray) st_hdr = NULL;
+	g_autoptr(GBytes) fw = fu_firmware_get_bytes(firmware, error);
+	if (fw == NULL)
+		return FALSE;
 
-	/* TODO: parse firmware into images */
-	// st_hdr = fu_struct_pxi_tp_hdr_parse_stream(stream, 0x0, error);
-	// if (st_hdr == NULL)
-	// 	return FALSE;
-	// self->start_addr = 0x1234;
+	const guint8 *data = g_bytes_get_data(fw, NULL);
+	gsize sz = g_bytes_get_size(fw);
+
+	if (sz == 0 || data[0] == 'x') {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_INVALID_FILE,
+			    "Invalid or empty firmware content");
+		return FALSE;
+	}
+
+	self->start_addr = 0x1234;
 	fu_firmware_set_version(firmware, "1.2.3");
-	// fu_firmware_set_bytes(firmware, fw);
+
 	return TRUE;
 }
 
