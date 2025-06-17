@@ -85,7 +85,6 @@ fu_pxi_tp_firmware_write(FuFirmware *firmware, GError **error)
 		return NULL;
 
 	/* TODO: write to the buffer with the correct format */
-	g_set_error(self != NULL);
 	fu_byte_array_append_bytes(buf, fw);
 
 	/* success */

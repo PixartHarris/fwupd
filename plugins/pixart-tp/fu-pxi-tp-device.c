@@ -48,8 +48,6 @@ fu_pxi_tp_device_detach(FuDevice *device, FuProgress *progress, GError **error)
 	}
 
 	/* TODO: switch the device into bootloader mode */
-	g_set_error(self != NULL);
-
 	fu_device_add_flag(device, FWUPD_DEVICE_FLAG_WAIT_FOR_REPLUG);
 	return TRUE;
 }
@@ -66,8 +64,6 @@ fu_pxi_tp_device_attach(FuDevice *device, FuProgress *progress, GError **error)
 	}
 
 	/* TODO: switch the device into runtime mode */
-	g_set_error(self != NULL);
-
 	fu_device_add_flag(device, FWUPD_DEVICE_FLAG_WAIT_FOR_REPLUG);
 	return TRUE;
 }
@@ -77,7 +73,6 @@ fu_pxi_tp_device_reload(FuDevice *device, GError **error)
 {
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
 	/* TODO: reprobe the hardware, or delete this vfunc to use ->setup() as a fallback */
-	g_set_error(self != NULL);
 	return TRUE;
 }
 
@@ -107,7 +102,6 @@ fu_pxi_tp_device_setup(FuDevice *device, GError **error)
 		return FALSE;
 
 	/* TODO: get the version and other properties from the hardware while open */
-	g_set_error(self != NULL);
 	fu_device_set_version(device, "1.2.3");
 
 	/* success */
@@ -122,7 +116,6 @@ fu_pxi_tp_device_prepare(FuDevice *device,
 {
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
 	/* TODO: anything the device has to do before the update starts */
-	g_set_error(self != NULL);
 	return TRUE;
 }
 
@@ -134,7 +127,6 @@ fu_pxi_tp_device_cleanup(FuDevice *device,
 {
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
 	/* TODO: anything the device has to do when the update has completed */
-	g_set_error(self != NULL);
 	return TRUE;
 }
 
@@ -322,8 +314,6 @@ fu_pxi_tp_device_finalize(GObject *object)
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(object);
 
 	/* TODO: free any allocated instance state here */
-	g_set_error(self != NULL);
-
 	G_OBJECT_CLASS(fu_pxi_tp_device_parent_class)->finalize(object);
 }
 
