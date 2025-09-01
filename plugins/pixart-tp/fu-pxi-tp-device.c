@@ -376,19 +376,20 @@ fu_pxi_tp_device_setup(FuDevice *device, GError **error)
 
 	g_autoptr(GByteArray) buf = g_byte_array_new();
 
-	fu_byte_array_set_size(buf, 4096, 0xAA);
+	// fu_byte_array_set_size(buf, 4096, 0xAA);
 
 	self->sram_select = 0x0f;
 
-	fu_pxi_tp_device_update_flash_process(device, 4096, 0, buf, error);
+	// fu_pxi_tp_device_update_flash_process(device, 4096, 0, buf, error);
 	// /* HidrawDevice->setup */
 	// if (!FU_DEVICE_CLASS(fu_pxi_tp_device_parent_class)->setup(device, error))
 	// 	return FALSE;
 
 	/* TODO: get the version and other properties from the hardware while open */
-	// fu_device_set_version(device, "1.2.3");
-
-	/* success */
+	// 不同裝置的HID Version放在不同位置 可能需要 quirk 來區分
+	guint16 ver_u16 = 0;
+	g_autofree gchar *ver = g_strdup_printf("0x%04x", ver_u16); // 跟 format 對齊
+	fu_device_set_version(device, ver);
 	return TRUE;
 }
 
@@ -430,63 +431,23 @@ fu_pxi_tp_device_prepare_firmware(FuDevice *device,
 	return g_steal_pointer(&firmware);
 }
 
+/* TODO: 把這個 stub 改成你的 HID 傳輸實作
+ * 回傳 TRUE 表示這個 block 寫入成功
+ */
 static gboolean
-fu_pxi_tp_device_write_blocks(FuPxiTpDevice *self,
-			      FuChunkArray *chunks,
-			      FuProgress *progress,
-			      GError **error)
+fu_pxi_tp_device_write_block(FuPxiTpDevice *self,
+			     guint32 flash_addr,
+			     const guint8 *data,
+			     gsize len,
+			     GError **error)
 {
-	/* progress */
-	fu_progress_set_id(progress, G_STRLOC);
-	fu_progress_set_steps(progress, fu_chunk_array_length(chunks));
-	for (guint i = 0; i < fu_chunk_array_length(chunks); i++) {
-		g_autoptr(FuChunk) chk = NULL;
-
-		/* prepare chunk */
-		chk = fu_chunk_array_index(chunks, i, error);
-		if (chk == NULL)
-			return FALSE;
-
-		/* TODO: send to hardware */
-
-		guint8 buf[64] = {0x12, 0x24, 0x0}; /* TODO: this is the preamble */
-
-		/* TODO: copy in payload */
-		if (!fu_memcpy_safe(buf,
-				    sizeof(buf),
-				    0x2, /* TODO: copy to dst at offset */
-				    fu_chunk_get_data(chk),
-				    fu_chunk_get_data_sz(chk),
-				    0x0, /* src */
-				    fu_chunk_get_data_sz(chk),
-				    error))
-			return FALSE;
-		if (!fu_hid_device_set_report(FU_HID_DEVICE(self),
-					      0x01,
-					      buf,
-					      sizeof(buf),
-					      5000, /* ms */
-					      FU_HID_DEVICE_FLAG_NONE,
-					      error)) {
-			g_prefix_error(error, "failed to send packet: ");
-			return FALSE;
-		}
-		if (!fu_hid_device_get_report(FU_HID_DEVICE(self),
-					      0x01,
-					      buf,
-					      sizeof(buf),
-					      5000, /* ms */
-					      FU_HID_DEVICE_FLAG_NONE,
-					      error)) {
-			g_prefix_error(error, "failed to receive packet: ");
-			return FALSE;
-		}
-
-		/* update progress */
-		fu_progress_step_done(progress);
-	}
-
-	/* success */
+	/* 這裡先做成乾跑/日誌：確保能連結通過；等你有傳輸格式再填 */
+	g_debug("WRITE_BLOCK addr=0x%08x len=%zu", flash_addr, len);
+	(void)self;
+	(void)flash_addr;
+	(void)data;
+	(void)len;
+	(void)error;
 	return TRUE;
 }
 
@@ -498,37 +459,103 @@ fu_pxi_tp_device_write_firmware(FuDevice *device,
 				GError **error)
 {
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
-	g_autoptr(GInputStream) stream = NULL;
-	g_autoptr(FuChunkArray) chunks = NULL;
 
-	/* progress */
+	/* 進度設定：寫入 90%、驗證 10%（你可調整權重） */
 	fu_progress_set_id(progress, G_STRLOC);
 	fu_progress_add_flag(progress, FU_PROGRESS_FLAG_GUESSED);
-	fu_progress_add_step(progress, FWUPD_STATUS_DEVICE_WRITE, 44, NULL);
-	fu_progress_add_step(progress, FWUPD_STATUS_DEVICE_VERIFY, 35, NULL);
+	fu_progress_add_step(progress, FWUPD_STATUS_DEVICE_WRITE, 90, NULL);
+	fu_progress_add_step(progress, FWUPD_STATUS_DEVICE_VERIFY, 10, NULL);
 
-	/* get default image */
-	stream = fu_firmware_get_stream(firmware, error);
-	if (stream == NULL)
+	/* 型別檢查：一定要是我們的 firmware container */
+	if (!FU_IS_PXI_TP_FIRMWARE(firmware)) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_INVALID_FILE,
+			    "expected FuPxiTpFirmware container");
+		return FALSE;
+	}
+	FuPxiTpFirmware *ctn = FU_PXI_TP_FIRMWARE(firmware);
+
+	/* 把要寫入的 bytes 拿出來（含 patches） */
+	g_autoptr(GBytes) fw = fu_firmware_get_bytes_with_patches(firmware, error);
+	if (fw == NULL)
 		return FALSE;
 
-	// /* write each block */
-	// chunks = fu_chunk_array_new_from_stream(stream,
-	// 					self->start_addr,
-	// 					FU_CHUNK_PAGESZ_NONE,
-	// 					64 /* block_size */,
-	// 					error);
-	// if (chunks == NULL)
-	// 	return FALSE;
-	// if (!fu_pxi_tp_device_write_blocks(self, chunks, fu_progress_get_child(progress), error))
-	// 	return FALSE;
+	gsize fw_sz = 0;
+	const guint8 *fw_data = g_bytes_get_data(fw, &fw_sz);
 
-	// fu_progress_step_done(progress);
+	/* 取 sections */
+	const GPtrArray *secs = fu_pxi_tp_firmware_get_sections(ctn);
+	if (secs == NULL || secs->len == 0) {
+		g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_INTERNAL, "no sections to write");
+		return FALSE;
+	}
 
-	/* TODO: verify each block */
+	/* 計算要寫入的總 bytes（只算 internal & valid） */
+	gsize total_bytes = 0;
+	for (guint i = 0; i < secs->len; i++) {
+		FuPxiTpSection *s = g_ptr_array_index((GPtrArray *)secs, i);
+		if (!s->is_valid_update || s->is_external)
+			continue;
+		if ((guint64)s->resolved_offset + (guint64)s->section_length > (guint64)fw_sz) {
+			g_set_error(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_FILE,
+				    "section %u is out of file range",
+				    i);
+			return FALSE;
+		}
+		total_bytes += s->section_length;
+	}
+
+	if (total_bytes == 0) {
+		/* 沒有需要寫入的資料，直接把兩個步驟結束 */
+		fu_progress_step_done(progress); /* WRITE */
+		fu_progress_step_done(progress); /* VERIFY */
+		return TRUE;
+	}
+
+	/* 取「寫入步驟」的子進度，用百分比更新 */
+	FuProgress *prog_write = fu_progress_get_child(progress);
+
+	/* 依你的 HID payload 能力調整 chunk 大小 */
+	const gboolean do_write = TRUE;
+
+	/* 逐 section 寫入 */
+	//     for (guint i = 0; i < secs->len; i++) {
+	//         FuPxiTpSection *s = g_ptr_array_index((GPtrArray *)secs, i);
+	//         if (!s->is_valid_update || s->is_external)
+	//             continue;
+
+	//         const guint8 *p = fw_data + s->resolved_offset;
+	//         gsize remain = s->section_length;
+	//         guint32 flash_addr = s->target_flash_start;
+	// 	if (do_write) {
+	// // 		static gboolean
+	// // fu_pxi_tp_device_update_flash_process(FuDevice *device,
+	// // 				      guint32 data_size,
+	// // 				      guint8 start_sector,
+	// // 				      GByteArray *data,
+	// // 				      GError **error)
+
+	// 	if (!fu_pxi_tp_device_update_flash_process(self, flash_addr, p, n, error)) {
+	// 		g_prefix_error(error, "write section %u @0x%08x failed: ", i, flash_addr);
+	// 		return FALSE;
+	// 	}
+	// 	} else {
+	// 	g_debug("DRYRUN: would write section %u: addr=0x%08x len=%zu", i, flash_addr, n);
+	// 	}
+	//     }
+
+	/* 完成寫入步驟 */
 	fu_progress_step_done(progress);
 
-	/* success! */
+	/* （可選）驗證步驟：如果有裝置端 CRC/摘要比對，請在這裡實作 */
+	FuProgress *prog_verify = fu_progress_get_child(progress);
+	(void)flags; /* 目前未使用，可依 flags 控制是否啟用 verify 等 */
+	fu_progress_set_percentage(prog_verify, 100);
+	fu_progress_step_done(progress);
+
 	return TRUE;
 }
 
@@ -573,7 +600,7 @@ fu_pxi_tp_device_set_progress(FuDevice *self, FuProgress *progress)
 static void
 fu_pxi_tp_device_init(FuPxiTpDevice *self)
 {
-	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_TRIPLET);
+	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_HEX);
 	fu_device_set_remove_delay(FU_DEVICE(self), FU_DEVICE_REMOVE_DELAY_RE_ENUMERATE);
 	fu_device_add_protocol(FU_DEVICE(self), "com.pixart.tp");
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);

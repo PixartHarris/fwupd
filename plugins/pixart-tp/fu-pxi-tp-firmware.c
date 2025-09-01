@@ -729,3 +729,110 @@ fu_pxi_tp_firmware_get_sections(FuPxiTpFirmware *self)
 	g_return_val_if_fail(FU_IS_PXI_TP_FIRMWARE(self), NULL);
 	return self->sections;
 }
+
+/* 依檔案偏移回傳零拷貝 slice：caller 擁有回傳的 GBytes*（transfer full） */
+GBytes *
+fu_pxi_tp_firmware_get_slice_by_file(FuPxiTpFirmware *self,
+				     gsize file_off,
+				     gsize len,
+				     GError **error)
+{
+	g_return_val_if_fail(FU_IS_PXI_TP_FIRMWARE(self), NULL);
+
+	/* 取得「原始＋patch 後」的最終 bytes */
+	g_autoptr(GBytes) fw = fu_firmware_get_bytes_with_patches(FU_FIRMWARE(self), error);
+	if (fw == NULL)
+		return NULL;
+
+	gsize sz = 0;
+	(void)g_bytes_get_data(fw, &sz);
+
+	/* 邊界檢查，避免 overflow 與越界 */
+	if ((len > 0 && file_off >= sz) ||
+	    (len > 0 && ((guint64)file_off + (guint64)len > (guint64)sz))) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_INVALID_FILE,
+			    "file slice out of range: off=%" G_GSIZE_FORMAT ", len=%" G_GSIZE_FORMAT
+			    ", size=%" G_GSIZE_FORMAT,
+			    file_off,
+			    len,
+			    sz);
+		return NULL;
+	}
+
+	/* 回傳 child-slice；會自動持有 parent 的引用，不會複製實體資料 */
+	return g_bytes_new_from_bytes(fw, file_off, len);
+}
+
+/* 依 flash 位址映射到檔案位移，再回傳零拷貝 slice。
+ * 僅接受「完全落在單一 internal & valid section 內」的請求；跨段視為錯誤（保持介面簡單）。
+ */
+GBytes *
+fu_pxi_tp_firmware_get_slice_by_flash(FuPxiTpFirmware *self,
+				      guint32 flash_addr,
+				      gsize len,
+				      GError **error)
+{
+	g_return_val_if_fail(FU_IS_PXI_TP_FIRMWARE(self), NULL);
+
+	/* 先拿 bytes 與大小；slice 會基於它建立（零拷貝） */
+	g_autoptr(GBytes) fw = fu_firmware_get_bytes_with_patches(FU_FIRMWARE(self), error);
+	if (fw == NULL)
+		return NULL;
+
+	gsize sz = 0;
+	(void)g_bytes_get_data(fw, &sz);
+
+	const GPtrArray *secs = fu_pxi_tp_firmware_get_sections(self);
+	if (secs == NULL) {
+		g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_INTERNAL, "no sections available");
+		return NULL;
+	}
+
+	/* 逐段找「涵蓋該 flash 區間」的 single section */
+	for (guint i = 0; i < secs->len; i++) {
+		FuPxiTpSection *s = g_ptr_array_index((GPtrArray *)secs, i);
+		if (!s->is_valid_update || s->is_external)
+			continue;
+
+		const guint64 sec_flash_begin = (guint64)s->target_flash_start;
+		const guint64 sec_flash_end =
+		    sec_flash_begin + (guint64)s->section_length; /* half-open */
+		const guint64 req_flash_begin = (guint64)flash_addr;
+		const guint64 req_flash_end = req_flash_begin + (guint64)len;
+
+		/* 完全落在此段 */
+		if (req_flash_begin >= sec_flash_begin && req_flash_end <= sec_flash_end) {
+			/* 對應的檔案偏移 */
+			const guint64 off_in_sec = req_flash_begin - sec_flash_begin;
+			const guint64 file_off_64 = (guint64)s->resolved_offset + off_in_sec;
+
+			/* 再做一次檔案邊界保險 */
+			if (file_off_64 + (guint64)len > (guint64)sz) {
+				g_set_error(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_INVALID_FILE,
+					    "mapped slice out of file range: sec=%u "
+					    "file_off=%" G_GUINT64_FORMAT " len=%" G_GSIZE_FORMAT
+					    " size=%" G_GSIZE_FORMAT,
+					    i,
+					    file_off_64,
+					    len,
+					    sz);
+				return NULL;
+			}
+
+			/* OK：回傳零拷貝 slice */
+			return g_bytes_new_from_bytes(fw, (gsize)file_off_64, len);
+		}
+	}
+
+	g_set_error(error,
+		    FWUPD_ERROR,
+		    FWUPD_ERROR_INVALID_FILE,
+		    "flash range [0x%08x..0x%08x) not covered by a single internal section",
+		    flash_addr,
+		    (guint32)(flash_addr + (len ? (len - 1) : 0)));
+	return NULL;
+}
