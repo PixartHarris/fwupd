@@ -18,7 +18,6 @@
 struct _FuPxiTpDevice {
 	FuHidrawDevice parent_instance;
 	guint8 sram_select;
-	guint16 start_addr;
 };
 
 G_DEFINE_TYPE(FuPxiTpDevice, fu_pxi_tp_device, FU_TYPE_HIDRAW_DEVICE)
@@ -304,15 +303,7 @@ static void
 fu_pxi_tp_device_to_string(FuDevice *device, guint idt, GString *str)
 {
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
-	fwupd_codec_string_append_hex(str, idt, "StartAddr", self->start_addr);
-}
-
-/* TODO: this is only required if the device instance state is required elsewhere */
-guint16
-fu_pxi_tp_device_get_start_addr(FuPxiTpDevice *self)
-{
-	g_return_val_if_fail(FU_IS_PXI_TP_DEVICE(self), G_MAXUINT16);
-	return self->start_addr;
+	// fwupd_codec_string_append_hex(str, idt, "StartAddr", self->start_addr);
 }
 
 static gboolean
@@ -387,7 +378,6 @@ fu_pxi_tp_device_setup(FuDevice *device, GError **error)
 
 	fu_byte_array_set_size(buf, 4096, 0xAA);
 
-	self->start_addr = 0;
 	self->sram_select = 0x0f;
 
 	fu_pxi_tp_device_update_flash_process(device, 4096, 0, buf, error);
@@ -435,16 +425,6 @@ fu_pxi_tp_device_prepare_firmware(FuDevice *device,
 	g_autoptr(FuFirmware) firmware = fu_pxi_tp_firmware_new();
 
 	/* TODO: you do not need to use this vfunc if not checking attributes */
-	if (self->start_addr != fu_pxi_tp_firmware_get_start_addr(FU_PXI_TP_FIRMWARE(firmware))) {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_INVALID_FILE,
-			    "start address mismatch, got 0x%04x, expected 0x%04x",
-			    fu_pxi_tp_firmware_get_start_addr(FU_PXI_TP_FIRMWARE(firmware)),
-			    self->start_addr);
-		return NULL;
-	}
-
 	if (!fu_firmware_parse_stream(firmware, stream, 0x0, flags, error))
 		return NULL;
 	return g_steal_pointer(&firmware);
@@ -532,18 +512,18 @@ fu_pxi_tp_device_write_firmware(FuDevice *device,
 	if (stream == NULL)
 		return FALSE;
 
-	/* write each block */
-	chunks = fu_chunk_array_new_from_stream(stream,
-						self->start_addr,
-						FU_CHUNK_PAGESZ_NONE,
-						64 /* block_size */,
-						error);
-	if (chunks == NULL)
-		return FALSE;
-	if (!fu_pxi_tp_device_write_blocks(self, chunks, fu_progress_get_child(progress), error))
-		return FALSE;
+	// /* write each block */
+	// chunks = fu_chunk_array_new_from_stream(stream,
+	// 					self->start_addr,
+	// 					FU_CHUNK_PAGESZ_NONE,
+	// 					64 /* block_size */,
+	// 					error);
+	// if (chunks == NULL)
+	// 	return FALSE;
+	// if (!fu_pxi_tp_device_write_blocks(self, chunks, fu_progress_get_child(progress), error))
+	// 	return FALSE;
 
-	fu_progress_step_done(progress);
+	// fu_progress_step_done(progress);
 
 	/* TODO: verify each block */
 	fu_progress_step_done(progress);
@@ -560,15 +540,16 @@ fu_pxi_tp_device_set_quirk_kv(FuDevice *device,
 {
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
 
-	/* TODO: parse value from quirk file */
-	if (g_strcmp0(key, "PxiTpStartAddr") == 0) {
-		guint64 tmp = 0;
-		if (!fu_strtoull(value, &tmp, 0, G_MAXUINT16, FU_INTEGER_BASE_AUTO, error))
-			return FALSE;
-		self->start_addr = tmp;
-		return TRUE;
-	}
+	// /* TODO: parse value from quirk file */
+	// if (g_strcmp0(key, "PxiTpStartAddr") == 0) {
+	// 	guint64 tmp = 0;
+	// 	if (!fu_strtoull(value, &tmp, 0, G_MAXUINT16, FU_INTEGER_BASE_AUTO, error))
+	// 		return FALSE;
+	// 	self->start_addr = tmp;
+	// 	return TRUE;
+	// }
 
+	return TRUE;
 	/* failed */
 	g_set_error_literal(error,
 			    FWUPD_ERROR,
@@ -592,7 +573,6 @@ fu_pxi_tp_device_set_progress(FuDevice *self, FuProgress *progress)
 static void
 fu_pxi_tp_device_init(FuPxiTpDevice *self)
 {
-	self->start_addr = 0x5000;
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_TRIPLET);
 	fu_device_set_remove_delay(FU_DEVICE(self), FU_DEVICE_REMOVE_DELAY_RE_ENUMERATE);
 	fu_device_add_protocol(FU_DEVICE(self), "com.pixart.tp");
