@@ -1,15 +1,16 @@
 #pragma once
 
+#include "fu-pxi-tp-define.h"
 #include "fu-pxi-tp-device.h"
 
 #define WRITE_REG(bank, addr, val)                                                                 \
 	do {                                                                                       \
 		if (!fu_pxi_tp_register_write(self, (bank), (addr), (val), error)) {               \
-			g_prefix_error(error,                                                      \
-				       "write register failed (0x%02x, 0x%02x, 0x%02x)",           \
-				       (guint)(bank),                                              \
-				       (guint)(addr),                                              \
-				       (guint)(val));                                              \
+			PXI_FAIL(error,                                                            \
+				 "write register failed (0x%02x, 0x%02x, 0x%02x)",                 \
+				 (guint)(bank),                                                    \
+				 (guint)(addr),                                                    \
+				 (guint)(val));                                                    \
 			return FALSE;                                                              \
 		}                                                                                  \
 	} while (0)
@@ -17,10 +18,21 @@
 #define READ_REG(bank, addr, out_val_ptr)                                                          \
 	do {                                                                                       \
 		if (!fu_pxi_tp_register_read(self, (bank), (addr), (out_val_ptr), error)) {        \
-			g_prefix_error(error,                                                      \
-				       "read register failed (0x%02x, 0x%02x",                     \
-				       (guint)(bank),                                              \
-				       (guint)(addr));                                             \
+			PXI_FAIL(error,                                                            \
+				 "read register failed (0x%02x, 0x%02x",                           \
+				 (guint)(bank),                                                    \
+				 (guint)(addr));                                                   \
+			return FALSE;                                                              \
+		}                                                                                  \
+	} while (0)
+
+#define READ_USR_REG(bank, addr, out_val_ptr)                                                      \
+	do {                                                                                       \
+		if (!fu_pxi_tp_register_user_read(self, (bank), (addr), (out_val_ptr), error)) {   \
+			PXI_FAIL(error,                                                            \
+				 "read user register failed (0x%02x, 0x%02x",                      \
+				 (guint)(bank),                                                    \
+				 (guint)(addr));                                                   \
 			return FALSE;                                                              \
 		}                                                                                  \
 	} while (0)

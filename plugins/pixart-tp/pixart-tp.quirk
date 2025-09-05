@@ -1,9 +1,5 @@
 [HIDRAW\VEN_093A&DEV_0343]
 Plugin = pixart_tp
 GType = FuPxiTpDevice
-PageSize = 256
-SectorPages = 16
-SectorCount = 15
-FirmwareStartPage = 0
-ParameterStartPage = 224
-SramBurstSize = 256
+HidVersionReg = bank=0x00;addr=0xb2
+SramSelect = 0x0f

@@ -26,12 +26,12 @@ guint16
 fu_pxi_tp_firmware_get_num_valid_sections(FuPxiTpFirmware *self);
 const GPtrArray *
 fu_pxi_tp_firmware_get_sections(FuPxiTpFirmware *self); /* element-type: FuPxiTpSection* */
-GBytes *
+GByteArray *
 fu_pxi_tp_firmware_get_slice_by_file(FuPxiTpFirmware *self,
-				     gsize file_off,
+				     gsize file_address,
 				     gsize len,
 				     GError **error);
-GBytes *
+GByteArray *
 fu_pxi_tp_firmware_get_slice_by_flash(FuPxiTpFirmware *self,
 				      guint32 flash_addr,
 				      gsize len,

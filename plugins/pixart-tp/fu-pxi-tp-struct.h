@@ -48,8 +48,7 @@ typedef struct {
 	gboolean is_valid_update;			    /* (update_info & PXI_TP_UI_VALID) */
 	gboolean is_external;				    /* (update_info & PXI_TP_UI_EXTERNAL) */
 	guint32 target_flash_start;			    /* if type==0 */
-	guint32 internal_file_start;			    /* if !is_external */
+	guint32 internal_file_start; /* if !is_external, absolute file offset */
 	guint32 section_length;				    /* if !is_external */
 	gchar external_file_name[PXI_TP_S_EXTNAME_LEN + 1]; /* NUL-terminated */
-	guint64 resolved_offset;			    /* absolute file offset if internal */
 } FuPxiTpSection;
