@@ -93,7 +93,6 @@ fu_pxi_tp_device_flash_execute(FuDevice *device,
 
 	if (out_val != 0) {
 		PXI_FAIL(error, FWUPD_ERROR, FWUPD_ERROR_WRITE, "Flash executes failure.");
-		// g_prefix_error(error, "Flash executes failure.");
 		return FALSE;
 	}
 
@@ -120,7 +119,6 @@ fu_pxi_tp_device_flash_write_enable(FuDevice *device, GError **error)
 
 	if ((out_val & 0x02) != 0x02) {
 		PXI_FAIL(error, FWUPD_ERROR, FWUPD_ERROR_WRITE, "Flash write enable failure.");
-		// g_prefix_error(error, "Flash write enable failure.");
 		g_message("Flash write enable failure.");
 		return FALSE;
 	}
@@ -146,7 +144,6 @@ fu_pxi_tp_device_flash_wait_busy(FuDevice *device, GError **error)
 
 	if ((out_val & 0x01) != 0x00) {
 		PXI_FAIL(error, FWUPD_ERROR, FWUPD_ERROR_WRITE, "Flash wait busy failure.");
-		// g_prefix_error(error, "Flash wait busy failure.");
 		return FALSE;
 	}
 
@@ -197,6 +194,9 @@ fu_pxi_tp_device_flash_program_256b_to_flash(FuDevice *device,
 	if (!fu_pxi_tp_device_flash_write_enable(device, error))
 		return FALSE;
 
+	WRITE_REG(0x04, 0x2e, 0x00);
+	WRITE_REG(0x04, 0x2f, 0x00);
+
 	WRITE_REG(0x04, 0x48, (flash_address >> 0) & 0xff);
 	WRITE_REG(0x04, 0x49, (flash_address >> 8) & 0xff);
 	WRITE_REG(0x04, 0x4a, (flash_address >> 16) & 0xff);
@@ -221,11 +221,28 @@ fu_pxi_tp_device_write_sram_256b(FuDevice *device, const guint8 *data, GError **
 	WRITE_REG(0x06, 0x0a, 0x00);
 	if (!fu_pxi_tp_register_burst_write(self, data, 256, error)) {
 		PXI_FAIL(error, FWUPD_ERROR, FWUPD_ERROR_WRITE, "Burst write buffer failure.");
-		// g_prefix_error(error, "Burst write buffer failure.");
 		g_message("Burst write buffer failure.");
 		return FALSE;
 	}
 	WRITE_REG(0x06, 0x0a, 0x01);
+
+	return TRUE;
+}
+
+static gboolean
+fu_pxi_tp_device_reset(FuDevice *device, guint8 key1, guint8 key2, GError **error)
+{
+	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
+
+	WRITE_REG(0x01, 0x2c, key1);
+	fu_device_sleep(device, 30);
+	WRITE_REG(0x01, 0x2d, key2);
+
+	if (key2 == 0xbb) {
+		fu_device_sleep(device, 500);
+	} else {
+		fu_device_sleep(device, 10);
+	}
 
 	return TRUE;
 }
@@ -256,7 +273,6 @@ fu_pxi_tp_device_update_flash_process(FuDevice *device,
 				 FWUPD_ERROR,
 				 FWUPD_ERROR_WRITE,
 				 "Burst write buffer failure.");
-			// g_prefix_error(error, "Flash erase failure.");
 			g_message("Error: %s", (*error)->message);
 			return FALSE;
 		}
@@ -497,7 +513,6 @@ fu_pxi_tp_device_write_firmware(FuDevice *device,
 					 FWUPD_ERROR,
 					 FWUPD_ERROR_WRITE,
 					 "write section failed.");
-				// g_prefix_error(error, "write section failed.");
 				return FALSE;
 			}
 		} else {
@@ -766,10 +781,10 @@ fu_pxi_tp_device_attach(FuDevice *device, FuProgress *progress, GError **error)
 
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
 
-	WRITE_REG(0x01, 0x2c, 0xaa);
-	fu_device_sleep(device, 30);
-	WRITE_REG(0x01, 0x2d, 0xbb);
-	fu_device_sleep(device, 500);
+	if (!fu_pxi_tp_device_reset(device, 0xaa, 0xbb, error)) {
+		return FALSE;
+	}
+
 	fu_device_remove_flag(device, FWUPD_DEVICE_FLAG_IS_BOOTLOADER);
 	g_message("Exit Bootloader");
 	return TRUE;
@@ -782,10 +797,11 @@ fu_pxi_tp_device_detach(FuDevice *device, FuProgress *progress, GError **error)
 		return TRUE;
 
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
-	WRITE_REG(0x01, 0x2c, 0xaa);
-	fu_device_sleep(device, 30);
-	WRITE_REG(0x01, 0x2d, 0xcc);
-	fu_device_sleep(device, 10);
+
+	if (!fu_pxi_tp_device_reset(device, 0xaa, 0xcc, error)) {
+		return FALSE;
+	}
+
 	fu_device_add_flag(device, FWUPD_DEVICE_FLAG_IS_BOOTLOADER);
 	g_message("Enter Bootloader");
 	return TRUE;
@@ -801,10 +817,9 @@ fu_pxi_tp_device_cleanup(FuDevice *device,
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
 
 	if (fu_device_has_flag(device, FWUPD_DEVICE_FLAG_IS_BOOTLOADER)) {
-		WRITE_REG(0x01, 0x2c, 0xaa);
-		fu_device_sleep(device, 30);
-		WRITE_REG(0x01, 0x2d, 0xbb);
-		fu_device_sleep(device, 500);
+		if (!fu_pxi_tp_device_reset(device, 0xaa, 0xbb, error)) {
+			return FALSE;
+		}
 		fu_device_remove_flag(device, FWUPD_DEVICE_FLAG_IS_BOOTLOADER);
 		g_message("Exit Bootloader");
 	}
