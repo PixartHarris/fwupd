@@ -151,13 +151,13 @@ fu_pxi_tp_device_flash_wait_busy(FuDevice *device, GError **error)
 }
 
 static gboolean
-fu_pxi_tp_device_flash_erase_sector(FuDevice *device, guint8 sector_cnt, GError **error)
+fu_pxi_tp_device_flash_erase_sector(FuDevice *device, guint8 sector, GError **error)
 {
 	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
 
 	g_message("Start Erase Sector.");
 
-	guint32 flash_address = (guint32)(sector_cnt) * 4096;
+	guint32 flash_address = (guint32)(sector) * 4096;
 
 	if (!fu_pxi_tp_device_flash_wait_busy(device, error))
 		return FALSE;
@@ -245,6 +245,120 @@ fu_pxi_tp_device_reset(FuDevice *device, guint8 key1, guint8 key2, GError **erro
 	}
 
 	return TRUE;
+}
+
+static gboolean
+fu_pxi_tp_device_firmware_clear(FuDevice *device, GError **error)
+{
+	guint32 start_address = fu_pxi_tp_firmware_get_firmware_address(device);
+
+	if (!fu_pxi_tp_device_flash_erase_sector(device, (start_address / 4096), error)) {
+		PXI_FAIL(error, FWUPD_ERROR, FWUPD_ERROR_WRITE, "Clear firmware failure.");
+		g_message("Error: %s", (*error)->message);
+		return FALSE;
+	}
+}
+
+static guint32
+fu_pxi_tp_device_crc_firmware(FuDevice *device, GError **error)
+{
+	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
+
+	guint8 out_val = 0;
+	guint8 swap_flag = 0;
+	guint16 part_id = 0;
+	guint32 return_value = 0;
+
+	READ_REG(0x04, 0x29, &out_val);
+	swap_flag = out_val;
+	READ_REG(0x00, 0x78, &out_val);
+	part_id = out_val;
+	READ_REG(0x00, 0x79, &out_val);
+	part_id += out_val << 8;
+
+	switch (part_id) {
+	case 0x0274:
+		if (swap_flag) {
+			fu_pxi_tp_register_user_write(self, 0x00, 0x82, 0x10, error);
+		} else {
+			fu_pxi_tp_register_user_write(self, 0x00, 0x82, 0x02, error);
+		}
+		break;
+	default:
+		fu_pxi_tp_register_user_write(self, 0x00, 0x82, 0x02, error);
+		break;
+	}
+
+	for (guint i = 0; i < 1000; i++) {
+		fu_device_sleep(device, 10);
+		fu_pxi_tp_register_user_read(self, 0x00, 0x82, &out_val, error);
+		if ((out_val & 0x01) == 0x00)
+			break;
+	}
+
+	fu_pxi_tp_register_user_read(self, 0x00, 0x84, &out_val, error);
+	return_value += out_val;
+	fu_pxi_tp_register_user_read(self, 0x00, 0x85, &out_val, error);
+	return_value += out_val << 8;
+	fu_pxi_tp_register_user_read(self, 0x00, 0x86, &out_val, error);
+	return_value += out_val << 16;
+	fu_pxi_tp_register_user_read(self, 0x00, 0x87, &out_val, error);
+	return_value += out_val << 24;
+
+	g_message("Firmware CRC: 0x%08x", (guint)return_value);
+
+	return return_value;
+}
+
+static guint32
+fu_pxi_tp_device_crc_parameter(FuDevice *device, GError **error)
+{
+	FuPxiTpDevice *self = FU_PXI_TP_DEVICE(device);
+
+	guint8 out_val = 0;
+	guint8 swap_flag = 0;
+	guint16 part_id = 0;
+	guint32 return_value = 0;
+
+	READ_REG(0x04, 0x29, &out_val);
+	swap_flag = out_val;
+	READ_REG(0x00, 0x78, &out_val);
+	part_id = out_val;
+	READ_REG(0x00, 0x79, &out_val);
+	part_id += out_val << 8;
+
+	switch (part_id) {
+	case 0x0274:
+		if (swap_flag) {
+			fu_pxi_tp_register_user_write(self, 0x00, 0x82, 0x20, error);
+		} else {
+			fu_pxi_tp_register_user_write(self, 0x00, 0x82, 0x04, error);
+		}
+		break;
+	default:
+		fu_pxi_tp_register_user_write(self, 0x00, 0x82, 0x02, error);
+		break;
+	}
+
+	for (guint i = 0; i < 1000; i++) {
+		fu_device_sleep(device, 10);
+		fu_pxi_tp_register_user_read(self, 0x00, 0x82, &out_val, error);
+		if ((out_val & 0x01) == 0x00)
+			break;
+	}
+
+	fu_pxi_tp_register_user_read(self, 0x00, 0x84, &out_val, error);
+	return_value += out_val;
+	fu_pxi_tp_register_user_read(self, 0x00, 0x85, &out_val, error);
+	return_value += out_val << 8;
+	fu_pxi_tp_register_user_read(self, 0x00, 0x86, &out_val, error);
+	return_value += out_val << 16;
+	fu_pxi_tp_register_user_read(self, 0x00, 0x87, &out_val, error);
+	return_value += out_val << 24;
+
+	g_message("Parameter CRC: 0x%08x", (guint)return_value);
+
+	return return_value;
 }
 
 static gboolean
@@ -529,6 +643,23 @@ fu_pxi_tp_device_write_firmware(FuDevice *device,
 
 	fu_progress_step_done(progress);
 
+	/* CRC Check */
+	if (!fu_pxi_tp_device_reset(device, 0xaa, 0xcc, error)) {
+		return FALSE;
+	}
+
+	guint32 crc_value = fu_pxi_tp_device_crc_firmware(device, error);
+	if (crc_value != fu_pxi_tp_firmware_get_file_firmware_crc(self)) {
+		fu_pxi_tp_device_firmware_clear(device, error);
+		return FALSE;
+	}
+
+	crc_value = fu_pxi_tp_device_crc_parameter(device, error);
+	if (crc_value != fu_pxi_tp_firmware_get_file_parameter_crc(self)) {
+		fu_pxi_tp_device_firmware_clear(device, error);
+		return FALSE;
+	}
+
 	/* Verify（佔 10%）—你之後可改成真實的讀回/CRC 比對 */
 	FuProgress *prog_verify = fu_progress_get_child(progress);
 	(void)flags;
@@ -801,6 +932,8 @@ fu_pxi_tp_device_detach(FuDevice *device, FuProgress *progress, GError **error)
 	if (!fu_pxi_tp_device_reset(device, 0xaa, 0xcc, error)) {
 		return FALSE;
 	}
+
+	fu_pxi_tp_device_firmware_clear(device, error);
 
 	fu_device_add_flag(device, FWUPD_DEVICE_FLAG_IS_BOOTLOADER);
 	g_message("Enter Bootloader");
