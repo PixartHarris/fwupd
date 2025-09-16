@@ -957,12 +957,12 @@ fu_pxi_tp_device_cleanup(FuDevice *device,
 		g_message("Exit Bootloader");
 	}
 
-	/* 觸發 transport rebind → 讓 fwupd 等 replug → 重新取 report descriptor */
-	if (!fu_pxi_tp_device_transport_rebind(device, error)) {
-		g_message("transport rebind failed: %s",
-			  (error && *error) ? (*error)->message : "unknown");
-		g_clear_error(error); /* cleanup 盡量收斂，不要讓錯冒出來 */
-	}
+	// /* 觸發 transport rebind → 讓 fwupd 等 replug → 重新取 report descriptor */
+	// if (!fu_pxi_tp_device_transport_rebind(device, error)) {
+	// 	g_message("transport rebind failed: %s",
+	// 		  (error && *error) ? (*error)->message : "unknown");
+	// 	g_clear_error(error); /* cleanup 盡量收斂，不要讓錯冒出來 */
+	// }
 
 	return TRUE; /* cleanup 盡量不傳錯 */
 }

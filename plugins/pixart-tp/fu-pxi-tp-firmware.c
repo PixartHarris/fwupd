@@ -806,13 +806,13 @@ fu_pxi_tp_firmware_get_slice_by_flash(FuPxiTpFirmware *self,
 guint32
 fu_pxi_tp_firmware_get_file_firmware_crc(FuPxiTpFirmware *self)
 {
-	return 0;
+	return 0x3b0cd3ef;
 }
 
 guint32
 fu_pxi_tp_firmware_get_file_parameter_crc(FuPxiTpFirmware *self)
 {
-	return 0;
+	return 0x3b0cd3ef;
 }
 
 guint32
