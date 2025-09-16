@@ -21,6 +21,7 @@ G_DEFINE_TYPE(FuQcS5gen2Plugin, fu_qc_s5gen2_plugin, FU_TYPE_PLUGIN)
 static void
 fu_qc_s5gen2_plugin_init(FuQcS5gen2Plugin *self)
 {
+	fu_plugin_add_flag(FU_PLUGIN(self), FWUPD_PLUGIN_FLAG_MUTABLE_ENUMERATION);
 }
 
 static void
@@ -28,7 +29,7 @@ fu_qc_s5gen2_plugin_constructed(GObject *obj)
 {
 	FuPlugin *plugin = FU_PLUGIN(obj);
 	FuContext *ctx = fu_plugin_get_context(plugin);
-	fu_context_add_quirk_key(ctx, "AudioS5gen2Gaia3VendorId");
+	fu_context_add_quirk_key(ctx, "QcS5gen2Gaia3VendorId");
 	fu_plugin_add_device_gtype(plugin, FU_TYPE_QC_S5GEN2_BLE_DEVICE);
 	fu_plugin_add_device_gtype(plugin, FU_TYPE_QC_S5GEN2_HID_DEVICE);
 	fu_plugin_set_device_gtype_default(plugin, FU_TYPE_QC_S5GEN2_DEVICE);

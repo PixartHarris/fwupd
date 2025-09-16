@@ -16,13 +16,8 @@
 #include <glib/gstdio.h>
 #include <jcat.h>
 
-#include "fwupd-device-private.h"
 #include "fwupd-enums-private.h"
-#include "fwupd-remote-private.h"
-#include "fwupd-request-private.h"
-#include "fwupd-security-attr-private.h"
 
-#include "fu-bios-settings-private.h"
 #include "fu-client-list.h"
 #include "fu-dbus-daemon.h"
 #include "fu-device-private.h"
@@ -236,7 +231,7 @@ fu_dbus_daemon_create_request(FuDbusDaemon *self, const gchar *sender, GError **
 				       NULL,
 				       error);
 	if (value == NULL) {
-		g_prefix_error(error, "failed to read user id of caller: ");
+		g_prefix_error_literal(error, "failed to read user id of caller: ");
 		return NULL;
 	}
 	g_variant_get(value, "(u)", &calling_uid);
@@ -325,7 +320,7 @@ fu_dbus_daemon_auth_helper_free(FuMainAuthHelper *helper)
 static void
 fu_dbus_daemon_method_invocation_return_gerror(GDBusMethodInvocation *invocation, GError *error)
 {
-	fu_error_convert(&error);
+	fwupd_error_convert(&error);
 	g_dbus_method_invocation_return_gerror(invocation, error);
 }
 
@@ -956,6 +951,14 @@ fu_dbus_daemon_install_with_helper(FuMainAuthHelper *helper_ref, GError **error)
 		XbNode *component = g_ptr_array_index(components, i);
 		for (guint j = 0; j < devices_possible->len; j++) {
 			FuDevice *device = g_ptr_array_index(devices_possible, j);
+
+			/* emulating */
+			if ((helper->flags & FWUPD_INSTALL_FLAG_ONLY_EMULATED) &&
+			    !fu_device_has_flag(device, FWUPD_DEVICE_FLAG_EMULATED)) {
+				g_debug("skipping non-emulated %s", fu_device_get_id(device));
+				continue;
+			}
+
 			g_debug("testing device %u [%s] with component %u",
 				j,
 				fu_device_get_id(device),
@@ -984,17 +987,6 @@ fu_dbus_daemon_install_with_helper(FuMainAuthHelper *helper_ref, GError **error)
 	return TRUE;
 }
 #endif /* HAVE_GIO_UNIX */
-
-static gboolean
-fu_dbus_daemon_device_id_valid(const gchar *device_id, GError **error)
-{
-	if (g_strcmp0(device_id, FWUPD_DEVICE_ID_ANY) == 0)
-		return TRUE;
-	if (device_id != NULL && strlen(device_id) >= 4)
-		return TRUE;
-	g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_INTERNAL, "invalid device ID: %s", device_id);
-	return FALSE;
-}
 
 typedef struct {
 	gchar *id;
@@ -1083,7 +1075,7 @@ fu_dbus_daemon_invocation_get_input_stream(GDBusMethodInvocation *invocation, GE
 	}
 	return g_steal_pointer(&stream);
 #else
-	g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_INTERNAL, "unsupported feature");
+	g_set_error_literal(error, FWUPD_ERROR, FWUPD_ERROR_INTERNAL, "unsupported feature");
 	return NULL;
 #endif
 }
@@ -1116,7 +1108,7 @@ fu_dbus_daemon_invocation_get_output_stream(GDBusMethodInvocation *invocation, G
 	}
 	return g_steal_pointer(&stream);
 #else
-	g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_INTERNAL, "unsupported feature");
+	g_set_error_literal(error, FWUPD_ERROR, FWUPD_ERROR_INTERNAL, "unsupported feature");
 	return NULL;
 #endif
 }
@@ -1209,10 +1201,6 @@ fu_dbus_daemon_method_get_releases(FuDbusDaemon *self,
 	g_autoptr(GPtrArray) releases = NULL;
 
 	g_variant_get(parameters, "(&s)", &device_id);
-	if (!fu_dbus_daemon_device_id_valid(device_id, &error)) {
-		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
-		return;
-	}
 	releases = fu_engine_get_releases(engine, request, device_id, &error);
 	if (releases == NULL) {
 		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
@@ -1456,10 +1444,6 @@ fu_dbus_daemon_method_get_downgrades(FuDbusDaemon *self,
 	g_autoptr(GPtrArray) releases = NULL;
 
 	g_variant_get(parameters, "(&s)", &device_id);
-	if (!fu_dbus_daemon_device_id_valid(device_id, &error)) {
-		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
-		return;
-	}
 	releases = fu_engine_get_downgrades(engine, request, device_id, &error);
 	if (releases == NULL) {
 		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
@@ -1482,10 +1466,6 @@ fu_dbus_daemon_method_get_upgrades(FuDbusDaemon *self,
 	g_autoptr(GPtrArray) releases = NULL;
 
 	g_variant_get(parameters, "(&s)", &device_id);
-	if (!fu_dbus_daemon_device_id_valid(device_id, &error)) {
-		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
-		return;
-	}
 	releases = fu_engine_get_upgrades(engine, request, device_id, &error);
 	if (releases == NULL) {
 		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
@@ -1602,6 +1582,28 @@ fu_dbus_daemon_method_clear_results(FuDbusDaemon *self,
 		return;
 	}
 	g_dbus_method_invocation_return_value(invocation, NULL);
+}
+
+static void
+fu_dbus_daemon_method_search(FuDbusDaemon *self,
+			     GVariant *parameters,
+			     FuEngineRequest *request,
+			     GDBusMethodInvocation *invocation)
+{
+	FuEngine *engine = fu_daemon_get_engine(FU_DAEMON(self));
+	const gchar *token;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GPtrArray) releases = NULL;
+
+	g_variant_get(parameters, "(&s)", &token);
+	releases = fu_engine_search(engine, token, &error);
+	if (releases == NULL) {
+		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
+		return;
+	}
+	g_dbus_method_invocation_return_value(
+	    invocation,
+	    fwupd_codec_array_to_variant(releases, FWUPD_CODEC_FLAG_NONE));
 }
 
 static void
@@ -1807,21 +1809,17 @@ fu_dbus_daemon_method_get_results(FuDbusDaemon *self,
 {
 	FuEngine *engine = fu_daemon_get_engine(FU_DAEMON(self));
 	GVariant *val;
+	const gchar *device_id = NULL;
+	g_autoptr(FwupdDevice) device = NULL;
 	g_autoptr(GError) error = NULL;
 
-	const gchar *device_id = NULL;
-	g_autoptr(FwupdDevice) result = NULL;
 	g_variant_get(parameters, "(&s)", &device_id);
-	if (!fu_dbus_daemon_device_id_valid(device_id, &error)) {
+	device = fu_engine_get_results(engine, device_id, &error);
+	if (device == NULL) {
 		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
 		return;
 	}
-	result = fu_engine_get_results(engine, device_id, &error);
-	if (result == NULL) {
-		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
-		return;
-	}
-	val = fwupd_codec_to_variant(FWUPD_CODEC(result), FWUPD_CODEC_FLAG_TRUSTED);
+	val = fwupd_codec_to_variant(FWUPD_CODEC(device), FWUPD_CODEC_FLAG_TRUSTED);
 	g_dbus_method_invocation_return_value(invocation, g_variant_new_tuple(&val, 1));
 }
 
@@ -1846,7 +1844,7 @@ fu_dbus_daemon_method_update_metadata(FuDbusDaemon *self,
 	message = g_dbus_method_invocation_get_message(invocation);
 	fd_list = g_dbus_message_get_unix_fd_list(message);
 	if (fd_list == NULL || g_unix_fd_list_get_length(fd_list) != 2) {
-		g_set_error(&error, FWUPD_ERROR, FWUPD_ERROR_INTERNAL, "invalid handle");
+		g_set_error_literal(&error, FWUPD_ERROR, FWUPD_ERROR_INTERNAL, "invalid handle");
 		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
 		return;
 	}
@@ -1887,10 +1885,6 @@ fu_dbus_daemon_method_unlock(FuDbusDaemon *self,
 	g_autoptr(GError) error = NULL;
 
 	g_variant_get(parameters, "(&s)", &device_id);
-	if (!fu_dbus_daemon_device_id_valid(device_id, &error)) {
-		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
-		return;
-	}
 
 	/* authenticate */
 	fu_dbus_daemon_set_status(self, FWUPD_STATUS_WAITING_FOR_AUTH);
@@ -1919,10 +1913,6 @@ fu_dbus_daemon_method_activate(FuDbusDaemon *self,
 	g_autoptr(GError) error = NULL;
 
 	g_variant_get(parameters, "(&s)", &device_id);
-	if (!fu_dbus_daemon_device_id_valid(device_id, &error)) {
-		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
-		return;
-	}
 
 	/* authenticate */
 	fu_dbus_daemon_set_status(self, FWUPD_STATUS_WAITING_FOR_AUTH);
@@ -2043,11 +2033,6 @@ fu_dbus_daemon_method_verify_update(FuDbusDaemon *self,
 	/* check the id exists */
 	g_variant_get(parameters, "(&s)", &device_id);
 
-	if (!fu_dbus_daemon_device_id_valid(device_id, &error)) {
-		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
-		return;
-	}
-
 	/* create helper object */
 	helper = g_new0(FuMainAuthHelper, 1);
 	helper->request = g_object_ref(request);
@@ -2078,10 +2063,6 @@ fu_dbus_daemon_method_verify(FuDbusDaemon *self,
 	g_autoptr(FuProgress) progress = fu_progress_new(G_STRLOC);
 
 	g_variant_get(parameters, "(&s)", &device_id);
-	if (!fu_dbus_daemon_device_id_valid(device_id, &error)) {
-		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
-		return;
-	}
 
 	/* progress */
 	fu_progress_set_profile(progress, g_getenv("FWUPD_VERBOSE") != NULL);
@@ -2185,10 +2166,6 @@ fu_dbus_daemon_method_install(FuDbusDaemon *self,
 
 	/* check the id exists */
 	g_variant_get(parameters, "(&sha{sv})", &device_id, &fd_handle, &iter);
-	if (!fu_dbus_daemon_device_id_valid(device_id, &error)) {
-		fu_dbus_daemon_method_invocation_return_gerror(invocation, error);
-		return;
-	}
 
 	/* create helper object */
 	helper = g_new0(FuMainAuthHelper, 1);
@@ -2491,6 +2468,7 @@ fu_dbus_daemon_method_call(GDBusConnection *connection,
 	    {"ClearResults", fu_dbus_daemon_method_clear_results},
 	    {"EmulationLoad", fu_dbus_daemon_method_emulation_load},
 	    {"EmulationSave", fu_dbus_daemon_method_emulation_save},
+	    {"Search", fu_dbus_daemon_method_search},
 	    {"ModifyDevice", fu_dbus_daemon_method_modify_device},
 	    {"GetResults", fu_dbus_daemon_method_get_results},
 	    {"UpdateMetadata", fu_dbus_daemon_method_update_metadata},
@@ -2844,7 +2822,7 @@ fu_dbus_daemon_setup(FuDaemon *daemon,
 				FU_ENGINE_LOAD_FLAG_DEVICE_HOTPLUG,
 			    fu_progress_get_child(progress),
 			    error)) {
-		g_prefix_error(error, "failed to load engine: ");
+		g_prefix_error_literal(error, "failed to load engine: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -2853,7 +2831,7 @@ fu_dbus_daemon_setup(FuDaemon *daemon,
 	self->introspection_daemon =
 	    fu_dbus_daemon_load_introspection(FWUPD_DBUS_INTERFACE ".xml", error);
 	if (self->introspection_daemon == NULL) {
-		g_prefix_error(error, "failed to load introspection: ");
+		g_prefix_error_literal(error, "failed to load introspection: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -2876,7 +2854,7 @@ fu_dbus_daemon_setup(FuDaemon *daemon,
 						NULL,
 						error);
 		if (server == NULL) {
-			g_prefix_error(error, "failed to create D-Bus server: ");
+			g_prefix_error_literal(error, "failed to create D-Bus server: ");
 			return FALSE;
 		}
 		g_message("using socket address: %s", g_dbus_server_get_client_address(server));

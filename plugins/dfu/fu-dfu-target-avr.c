@@ -12,6 +12,7 @@
 #include "fu-dfu-common.h"
 #include "fu-dfu-device.h"
 #include "fu-dfu-sector.h"
+#include "fu-dfu-struct.h"
 #include "fu-dfu-target-avr.h"
 #include "fu-dfu-target-private.h" /* waive-pre-commit */
 
@@ -38,27 +39,14 @@ typedef struct {
 G_DEFINE_TYPE_WITH_PRIVATE(FuDfuTargetAvr, fu_dfu_target_avr, FU_TYPE_DFU_TARGET)
 #define GET_PRIVATE(o) (fu_dfu_target_avr_get_instance_private(o))
 
-/* ATMEL AVR version of DFU:
- * http://www.atmel.com/Images/doc7618.pdf */
-#define DFU_AVR_CMD_PROG_START	     0x01
-#define DFU_AVR_CMD_DISPLAY_DATA     0x03
-#define DFU_AVR_CMD_WRITE_COMMAND    0x04
-#define DFU_AVR_CMD_READ_COMMAND     0x05
-#define DFU_AVR_CMD_CHANGE_BASE_ADDR 0x06
-
 /* Atmel AVR32 version of DFU:
  * http://www.atmel.com/images/doc32131.pdf */
 #define DFU_AVR32_GROUP_SELECT		    0x06 /** SELECT */
 #define DFU_AVR32_CMD_SELECT_MEMORY	    0x03
+
 #define DFU_AVR32_MEMORY_UNIT		    0x00
 #define DFU_AVR32_MEMORY_PAGE		    0x01
-#define DFU_AVR32_MEMORY_UNIT_FLASH	    0x00
-#define DFU_AVR32_MEMORY_UNIT_EEPROM	    0x01
-#define DFU_AVR32_MEMORY_UNIT_SECURITY	    0x02
-#define DFU_AVR32_MEMORY_UNIT_CONFIGURATION 0x03
-#define DFU_AVR32_MEMORY_UNIT_BOOTLOADER    0x04
-#define DFU_AVR32_MEMORY_UNIT_SIGNATURE	    0x05
-#define DFU_AVR32_MEMORY_UNIT_USER	    0x06
+
 #define DFU_AVR32_GROUP_DOWNLOAD	    0x01 /** DOWNLOAD */
 #define DFU_AVR32_CMD_PROGRAM_START	    0x00
 #define DFU_AVR32_GROUP_UPLOAD		    0x03 /** UPLOAD */
@@ -89,7 +77,7 @@ fu_dfu_target_avr_mass_erase(FuDfuTarget *target, FuProgress *progress, GError *
 	fu_byte_array_append_uint8(buf, DFU_AVR32_CMD_ERASE);
 	fu_byte_array_append_uint8(buf, 0xFF);
 	if (!fu_dfu_target_download_chunk(target, 0, buf, 5000, progress, error)) {
-		g_prefix_error(error, "cannot mass-erase: ");
+		g_prefix_error_literal(error, "cannot mass-erase: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -153,7 +141,7 @@ fu_dfu_target_avr_attach(FuDfuTarget *target, FuProgress *progress, GError **err
 /**
  * fu_dfu_target_avr_select_memory_unit:
  * @target: a #FuDfuTarget
- * @memory_unit: a unit, e.g. %DFU_AVR32_MEMORY_UNIT_FLASH
+ * @memory_unit: a unit, e.g. %FU_DFU_AVR32_MEMORY_UNIT_FLASH
  * @error: (nullable): optional return location for an error
  *
  * Selects the memory unit for the device.
@@ -182,7 +170,7 @@ fu_dfu_target_avr_select_memory_unit(FuDfuTarget *target,
 	fu_byte_array_append_uint8(buf, memory_unit);
 	g_debug("selecting memory unit 0x%02x", (guint)memory_unit);
 	if (!fu_dfu_target_download_chunk(target, 0, buf, 0, progress, error)) {
-		g_prefix_error(error, "cannot select memory unit: ");
+		g_prefix_error_literal(error, "cannot select memory unit: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -218,13 +206,13 @@ fu_dfu_target_avr_select_memory_page(FuDfuTarget *target,
 	}
 
 	/* format buffer */
-	fu_byte_array_append_uint8(buf, DFU_AVR_CMD_CHANGE_BASE_ADDR);
+	fu_byte_array_append_uint8(buf, FU_DFU_AVR_CMD_CHANGE_BASE_ADDR);
 	fu_byte_array_append_uint8(buf, 0x03);
 	fu_byte_array_append_uint8(buf, 0x00);
 	fu_byte_array_append_uint8(buf, memory_page & 0xFF);
 	g_debug("selecting memory page 0x%01x", (guint)memory_page);
 	if (!fu_dfu_target_download_chunk(target, 0, buf, 0, progress, error)) {
-		g_prefix_error(error, "cannot select memory page: ");
+		g_prefix_error_literal(error, "cannot select memory page: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -255,7 +243,7 @@ fu_dfu_target_avr32_select_memory_page(FuDfuTarget *target,
 	fu_byte_array_append_uint16(buf, memory_page, G_BIG_ENDIAN);
 	g_debug("selecting memory page 0x%02x", (guint)memory_page);
 	if (!fu_dfu_target_download_chunk(target, 0, buf, 0, progress, error)) {
-		g_prefix_error(error, "cannot select memory page: ");
+		g_prefix_error_literal(error, "cannot select memory page: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -300,7 +288,7 @@ fu_dfu_target_avr_read_memory(FuDfuTarget *target,
 /**
  * fu_dfu_target_avr_read_command:
  * @target: a #FuDfuTarget
- * @memory_unit: a unit, e.g. %DFU_AVR32_MEMORY_UNIT_FLASH
+ * @memory_unit: a unit, e.g. %FU_DFU_AVR32_MEMORY_UNIT_FLASH
  * @error: (nullable): optional return location for an error
  *
  * Performs a read operation on the device.
@@ -317,12 +305,12 @@ fu_dfu_target_avr_read_command(FuDfuTarget *target,
 	g_autoptr(GByteArray) buf = g_byte_array_new();
 
 	/* format buffer */
-	fu_byte_array_append_uint8(buf, DFU_AVR_CMD_READ_COMMAND);
+	fu_byte_array_append_uint8(buf, FU_DFU_AVR_CMD_READ_COMMAND);
 	fu_byte_array_append_uint8(buf, page);
 	fu_byte_array_append_uint8(buf, addr);
 	g_debug("read command page:0x%02x addr:0x%02x", (guint)page, (guint)addr);
 	if (!fu_dfu_target_download_chunk(target, 0, buf, 0, progress, error)) {
-		g_prefix_error(error, "cannot read command page: ");
+		g_prefix_error_literal(error, "cannot read command page: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -352,7 +340,7 @@ fu_dfu_target_avr32_get_chip_signature(FuDfuTarget *target, FuProgress *progress
 
 	/* select unit, and request 4 bytes */
 	if (!fu_dfu_target_avr_select_memory_unit(target,
-						  DFU_AVR32_MEMORY_UNIT_SIGNATURE,
+						  FU_DFU_AVR32_MEMORY_UNIT_SIGNATURE,
 						  fu_progress_get_child(progress),
 						  error))
 		return NULL;
@@ -493,7 +481,7 @@ fu_dfu_target_avr_setup(FuDfuTarget *target, GError **error)
 	} else {
 		chunk_sig = fu_dfu_target_avr32_get_chip_signature(target, progress, error);
 		if (chunk_sig == NULL) {
-			g_prefix_error(error, "failed to get chip signature: ");
+			g_prefix_error_literal(error, "failed to get chip signature: ");
 			return FALSE;
 		}
 	}
@@ -502,7 +490,7 @@ fu_dfu_target_avr_setup(FuDfuTarget *target, GError **error)
 	buf = g_bytes_get_data(chunk_sig, &sz);
 	fu_dump_bytes(G_LOG_DOMAIN, "AVR:CID", chunk_sig);
 	if (!fu_memread_uint32_safe(buf, sz, 0x0, &priv->device_id, G_BIG_ENDIAN, error)) {
-		g_prefix_error(error, "cannot read config memory: ");
+		g_prefix_error_literal(error, "cannot read config memory: ");
 		return FALSE;
 	}
 

@@ -17,11 +17,13 @@ enum FuMkhiGroupId {
     Gen = 0xFF,
 }
 
+#[derive(ToString)]
 enum FuMkhiStatus {
     Success,
     InvalidState,
     MessageSkipped,
     SizeError = 0x05,
+    UnknownPerhapsNotSupported = 0x0b, // guessed
     NotSet = 0x0F, // guessed
     NotAvailable = 0x18, // guessed
     InvalidAccess = 0x84,

@@ -77,11 +77,12 @@ fu_dell_kestrel_ilan_init(FuDellKestrelIlan *self)
 {
 	fu_device_add_protocol(FU_DEVICE(self), "com.dell.kestrel");
 	fu_device_add_vendor_id(FU_DEVICE(self), "USB:0x413C");
-	fu_device_add_icon(FU_DEVICE(self), "network-wired");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_NETWORK_WIRED);
 	fu_device_set_summary(FU_DEVICE(self), "Dell Dock LAN");
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_SIGNED_PAYLOAD);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_INSTALL_SKIP_VERSION_CHECK);
+	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_SKIPS_RESTART);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_USE_PROXY_FOR_OPEN);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_EXPLICIT_ORDER);
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_PAIR);

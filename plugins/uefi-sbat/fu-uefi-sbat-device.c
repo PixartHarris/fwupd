@@ -82,7 +82,7 @@ fu_uefi_sbat_device_prepare_firmware(FuDevice *device,
 						 FU_CONTEXT_ESP_FILE_FLAG_INCLUDE_SECOND_STAGE,
 					     error);
 	if (esp_files == NULL) {
-		g_prefix_error(error, "failed to get files on ESP: ");
+		g_prefix_error_literal(error, "failed to get files on ESP: ");
 		return NULL;
 	}
 	for (guint i = 0; i < esp_files->len; i++) {
@@ -114,7 +114,7 @@ fu_uefi_sbat_device_write_firmware(FuDevice *device,
 	g_autofree gchar *filename_revocation = NULL;
 	g_autofree gchar *fp_name = NULL;
 	g_autofree gchar *mount_point = NULL;
-	g_autoptr(FuDeviceLocker) volume_locker = NULL;
+	g_autoptr(FuVolumeLocker) volume_locker = NULL;
 	g_autoptr(FuEfiLoadOption) entry = NULL;
 	g_autoptr(FuFirmware) dp_fp = NULL;
 	g_autoptr(FuFirmware) dp_hdd = NULL;
@@ -146,7 +146,7 @@ fu_uefi_sbat_device_write_firmware(FuDevice *device,
 	    error);
 	if (volume == NULL)
 		return FALSE;
-	volume_locker = fu_volume_locker(volume, error);
+	volume_locker = fu_volume_locker_new(volume, error);
 	if (volume_locker == NULL)
 		return FALSE;
 	mount_point = fu_volume_get_mount_point(volume);
@@ -202,7 +202,7 @@ fu_uefi_sbat_device_init(FuUefiSbatDevice *self)
 	fu_device_set_summary(FU_DEVICE(self), "Generation number based revocation mechanism");
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_TRIPLET);
 	fu_device_add_protocol(FU_DEVICE(self), "com.uefi.sbat");
-	fu_device_add_icon(FU_DEVICE(self), "application-certificate");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_APPLICATION_CERTIFICATE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_SIGNED_PAYLOAD);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_NEEDS_REBOOT);

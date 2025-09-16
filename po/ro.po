@@ -35,7 +35,7 @@ msgid "%s Battery Update"
 msgstr "Actualizarea bateriei %s"
 
 #. TRANSLATORS: the CPU microcode is firmware loaded onto the CPU
-#. * at system bootup
+#. * at system boot-up
 #, c-format
 msgid "%s CPU Microcode Update"
 msgstr "Actualizarea microcodului CPU %s"
@@ -305,6 +305,24 @@ msgid_plural "%u devices are not the best known configuration."
 msgstr[0] "%u dispozitiv nu este la cea mai bună configurație cunoscută."
 msgstr[1] "%u dispozitive nu sunt la cea mai bună configurație cunoscută."
 msgstr[2] "%u de dispozitive nu sunt la cea mai bună configurație cunoscută."
+
+#. TRANSLATORS: how many devices have published updates on
+#. something like the LVFS
+#, c-format
+msgid "%u device is supported in the enabled remotes (an update has been published)"
+msgid_plural "%u devices are supported in the enabled remotes (an update has been published)"
+msgstr[0] "%u dispozitiv este inclus în depozitele de la distanță activate (a fost publicată o actualizare)"
+msgstr[1] "%u dispozitiv sunt incluse în depozitele de la distanță activate (a fost publicată o actualizare)"
+msgstr[2] "%u de dispozitiv sunt incluse în depozitele de la distanță activate (a fost publicată o actualizare)"
+
+#. TRANSLATORS: how many devices could be updated in theory if
+#. we had the firmware locally
+#, c-format
+msgid "%u device is updatable"
+msgid_plural "%u devices are updatable"
+msgstr[0] "%u dispozitiv este actualizabil"
+msgstr[1] "%u dispozitive sunt actualizabile"
+msgstr[2] "%u de dispozitive sunt actualizabile"
 
 #. TRANSLATORS: duration in minutes
 #, c-format
@@ -689,6 +707,10 @@ msgstr "Nu se poate aplica deoarece actualizarea dbx a fost deja aplicată."
 #. TRANSLATORS: this is when the daemon state changes
 msgid "Changed"
 msgstr "Modificat"
+
+#. TRANSLATORS: command description
+msgid "Check if any devices are pending a reboot to complete update"
+msgstr "Verifică dacă există dispozitive care așteaptă o repornire pentru a finaliza actualizarea"
 
 #. TRANSLATORS: command description
 msgid "Checks cryptographic hash matches firmware"
@@ -1231,8 +1253,8 @@ msgid "FILENAME CERTIFICATE PRIVATE-KEY"
 msgstr "NUME_FIȘIER CERTIFICAT CHEIE-PRIVATĂ"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
-msgid "FILENAME DEVICE-ID"
-msgstr "NUME_FIȘIER ID-DISPOZITIV"
+msgid "FILENAME DEVICE-ID [VERSION]"
+msgstr "NUME_FIȘIER ID-DISPOZITIV [VERSIUNE]"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME OFFSET DATA [FIRMWARE-TYPE]"
@@ -1535,8 +1557,8 @@ msgid "Gets the list of blocked firmware"
 msgstr "Obține lista firmware-ului blocat"
 
 #. TRANSLATORS: command description
-msgid "Gets the list of updates for connected hardware"
-msgstr "Obține lista de actualizări pentru hardware-ul conectat"
+msgid "Gets the list of updates for all specified devices, or all devices if unspecified"
+msgstr "Obține lista de actualizări pentru toate dispozitivele specificate sau pentru toate dispozitivele dacă nu este specificat niciunul"
 
 #. TRANSLATORS: command description
 msgid "Gets the releases for a device"
@@ -1563,7 +1585,6 @@ msgid "Host Security Events"
 msgstr "Evenimente de securitate ale gazdei"
 
 #. TRANSLATORS: error message for unsupported feature
-#, c-format
 msgid "Host Security ID (HSI) is not supported"
 msgstr "ID-ul de securitate al gazdei (HSI) nu este acceptat"
 
@@ -2097,6 +2118,10 @@ msgstr "Versiunea nouă"
 msgid "No action specified!"
 msgstr "Nicio acțiune specificată!"
 
+#. TRANSLATORS: no devices that can be upgraded with new firmware
+msgid "No devices are updatable"
+msgstr "Nu există dispozitive actualizabile"
+
 #. TRANSLATORS: message letting the user know no device downgrade available
 #. * %1 is the device name
 #, c-format
@@ -2114,6 +2139,10 @@ msgstr "Nu s-a găsit firmware"
 #. TRANSLATORS: nothing attached that can be upgraded
 msgid "No hardware detected with firmware update capability"
 msgstr "Nu a fost detectat niciun hardware cu capacitate de actualizare a firmware-ului"
+
+#. TRANSLATORS: no rebooting needed
+msgid "No reboot is necessary"
+msgstr "Nu este necesară repornirea"
 
 #. TRANSLATORS: no repositories to download from
 msgid "No releases available"
@@ -2168,6 +2197,10 @@ msgid "Old version"
 msgstr "Versiunea veche"
 
 #. TRANSLATORS: command line option
+msgid "Only install onto emulated devices"
+msgstr "Se instalează numai pe dispozitive emulate"
+
+#. TRANSLATORS: command line option
 msgid "Only show single PCR value"
 msgstr "Afișează doar o singură valoare PCR"
 
@@ -2181,8 +2214,8 @@ msgid "Only version upgrades are allowed"
 msgstr "Sunt permise numai actualizările de versiune"
 
 #. TRANSLATORS: command line option
-msgid "Output in JSON format"
-msgstr "Ieșire în format JSON"
+msgid "Output in JSON format (disables all interactive prompts)"
+msgstr "Ieșire în format JSON (dezactivează toate solicitările interactive)"
 
 #. TRANSLATORS: command line option
 msgid "Override the default ESP path"
@@ -2253,7 +2286,8 @@ msgstr "Vă rugăm să vă asigurați că aveți cheia de recuperare a volumului
 msgid "Please enter a number from 0 to %u: "
 msgstr "Introduceți un număr de la 0 la %u: "
 
-#. TRANSLATORS: the user isn't reading the question -- %1 is 'Y' and %2 is 'N'
+#. TRANSLATORS: the user isn't reading the question -- %1 is 'Y' and %2 is
+#. * 'N'
 #, c-format
 msgid "Please enter either %s or %s: "
 msgstr "Introduceți %s sau %s: "
@@ -2261,6 +2295,10 @@ msgstr "Introduceți %s sau %s: "
 #. TRANSLATORS: Failed to open plugin, hey Arch users
 msgid "Plugin dependencies missing"
 msgstr "Lipsesc dependențele modulului"
+
+#. TRANSLATORS: The plugin enumeration might change the device current mode
+msgid "Plugin enumeration may change device state"
+msgstr "Enumerarea modulelor de extensie poate modifica starea dispozitivului"
 
 #. TRANSLATORS: The plugin is only for testing
 msgid "Plugin is only for testing"
@@ -2751,8 +2789,8 @@ msgstr "Dispozitive de testare dezactivate cu succes"
 
 #. TRANSLATORS: success message -- where 'metadata' is information
 #. * about available firmware on the remote server
-msgid "Successfully downloaded new metadata: "
-msgstr "Au fost descărcate cu succes metadatele noi: "
+msgid "Successfully downloaded new metadata:"
+msgstr "Au fost descărcate cu succes metadatele noi:"
 
 #. TRANSLATORS: success message
 msgid "Successfully enabled and refreshed remote"
@@ -3349,14 +3387,6 @@ msgstr "Actualizează metadatele stocate cu conținutul curent"
 #. TRANSLATORS: command description
 msgid "Updates all specified devices to latest firmware version, or all devices if unspecified"
 msgstr "Actualizează toate dispozitivele specificate la cea mai recentă versiune de firmware sau toate dispozitivele dacă nu se specifică niciunul"
-
-#. TRANSLATORS: how many local devices can expect updates now
-#, c-format
-msgid "Updates have been published for %u local device"
-msgid_plural "Updates have been published for %u of %u local devices"
-msgstr[0] "Au fost publicate actualizări pentru %u dispozitiv local"
-msgstr[1] "Au fost publicate actualizări pentru %u din %u dispozitive locale"
-msgstr[2] "Au fost publicate actualizări pentru %u din %u de dispozitive locale"
 
 msgid "Updating"
 msgstr "Se actualizează"

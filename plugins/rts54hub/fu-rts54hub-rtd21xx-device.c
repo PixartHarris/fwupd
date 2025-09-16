@@ -36,7 +36,7 @@ fu_rts54hub_rtd21xx_device_to_string(FuDevice *module, guint idt, GString *str)
 	fwupd_codec_string_append_hex(str, idt, "RegisterAddrLen", priv->register_addr_len);
 }
 
-static FuRts54HubDevice *
+static FuRts54hubDevice *
 fu_rts54hub_rtd21xx_device_get_parent(FuRts54hubRtd21xxDevice *self, GError **error)
 {
 	FuDevice *parent = fu_device_get_parent(FU_DEVICE(self));
@@ -102,7 +102,7 @@ fu_rts54hub_rtd21xx_device_i2c_write(FuRts54hubRtd21xxDevice *self,
 				     gsize datasz,
 				     GError **error)
 {
-	FuRts54HubDevice *parent;
+	FuRts54hubDevice *parent;
 	FuRts54hubRtd21xxDevicePrivate *priv = GET_PRIVATE(self);
 
 	parent = fu_rts54hub_rtd21xx_device_get_parent(self, error);
@@ -136,7 +136,7 @@ fu_rts54hub_rtd21xx_device_i2c_read(FuRts54hubRtd21xxDevice *self,
 				    gsize datasz,
 				    GError **error)
 {
-	FuRts54HubDevice *parent;
+	FuRts54hubDevice *parent;
 	FuRts54hubRtd21xxDevicePrivate *priv = GET_PRIVATE(self);
 
 	parent = fu_rts54hub_rtd21xx_device_get_parent(self, error);
@@ -154,7 +154,7 @@ fu_rts54hub_rtd21xx_device_i2c_read(FuRts54hubRtd21xxDevice *self,
 		priv->target_addr = target_addr;
 	}
 	if (!fu_rts54hub_device_i2c_read(parent, sub_addr, data, datasz, error)) {
-		g_prefix_error(error, "failed to read I2C: ");
+		g_prefix_error_literal(error, "failed to read I2C: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -207,7 +207,7 @@ fu_rts54hub_rtd21xx_device_read_status(FuRts54hubRtd21xxDevice *self,
 static void
 fu_rts54hub_rtd21xx_device_init(FuRts54hubRtd21xxDevice *self)
 {
-	fu_device_add_icon(FU_DEVICE(self), "video-display");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_VIDEO_DISPLAY);
 	fu_device_add_protocol(FU_DEVICE(self), "com.realtek.rts54.i2c");
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_DUAL_IMAGE);

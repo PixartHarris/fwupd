@@ -7,11 +7,6 @@
 
 #include "config.h"
 
-#ifdef HAVE_HIDRAW_H
-#include <linux/hidraw.h>
-#include <linux/input.h>
-#endif
-
 #include "fu-pxi-ble-device.h"
 #include "fu-pxi-common.h"
 #include "fu-pxi-firmware.h"
@@ -46,25 +41,6 @@ struct _FuPxiBleDevice {
 };
 
 G_DEFINE_TYPE(FuPxiBleDevice, fu_pxi_ble_device, FU_TYPE_HIDRAW_DEVICE)
-
-#ifdef HAVE_HIDRAW_H
-static gboolean
-fu_pxi_ble_device_get_raw_info(FuPxiBleDevice *self, struct hidraw_devinfo *info, GError **error)
-{
-	g_autoptr(FuIoctl) ioctl = fu_udev_device_ioctl_new(FU_UDEV_DEVICE(self));
-	if (!fu_ioctl_execute(ioctl,
-			      HIDIOCGRAWINFO,
-			      (guint8 *)info,
-			      sizeof(*info),
-			      NULL,
-			      FU_PXI_DEVICE_IOCTL_TIMEOUT,
-			      FU_IOCTL_FLAG_NONE,
-			      error)) {
-		return FALSE;
-	}
-	return TRUE;
-}
-#endif
 
 static void
 fu_pxi_ble_device_to_string(FuDevice *device, guint idt, GString *str)
@@ -129,17 +105,16 @@ fu_pxi_ble_device_prepare_firmware(FuDevice *device,
 			}
 		}
 	} else {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_INVALID_FILE,
-			    "The firmware is incompatible with the device");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_FILE,
+				    "firmware is incompatible with the device");
 		return NULL;
 	}
 
 	return g_steal_pointer(&firmware);
 }
 
-#ifdef HAVE_HIDRAW_H
 static gboolean
 fu_pxi_ble_device_set_feature_cb(FuDevice *device, gpointer user_data, GError **error)
 {
@@ -150,7 +125,6 @@ fu_pxi_ble_device_set_feature_cb(FuDevice *device, gpointer user_data, GError **
 					    FU_IOCTL_FLAG_NONE,
 					    error);
 }
-#endif
 
 static gboolean
 fu_pxi_ble_device_set_feature(FuPxiBleDevice *self, GByteArray *req, GError **error)
@@ -186,7 +160,7 @@ fu_pxi_ble_device_get_feature(FuPxiBleDevice *self, guint8 *buf, guint bufsz, GE
 }
 
 static gboolean
-fu_pxi_ble_device_search_hid_feature_report_id(FuFirmware *descriptor,
+fu_pxi_ble_device_search_hid_feature_report_id(FuHidDescriptor *descriptor,
 					       guint16 usage_page,
 					       guint8 *report_id,
 					       GError **error)
@@ -195,7 +169,7 @@ fu_pxi_ble_device_search_hid_feature_report_id(FuFirmware *descriptor,
 	g_autoptr(FuHidReport) report = NULL;
 
 	/* check ota retransmit feature report usage page exists */
-	report = fu_hid_descriptor_find_report(FU_HID_DESCRIPTOR(descriptor),
+	report = fu_hid_descriptor_find_report(descriptor,
 					       error,
 					       "usage-page",
 					       usage_page,
@@ -218,7 +192,7 @@ fu_pxi_ble_device_search_hid_feature_report_id(FuFirmware *descriptor,
 }
 
 static gboolean
-fu_pxi_ble_device_search_hid_input_report_id(FuFirmware *descriptor,
+fu_pxi_ble_device_search_hid_input_report_id(FuHidDescriptor *descriptor,
 					     guint16 usage_page,
 					     guint8 *report_id,
 					     GError **error)
@@ -227,7 +201,7 @@ fu_pxi_ble_device_search_hid_input_report_id(FuFirmware *descriptor,
 	g_autoptr(FuFirmware) item_id = NULL;
 
 	/* check ota retransmit feature report usage page exist or not */
-	report = fu_hid_descriptor_find_report(FU_HID_DESCRIPTOR(descriptor),
+	report = fu_hid_descriptor_find_report(descriptor,
 					       error,
 					       "usage-page",
 					       usage_page,
@@ -252,51 +226,16 @@ fu_pxi_ble_device_search_hid_input_report_id(FuFirmware *descriptor,
 static gboolean
 fu_pxi_ble_device_check_support_report_id(FuPxiBleDevice *self, GError **error)
 {
-#ifdef HAVE_HIDRAW_H
-	gint desc_size = 0;
-	g_autoptr(FuFirmware) descriptor = fu_hid_descriptor_new();
-	g_autoptr(FuIoctl) ioctl = fu_udev_device_ioctl_new(FU_UDEV_DEVICE(self));
+	g_autoptr(FuHidDescriptor) descriptor = NULL;
 	g_autoptr(GBytes) fw = NULL;
 	g_autoptr(GError) error_local1 = NULL;
 	g_autoptr(GError) error_local2 = NULL;
 	g_autoptr(GError) error_local3 = NULL;
 	g_autoptr(GError) error_local = NULL;
 
-	struct hidraw_report_descriptor rpt_desc = {0x0};
-
-	/* Get Report Descriptor Size */
-	if (!fu_ioctl_execute(ioctl,
-			      HIDIOCGRDESCSIZE,
-			      (guint8 *)&desc_size,
-			      sizeof(desc_size),
-			      NULL,
-			      FU_PXI_DEVICE_IOCTL_TIMEOUT,
-			      FU_IOCTL_FLAG_NONE,
-			      error))
+	descriptor = fu_hidraw_device_parse_descriptor(FU_HIDRAW_DEVICE(self), error);
+	if (descriptor == NULL)
 		return FALSE;
-
-	rpt_desc.size = desc_size;
-	if (!fu_ioctl_execute(ioctl,
-			      HIDIOCGRDESC,
-			      (guint8 *)&rpt_desc,
-			      sizeof(rpt_desc),
-			      NULL,
-			      FU_PXI_DEVICE_IOCTL_TIMEOUT,
-			      FU_IOCTL_FLAG_NONE,
-			      error))
-		return FALSE;
-	fu_dump_raw(G_LOG_DOMAIN, "HID descriptor", rpt_desc.value, rpt_desc.size);
-
-	/* parse the descriptor, but use the defaults if it fails */
-	fw = g_bytes_new(rpt_desc.value, rpt_desc.size);
-	if (!fu_firmware_parse_bytes(descriptor,
-				     fw,
-				     0x0,
-				     FU_FIRMWARE_PARSE_FLAG_NONE,
-				     &error_local)) {
-		g_debug("failed to parse descriptor: %s", error_local->message);
-		return TRUE;
-	}
 
 	/* check ota retransmit feature report usage page exists */
 	if (!fu_pxi_ble_device_search_hid_feature_report_id(descriptor,
@@ -333,13 +272,6 @@ fu_pxi_ble_device_check_support_report_id(FuPxiBleDevice *self, GError **error)
 
 	/* success */
 	return TRUE;
-#else
-	g_set_error_literal(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "<linux/hidraw.h> not available");
-	return FALSE
-#endif
 }
 
 static gboolean
@@ -594,7 +526,7 @@ fu_pxi_ble_device_reset(FuPxiBleDevice *self, GError **error)
 	fu_byte_array_append_uint8(req, FU_PXI_OTA_DISCONNECT_REASON_RESET);
 
 	if (!fu_pxi_ble_device_set_feature(self, req, error)) {
-		g_prefix_error(error, "failed to reset: ");
+		g_prefix_error_literal(error, "failed to reset: ");
 		return FALSE;
 	}
 
@@ -745,7 +677,7 @@ fu_pxi_ble_device_write_firmware(FuDevice *device,
 
 	/* send fw ota retransmit command to reset status */
 	if (!fu_pxi_ble_device_fw_ota_check_retransmit(self, error)) {
-		g_prefix_error(error, "failed to OTA check retransmit: ");
+		g_prefix_error_literal(error, "failed to OTA check retransmit: ");
 		return FALSE;
 	}
 	/* send fw ota init command */
@@ -906,15 +838,11 @@ fu_pxi_ble_device_get_model_info(FuPxiBleDevice *self, GError **error)
 static gboolean
 fu_pxi_ble_device_setup_guid(FuPxiBleDevice *self, GError **error)
 {
-#ifdef HAVE_HIDRAW_H
 	FuDevice *device = FU_DEVICE(self);
-	struct hidraw_devinfo hid_raw_info = {0x0};
 	g_autoptr(GString) dev_name = NULL;
 	g_autoptr(GString) model_name = NULL;
 
 	/* extra GUID with device name */
-	if (!fu_pxi_ble_device_get_raw_info(self, &hid_raw_info, error))
-		return FALSE;
 	dev_name = g_string_new(fu_device_get_name(device));
 	g_string_ascii_up(dev_name);
 	g_string_replace(dev_name, " ", "_", 0);
@@ -925,15 +853,14 @@ fu_pxi_ble_device_setup_guid(FuPxiBleDevice *self, GError **error)
 	g_string_replace(model_name, " ", "_", 0);
 
 	/* generate IDs */
-	fu_device_add_instance_u16(device, "VEN", hid_raw_info.vendor);
-	fu_device_add_instance_u16(device, "DEV", hid_raw_info.product);
+	fu_device_add_instance_u16(device, "VEN", fu_device_get_vid(FU_DEVICE(self)));
+	fu_device_add_instance_u16(device, "DEV", fu_device_get_pid(FU_DEVICE(self)));
 	fu_device_add_instance_str(device, "NAME", dev_name->str);
 	fu_device_add_instance_str(device, "MODEL", model_name->str);
 	if (!fu_device_build_instance_id(device, error, "HIDRAW", "VEN", "DEV", "NAME", NULL))
 		return FALSE;
 	if (!fu_device_build_instance_id(device, error, "HIDRAW", "VEN", "DEV", "MODEL", NULL))
 		return FALSE;
-#endif
 	return TRUE;
 }
 
@@ -943,27 +870,32 @@ fu_pxi_ble_device_setup(FuDevice *device, GError **error)
 	FuPxiBleDevice *self = FU_PXI_BLE_DEVICE(device);
 
 	if (!fu_pxi_ble_device_check_support_report_id(self, error)) {
-		g_prefix_error(error, "failed to check report id: ");
+		g_prefix_error_literal(error, "failed to check report id: ");
 		return FALSE;
 	}
 	if (!fu_pxi_ble_device_fw_ota_check_retransmit(self, error)) {
-		g_prefix_error(error, "failed to OTA check retransmit: ");
+		g_prefix_error_literal(error, "failed to OTA check retransmit: ");
 		return FALSE;
 	}
 	if (!fu_pxi_ble_device_fw_ota_init(self, error)) {
-		g_prefix_error(error, "failed to OTA init: ");
+		g_prefix_error_literal(error, "failed to OTA init: ");
 		return FALSE;
 	}
 	if (!fu_pxi_ble_device_fw_get_info(self, error)) {
-		g_prefix_error(error, "failed to get info: ");
+		g_prefix_error_literal(error, "failed to get info: ");
 		return FALSE;
 	}
 	if (!fu_pxi_ble_device_get_model_info(self, error)) {
-		g_prefix_error(error, "failed to get model: ");
+		g_prefix_error_literal(error, "failed to get model: ");
 		return FALSE;
 	}
+
+	/* FuHidrawDevice->setup */
+	if (!FU_DEVICE_CLASS(fu_pxi_ble_device_parent_class)->setup(device, error))
+		return FALSE;
+
 	if (!fu_pxi_ble_device_setup_guid(self, error)) {
-		g_prefix_error(error, "failed to setup GUID: ");
+		g_prefix_error_literal(error, "failed to setup GUID: ");
 		return FALSE;
 	}
 

@@ -77,15 +77,25 @@ fu_synaptics_vmm9_device_command_cb(FuDevice *self, gpointer user_data, GError *
 				      FU_SYNAPTICS_VMM9_DEVICE_TIMEOUT,
 				      FU_HID_DEVICE_FLAG_NONE,
 				      error)) {
-		g_prefix_error(error, "failed to send packet: ");
+		g_prefix_error_literal(error, "failed to send packet: ");
 		return FALSE;
 	}
 	st = fu_struct_hid_get_command_parse(buf, sizeof(buf), 0x0, error);
 	if (st == NULL)
 		return FALSE;
 
-	/* sanity check */
+	/* check if RC mode is already enabled */
 	st_payload = fu_struct_hid_get_command_get_payload(st);
+	if (fu_struct_hid_payload_get_sts(st_payload) == FU_SYNAPTICS_VMM9_RC_STS_INVALID &&
+	    fu_struct_hid_payload_get_ctrl(st_payload) == FU_SYNAPTICS_VMM9_RC_CTRL_ENABLE_RC) {
+		g_debug(
+		    "RC already enabled, sts is %s [0x%x]",
+		    fu_synaptics_vmm9_rc_sts_to_string(fu_struct_hid_payload_get_sts(st_payload)),
+		    fu_struct_hid_payload_get_sts(st_payload));
+		return TRUE;
+	}
+
+	/* sanity check */
 	if (fu_struct_hid_payload_get_sts(st_payload) != FU_SYNAPTICS_VMM9_RC_STS_SUCCESS) {
 		g_set_error(
 		    error,
@@ -174,7 +184,7 @@ fu_synaptics_vmm9_device_command(FuSynapticsVmm9Device *self,
 				      FU_SYNAPTICS_VMM9_DEVICE_TIMEOUT,
 				      FU_HID_DEVICE_FLAG_NONE,
 				      error)) {
-		g_prefix_error(error, "failed to send packet: ");
+		g_prefix_error_literal(error, "failed to send packet: ");
 		return FALSE;
 	}
 
@@ -327,9 +337,10 @@ fu_synaptics_vmm9_device_open(FuDevice *device, GError **error)
 					      0,
 					      FU_SYNAPTICS_VMM9_COMMAND_FLAG_NO_REPLY,
 					      error)) {
-		g_prefix_error(error, "failed to DISABLE_RC before ENABLE_RC: ");
+		g_prefix_error_literal(error, "failed to DISABLE_RC before ENABLE_RC: ");
 		return FALSE;
 	}
+	fu_device_sleep(device, 10);
 	if (!fu_synaptics_vmm9_device_command(self,
 					      FU_SYNAPTICS_VMM9_RC_CTRL_ENABLE_RC,
 					      0x0, /* offset */
@@ -339,7 +350,7 @@ fu_synaptics_vmm9_device_open(FuDevice *device, GError **error)
 					      0,
 					      FU_SYNAPTICS_VMM9_COMMAND_FLAG_FULL_BUFFER,
 					      error)) {
-		g_prefix_error(error, "failed to ENABLE_RC: ");
+		g_prefix_error_literal(error, "failed to ENABLE_RC: ");
 		return FALSE;
 	}
 
@@ -362,7 +373,7 @@ fu_synaptics_vmm9_device_close(FuDevice *device, GError **error)
 					      0x0,
 					      FU_SYNAPTICS_VMM9_COMMAND_FLAG_NONE,
 					      error)) {
-		g_prefix_error(error, "failed to DISABLE_RC: ");
+		g_prefix_error_literal(error, "failed to DISABLE_RC: ");
 		return FALSE;
 	}
 
@@ -452,7 +463,7 @@ fu_synaptics_vmm9_device_write_blocks(FuSynapticsVmm9Device *self,
 						      FU_SYNAPTICS_VMM9_COMMAND_FLAG_NONE,
 						      error)) {
 			g_prefix_error(error,
-				       "failed at page %u, @0x%x",
+				       "failed at page %u, @0x%x: ",
 				       fu_chunk_get_idx(chk),
 				       (guint)fu_chunk_get_address(chk));
 			return FALSE;
@@ -479,7 +490,7 @@ fu_synaptics_vmm9_device_erase(FuSynapticsVmm9Device *self, FuProgress *progress
 					      0,
 					      FU_SYNAPTICS_VMM9_COMMAND_FLAG_NONE,
 					      error)) {
-		g_prefix_error(error, "failed to erase: ");
+		g_prefix_error_literal(error, "failed to erase: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -512,7 +523,7 @@ fu_synaptics_vmm9_device_read_firmware(FuDevice *device, FuProgress *progress, G
 						      FU_SYNAPTICS_VMM9_COMMAND_FLAG_NONE,
 						      error)) {
 			g_prefix_error(error,
-				       "failed at chunk %u, @0x%x",
+				       "failed at chunk %u, @0x%x: ",
 				       fu_chunk_get_idx(chk),
 				       (guint)fu_chunk_get_address(chk));
 			return NULL;
@@ -524,7 +535,7 @@ fu_synaptics_vmm9_device_read_firmware(FuDevice *device, FuProgress *progress, G
 
 	/* parse */
 	fw = g_bytes_new_take(g_steal_pointer(&buf), bufsz);
-	if (!fu_firmware_parse_bytes(firmware, fw, 0x0, FU_FIRMWARE_PARSE_FLAG_NONE, error))
+	if (!fu_firmware_parse_bytes(firmware, fw, 0x0, FU_FIRMWARE_PARSE_FLAG_CACHE_STREAM, error))
 		return NULL;
 
 	/* success */
@@ -551,7 +562,7 @@ fu_synaptics_vmm9_device_write_firmware(FuDevice *device,
 
 	/* erase the storage bank */
 	if (!fu_synaptics_vmm9_device_erase(self, fu_progress_get_child(progress), error)) {
-		g_prefix_error(error, "failed to erase: ");
+		g_prefix_error_literal(error, "failed to erase: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -575,7 +586,7 @@ fu_synaptics_vmm9_device_write_firmware(FuDevice *device,
 						   chunks,
 						   fu_progress_get_child(progress),
 						   error)) {
-		g_prefix_error(error, "failed to write: ");
+		g_prefix_error_literal(error, "failed to write: ");
 		return FALSE;
 	}
 	fu_device_sleep(device, 10);
@@ -591,7 +602,7 @@ fu_synaptics_vmm9_device_write_firmware(FuDevice *device,
 					      0,
 					      FU_SYNAPTICS_VMM9_COMMAND_FLAG_NONE,
 					      error)) {
-		g_prefix_error(error, "failed to activate: ");
+		g_prefix_error_literal(error, "failed to activate: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -626,7 +637,7 @@ fu_synaptics_vmm9_device_write_firmware(FuDevice *device,
 			FU_SYNAPTICS_VMM9_COMMAND_FLAG_FULL_BUFFER |
 			    FU_SYNAPTICS_VMM9_COMMAND_FLAG_IGNORE_REPLY,
 			error)) {
-			g_prefix_error(error, "failed to reboot: ");
+			g_prefix_error_literal(error, "failed to reboot: ");
 			return FALSE;
 		}
 	}

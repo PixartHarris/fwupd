@@ -8,13 +8,14 @@
 
 #include "fu-mm-backend.h"
 #include "fu-mm-common.h"
+#include "fu-mm-dfota-device.h"
 #include "fu-mm-fastboot-device.h"
+#include "fu-mm-fdl-device.h"
 #include "fu-mm-firehose-device.h"
+#include "fu-mm-mbim-device.h"
 #include "fu-mm-mhi-qcdm-device.h"
 #include "fu-mm-qcdm-device.h"
-#include "fu-mm-dfota-device.h"
-#include "fu-mm-fdl-device.h"
-#include "fu-mm-mbim-device.h"
+#include "fu-mm-qdu-mbim-device.h"
 #include "fu-mm-qmi-device.h"
 
 struct _FuMmBackend {
@@ -126,10 +127,14 @@ fu_mm_backend_probe_gtype_fallback(FuMmBackend *self, MMObject *omodem, GError *
 	FuContext *ctx = fu_backend_get_context(FU_BACKEND(self));
 	MMModemFirmware *modem_fw;
 	MMModemFirmwareUpdateMethod update_methods;
-	MMModemPortInfo *ports = NULL;
+	MMModemPortInfo *used_ports = NULL;
+	guint n_used_ports = 0;
+#if MM_CHECK_VERSION(1, 26, 0)
+	MMModemPortInfo *ignored_ports = NULL;
+	guint n_ignored_ports = 0;
+#endif // MM_CHECK_VERSION(1, 26, 0)
 	const gchar **device_ids;
 	guint64 ports_bitmask = 0;
-	guint n_ports = 0;
 	GType gtype = G_TYPE_INVALID;
 	g_autoptr(MMFirmwareUpdateSettings) update_settings = NULL;
 	struct {
@@ -137,6 +142,16 @@ fu_mm_backend_probe_gtype_fallback(FuMmBackend *self, MMObject *omodem, GError *
 		MMModemPortType port_type;
 		MMModemFirmwareUpdateMethod method;
 	} map[] = {
+	    {
+		FU_TYPE_MM_QDU_MBIM_DEVICE,
+		MM_MODEM_PORT_TYPE_MBIM,
+		MM_MODEM_FIRMWARE_UPDATE_METHOD_MBIM_QDU,
+	    },
+	    {
+		FU_TYPE_MM_MBIM_DEVICE,
+		MM_MODEM_PORT_TYPE_MBIM,
+		MM_MODEM_FIRMWARE_UPDATE_METHOD_FIREHOSE | MM_MODEM_FIRMWARE_UPDATE_METHOD_SAHARA,
+	    },
 	    {
 		FU_TYPE_MM_FASTBOOT_DEVICE,
 		MM_MODEM_PORT_TYPE_AT,
@@ -148,11 +163,6 @@ fu_mm_backend_probe_gtype_fallback(FuMmBackend *self, MMObject *omodem, GError *
 		MM_MODEM_FIRMWARE_UPDATE_METHOD_QMI_PDC | MM_MODEM_FIRMWARE_UPDATE_METHOD_FASTBOOT,
 	    },
 	    {
-		FU_TYPE_MM_MBIM_DEVICE,
-		MM_MODEM_PORT_TYPE_MBIM,
-		MM_MODEM_FIRMWARE_UPDATE_METHOD_MBIM_QDU,
-	    },
-	    {
 		FU_TYPE_MM_QCDM_DEVICE,
 		MM_MODEM_PORT_TYPE_QCDM,
 		MM_MODEM_FIRMWARE_UPDATE_METHOD_MBIM_QDU,
@@ -161,6 +171,11 @@ fu_mm_backend_probe_gtype_fallback(FuMmBackend *self, MMObject *omodem, GError *
 		FU_TYPE_MM_MHI_QCDM_DEVICE,
 		MM_MODEM_PORT_TYPE_QCDM,
 		MM_MODEM_FIRMWARE_UPDATE_METHOD_FIREHOSE,
+	    },
+	    {
+		FU_TYPE_MM_QCDM_DEVICE,
+		MM_MODEM_PORT_TYPE_QCDM,
+		MM_MODEM_FIRMWARE_UPDATE_METHOD_FIREHOSE | MM_MODEM_FIRMWARE_UPDATE_METHOD_SAHARA,
 	    },
 	    {
 		FU_TYPE_MM_FIREHOSE_DEVICE,
@@ -190,20 +205,27 @@ fu_mm_backend_probe_gtype_fallback(FuMmBackend *self, MMObject *omodem, GError *
 		return NULL;
 	}
 
-	if (!mm_modem_get_ports(modem, &ports, &n_ports)) {
-		g_set_error_literal(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_NOT_SUPPORTED,
-				    "failed to get port information");
-		return NULL;
+	if (mm_modem_get_ports(modem, &used_ports, &n_used_ports)) {
+		for (guint i = 0; i < n_used_ports; i++) {
+			g_debug("found port %s: %s",
+				used_ports[i].name,
+				fu_mm_device_port_type_to_string(used_ports[i].type));
+			FU_BIT_SET(ports_bitmask, used_ports[i].type);
+		}
+		mm_modem_port_info_array_free(used_ports, n_used_ports);
 	}
-	for (guint i = 0; i < n_ports; i++) {
-		g_debug("found port %s: %s",
-			ports[i].name,
-			fu_mm_device_port_type_to_string(ports[i].type));
-		FU_BIT_SET(ports_bitmask, ports[i].type);
+
+#if MM_CHECK_VERSION(1, 26, 0)
+	if (mm_modem_get_ignored_ports(modem, &ignored_ports, &n_ignored_ports)) {
+		for (guint i = 0; i < n_ignored_ports; i++) {
+			g_debug("found port %s: %s",
+				ignored_ports[i].name,
+				fu_mm_device_port_type_to_string(ignored_ports[i].type));
+			FU_BIT_SET(ports_bitmask, ignored_ports[i].type);
+		}
+		mm_modem_port_info_array_free(ignored_ports, n_ignored_ports);
 	}
-	mm_modem_port_info_array_free(ports, n_ports);
+#endif // MM_CHECK_VERSION(1, 26, 0)
 
 	/* find the correct GType */
 	for (guint i = 0; i < G_N_ELEMENTS(map); i++) {

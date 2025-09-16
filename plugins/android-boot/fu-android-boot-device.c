@@ -177,7 +177,7 @@ fu_android_boot_device_write(FuAndroidBootDevice *self,
 
 	/* rewind */
 	if (!fu_udev_device_seek(FU_UDEV_DEVICE(self), 0x0, error)) {
-		g_prefix_error(error, "failed to rewind: ");
+		g_prefix_error_literal(error, "failed to rewind: ");
 		return FALSE;
 	}
 
@@ -371,7 +371,7 @@ fu_android_boot_device_init(FuAndroidBootDevice *self)
 	fu_udev_device_add_open_flag(FU_UDEV_DEVICE(self), FU_IO_CHANNEL_OPEN_FLAG_READ);
 	fu_udev_device_add_open_flag(FU_UDEV_DEVICE(self), FU_IO_CHANNEL_OPEN_FLAG_WRITE);
 	fu_udev_device_add_open_flag(FU_UDEV_DEVICE(self), FU_IO_CHANNEL_OPEN_FLAG_SYNC);
-	fu_device_add_icon(FU_DEVICE(self), "computer");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_COMPUTER);
 
 	/*
 	 * Fallback for ABL without version reporting, fwupd will always provide an upgrade in this

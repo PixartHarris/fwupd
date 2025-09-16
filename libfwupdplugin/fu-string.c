@@ -10,7 +10,6 @@
 
 #include "fu-byte-array.h"
 #include "fu-chunk-array.h"
-#include "fu-input-stream.h"
 #include "fu-mem.h"
 #include "fu-partial-input-stream.h"
 #include "fu-string.h"
@@ -501,7 +500,7 @@ fu_strsplit_stream(GInputStream *stream,
 	if (offset > 0) {
 		stream_partial = fu_partial_input_stream_new(stream, offset, G_MAXSIZE, error);
 		if (stream_partial == NULL) {
-			g_prefix_error(error, "failed to cut string: ");
+			g_prefix_error_literal(error, "failed to cut string: ");
 			return FALSE;
 		}
 	} else {
@@ -597,7 +596,7 @@ fu_strsplit_full(const gchar *str,
 /**
  * fu_strsafe:
  * @str: (nullable): a string to make safe for printing
- * @maxsz: maximum size of returned string
+ * @maxsz: maximum size of returned string, or %G_MAXSIZE for no limit
  *
  * Converts a string into something that can be safely printed.
  *
@@ -609,16 +608,15 @@ gchar *
 fu_strsafe(const gchar *str, gsize maxsz)
 {
 	gboolean valid = FALSE;
-	g_autoptr(GString) tmp = NULL;
+	g_autoptr(GString) tmp = g_string_new(NULL);
 
 	/* sanity check */
 	if (str == NULL || maxsz == 0)
 		return NULL;
 
 	/* replace non-printable chars with '.' */
-	tmp = g_string_sized_new(maxsz);
 	for (gsize i = 0; i < maxsz && str[i] != '\0'; i++) {
-		if (!g_ascii_isprint(str[i])) {
+		if (!g_ascii_isgraph(str[i]) && !g_ascii_isspace(str[i])) {
 			g_string_append_c(tmp, '.');
 			continue;
 		}
@@ -636,7 +634,7 @@ fu_strsafe(const gchar *str, gsize maxsz)
 /**
  * fu_strsafe_bytes:
  * @blob: (not nullable): a #GBytes
- * @maxsz: maximum size of returned string
+ * @maxsz: maximum size of returned string, or %G_MAXSIZE for no limit
  *
  * Converts a #GBytes into something that can be safely printed.
  *

@@ -36,7 +36,7 @@ msgid "%s Battery Update"
 msgstr "Posodobitev baterije %s"
 
 #. TRANSLATORS: the CPU microcode is firmware loaded onto the CPU
-#. * at system bootup
+#. * at system boot-up
 #, c-format
 msgid "%s CPU Microcode Update"
 msgstr "Posodobitev mikrokode CPE %s"
@@ -309,6 +309,26 @@ msgstr[0] " %u naprave niso najboljša znana konfiguracija."
 msgstr[1] " %u naprava ni najboljša znana konfiguracija."
 msgstr[2] "%u napravi nista najboljša znana konfiguracija."
 msgstr[3] "%u naprave niso najboljša znana konfiguracija."
+
+#. TRANSLATORS: how many devices have published updates on
+#. something like the LVFS
+#, c-format
+msgid "%u device is supported in the enabled remotes (an update has been published)"
+msgid_plural "%u devices are supported in the enabled remotes (an update has been published)"
+msgstr[0] "%u naprav je podprtih v omogočenih oddaljenih (posodobitev je že objavljena)"
+msgstr[1] "%u naprava je podprta v omogočenih oddaljenih (posodobitev je že objavljena)"
+msgstr[2] "%u napravi sta podprti v omogočenih oddaljenih (posodobitev je že objavljena)"
+msgstr[3] "%u naprave so podprte v omogočenih oddaljenih (posodobitev je že objavljena)"
+
+#. TRANSLATORS: how many devices could be updated in theory if
+#. we had the firmware locally
+#, c-format
+msgid "%u device is updatable"
+msgid_plural "%u devices are updatable"
+msgstr[0] "%u naprav je možno posodobiti"
+msgstr[1] "%u napravo je možno posodobiti"
+msgstr[2] "%u napravi je možno posodobiti"
+msgstr[3] "%u naprave je možno posodobiti"
 
 #. TRANSLATORS: duration in minutes
 #, c-format
@@ -698,6 +718,10 @@ msgstr "Ni možno uveljaviti, ker je bila posodobitev dbx že uveljavljena."
 #. TRANSLATORS: this is when the daemon state changes
 msgid "Changed"
 msgstr "Spremenjeno"
+
+#. TRANSLATORS: command description
+msgid "Check if any devices are pending a reboot to complete update"
+msgstr "Preveri, če katera od naprav čaka na ponoven zagon za zaključek posodobitve"
 
 #. TRANSLATORS: command description
 msgid "Checks cryptographic hash matches firmware"
@@ -1114,6 +1138,10 @@ msgstr "Odloži podatke SMBIOS-a iz datoteke"
 msgid "Duration"
 msgstr "Trajanje"
 
+#. TRANSLATORS: command argument: uppercase, spaces->dashes
+msgid "EMULATION-FILE [ARCHIVE-FILE]"
+msgstr "DATOTEKA-EMULACIJE [ARHIVSKA-DATOTEKA]"
+
 #. TRANSLATORS: longer description
 msgid "Each system should have tests to ensure firmware security."
 msgstr "Vsak sistem mora imeti preizkuse za zagotovitev varnosti vdelane programske opreme."
@@ -1236,8 +1264,8 @@ msgid "FILENAME CERTIFICATE PRIVATE-KEY"
 msgstr "IME-DATOTEKE POTRDILO OSEBNI-KLJUČ"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
-msgid "FILENAME DEVICE-ID"
-msgstr "IMEDATOTEKE ID-NAPRAVE"
+msgid "FILENAME DEVICE-ID [VERSION]"
+msgstr "IME-DATOTEKE ID-NAPRAVE [RAZLIČICA]"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME OFFSET DATA [FIRMWARE-TYPE]"
@@ -1542,8 +1570,8 @@ msgid "Gets the list of blocked firmware"
 msgstr "Pridobi seznam blokirane vdelane programske opreme"
 
 #. TRANSLATORS: command description
-msgid "Gets the list of updates for connected hardware"
-msgstr "Pridobi seznam posodobitev za priključeno strojno opremo"
+msgid "Gets the list of updates for all specified devices, or all devices if unspecified"
+msgstr "Pridobi seznam posodobitev za vse navedene naprave ali za vse naprave, če nobena ni izrecno navedena"
 
 #. TRANSLATORS: command description
 msgid "Gets the releases for a device"
@@ -1570,7 +1598,6 @@ msgid "Host Security Events"
 msgstr "Dogodki varnosti gostitelja"
 
 #. TRANSLATORS: error message for unsupported feature
-#, c-format
 msgid "Host Security ID (HSI) is not supported"
 msgstr "Varnostni ID gostitelja (HSI) ni podprt"
 
@@ -2105,6 +2132,10 @@ msgstr "Nova različica"
 msgid "No action specified!"
 msgstr "Nobeno dejanje ni določeno!"
 
+#. TRANSLATORS: no devices that can be upgraded with new firmware
+msgid "No devices are updatable"
+msgstr "Nobene naprave ni mogoče posodobiti"
+
 #. TRANSLATORS: message letting the user know no device downgrade available
 #. * %1 is the device name
 #, c-format
@@ -2122,6 +2153,10 @@ msgstr "Vdelane programske opreme ni bilo mogoče najti"
 #. TRANSLATORS: nothing attached that can be upgraded
 msgid "No hardware detected with firmware update capability"
 msgstr "Zaznana ni nobena strojna oprema z možnostjo posodobitve vdelane programske opreme"
+
+#. TRANSLATORS: no rebooting needed
+msgid "No reboot is necessary"
+msgstr "Ponoven zagon ni potreben"
 
 #. TRANSLATORS: no repositories to download from
 msgid "No releases available"
@@ -2176,6 +2211,10 @@ msgid "Old version"
 msgstr "Stara različica"
 
 #. TRANSLATORS: command line option
+msgid "Only install onto emulated devices"
+msgstr "Namesti samo na emulirane naprave"
+
+#. TRANSLATORS: command line option
 msgid "Only show single PCR value"
 msgstr "Pokaži samo eno vrednost PCR"
 
@@ -2189,8 +2228,8 @@ msgid "Only version upgrades are allowed"
 msgstr "Dovoljene so samo nadgradnje različic"
 
 #. TRANSLATORS: command line option
-msgid "Output in JSON format"
-msgstr "Izhod v formatu JSON"
+msgid "Output in JSON format (disables all interactive prompts)"
+msgstr "Izpis v zapisu JSON (onemogoči vsa vprašanja uporabniku)"
 
 #. TRANSLATORS: command line option
 msgid "Override the default ESP path"
@@ -2261,7 +2300,8 @@ msgstr "Pred nadaljevanjem se prepričajte, da imate ključ za obnovitev nosilca
 msgid "Please enter a number from 0 to %u: "
 msgstr "Vnesite številko od 0 do %u: "
 
-#. TRANSLATORS: the user isn't reading the question -- %1 is 'Y' and %2 is 'N'
+#. TRANSLATORS: the user isn't reading the question -- %1 is 'Y' and %2 is
+#. * 'N'
 #, c-format
 msgid "Please enter either %s or %s: "
 msgstr "Vnesite %s ali %s:"
@@ -2269,6 +2309,10 @@ msgstr "Vnesite %s ali %s:"
 #. TRANSLATORS: Failed to open plugin, hey Arch users
 msgid "Plugin dependencies missing"
 msgstr "Manjkajo odvisnosti vstavkov"
+
+#. TRANSLATORS: The plugin enumeration might change the device current mode
+msgid "Plugin enumeration may change device state"
+msgstr "Oštevilčenje vstavka lahko spremeni stanje naprave"
 
 #. TRANSLATORS: The plugin is only for testing
 msgid "Plugin is only for testing"
@@ -2500,6 +2544,10 @@ msgstr "Izvajalno jedro je prestaro"
 #. TRANSLATORS:  this is the HSI suffix
 msgid "Runtime Suffix"
 msgstr "Pripona izvajalne datoteke"
+
+#. TRANSLATORS: Software Bill of Materials link
+msgid "SBOM"
+msgstr "SBOM"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "SECTION"
@@ -2755,8 +2803,8 @@ msgstr "Uspešno onemogočene preizkusne naprave"
 
 #. TRANSLATORS: success message -- where 'metadata' is information
 #. * about available firmware on the remote server
-msgid "Successfully downloaded new metadata: "
-msgstr "Uspešno preneseni novi metapodatki: "
+msgid "Successfully downloaded new metadata:"
+msgstr "Uspešno preneseni novi metapodatki:"
 
 #. TRANSLATORS: success message
 msgid "Successfully enabled and refreshed remote"
@@ -3015,6 +3063,18 @@ msgstr "TPM PCR0 se razlikuje od rekonstrukcije."
 msgid "The UEFI Platform Key is used to determine if device software comes from a trusted source."
 msgstr "Ključ platforme UEFI se uporablja za ugotavljanje, ali programska oprema naprave prihaja iz zaupanja vrednega vira."
 
+#. TRANSLATORS: HSI event title
+msgid "The UEFI certificate store is now up to date"
+msgstr "Shramba potrdil UEFI je zdaj posodobljena"
+
+#. TRANSLATORS: longer description
+msgid "The UEFI db contains the list of valid certificates that can be used to authorize what EFI binaries are allowed to run."
+msgstr "Zbirka podatkov UEFI vsebuje seznam veljavnih potrdil, ki jih lahko uporabite za overjanje, katere izvršne datoteke EFI je dovoljeno izvajati."
+
+#. TRANSLATORS: longer description
+msgid "The UEFI system can set up memory attributes at boot which prevent common exploits from running."
+msgstr "Sistem UEFI lahko nastavi atribute pomnilnika ob zagonu, ki preprečujejo pogosta vsiljena izvajanja pred izvršitvijo."
+
 #. TRANSLATORS: the user is SOL for support...
 msgid "The daemon has loaded 3rd party code and is no longer supported by the upstream developers!"
 msgstr "Prikriti proces je naložil kodo tretje strani in razvijalci novih različic je ne podpirajo več!"
@@ -3158,6 +3218,10 @@ msgstr "Razdelek UEFI ESP morda ni pravilno nastavljen"
 msgid "UEFI ESP partition not detected or configured"
 msgstr "Razdelek UEFI ESP ni zaznan ali konfiguriran"
 
+#. TRANSLATORS: Title: is UEFI early-boot memory protection turned on
+msgid "UEFI Memory Protection"
+msgstr "Zaščita pomnilnika UEFI"
+
 #. TRANSLATORS: Title: PK is the 'platform key' for the machine
 msgid "UEFI Platform Key"
 msgstr "Ključ platforme UEFI"
@@ -3182,6 +3246,10 @@ msgstr "Spremenljivke zagonske storitve UEFI"
 msgid "UEFI capsule updates not available or enabled in firmware setup"
 msgstr "Posodobitve kapsul UEFI niso na voljo ali omogočene pri nastavitvi vdelane programske opreme"
 
+#. TRANSLATORS: Title: is UEFI db up-to-date
+msgid "UEFI db"
+msgstr "Db UEFI"
+
 #. TRANSLATORS: program name
 msgid "UEFI dbx Utility"
 msgstr "Pripomoček UEFI dbx"
@@ -3189,6 +3257,26 @@ msgstr "Pripomoček UEFI dbx"
 #. TRANSLATORS: system is not booted in UEFI mode
 msgid "UEFI firmware can not be updated in legacy BIOS mode"
 msgstr "Vdelane programske opreme UEFI ni mogoče posodobiti v zastarelem načinu BIOS-a"
+
+#. TRANSLATORS: Title: is UEFI early-boot memory protection turned on
+msgid "UEFI memory protection"
+msgstr "Zaščita pomnilnika UEFI"
+
+#. TRANSLATORS: HSI event title
+msgid "UEFI memory protection enabled and locked"
+msgstr "Zaščita pomnilnika UEFI je omogočena in zaklenjena"
+
+#. TRANSLATORS: HSI event title
+msgid "UEFI memory protection enabled but not locked"
+msgstr "Zaščita pomnilnika UEFI je omogočena, vendar ni zaklenjena"
+
+#. TRANSLATORS: HSI event title
+msgid "UEFI memory protection is now locked"
+msgstr "Zaščita pomnilnika UEFI je zdaj zaklenjena"
+
+#. TRANSLATORS: HSI event title
+msgid "UEFI memory protection is now unlocked"
+msgstr "Zaščita pomnilnika UEFI je zdaj odklenjena"
 
 #. TRANSLATORS: Title: PK is the 'platform key' for the machine
 msgid "UEFI platform key"
@@ -3315,15 +3403,6 @@ msgstr "Posodobi shranjene metapodatke s trenutno vsebino"
 #. TRANSLATORS: command description
 msgid "Updates all specified devices to latest firmware version, or all devices if unspecified"
 msgstr "Posodobi vse navedene naprave na najnovejšo različico vdelane programske opreme ali vse naprave, če niso navedene"
-
-#. TRANSLATORS: how many local devices can expect updates now
-#, c-format
-msgid "Updates have been published for %u local device"
-msgid_plural "Updates have been published for %u of %u local devices"
-msgstr[0] "Posodobitve so objavljene za %u krajevnih naprav"
-msgstr[1] "Posodobitve so objavljene za %u od %u krajevnih naprav"
-msgstr[2] "Posodobitve so objavljene za %u od %u krajevnih naprav"
-msgstr[3] "Posodobitve so objavljene za %u od %u krajevnih naprav"
 
 msgid "Updating"
 msgstr "Posodabljanje"
@@ -3503,6 +3582,10 @@ msgstr "[DATOTEKA PODP_DATOTEKE ID-ODDALJENEGA]"
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "[FILENAME1] [FILENAME2]"
 msgstr "[IMEDATOTEKE1] [IMEDATOTEKE2]"
+
+#. TRANSLATORS: command argument: uppercase, spaces->dashes
+msgid "[FWUPD-VERSION]"
+msgstr "[FWUPD-RAZLIČICA]"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "[REASON] [TIMEOUT]"

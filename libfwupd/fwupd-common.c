@@ -7,9 +7,7 @@
 #include "config.h"
 
 #include "fwupd-common-private.h"
-#include "fwupd-device.h"
 #include "fwupd-error.h"
-#include "fwupd-release.h"
 
 #ifdef HAVE_GIO_UNIX
 #include <errno.h>
@@ -308,7 +306,7 @@ gchar *
 fwupd_guid_hash_data(const guint8 *data, gsize datasz, FwupdGuidFlags flags)
 {
 	gsize digestlen = 20;
-	guint8 hash[20];
+	guint8 hash[20] = {0};
 	fwupd_guid_t uu_new;
 	g_autoptr(GChecksum) csum = NULL;
 	const fwupd_guid_t uu_default = {0x6b,
@@ -502,7 +500,7 @@ fwupd_unix_input_stream_from_bytes(GBytes *bytes, GError **error)
 		rc = g_unlink(tmp_file);
 		if (rc != 0) {
 			if (!g_close(fd, error)) {
-				g_prefix_error(error, "failed to close temporary file: ");
+				g_prefix_error_literal(error, "failed to close temporary file: ");
 				return NULL;
 			}
 			g_set_error_literal(error,
@@ -535,7 +533,7 @@ fwupd_unix_input_stream_from_bytes(GBytes *bytes, GError **error)
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_INVALID_FILE,
 			    "failed to seek: %s",
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 		return NULL;
 	}
 	return G_UNIX_INPUT_STREAM(g_unix_input_stream_new(fd, TRUE));

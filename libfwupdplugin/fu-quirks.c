@@ -18,10 +18,7 @@
 #include "fwupd-common.h"
 #include "fwupd-enums-private.h"
 #include "fwupd-error.h"
-#include "fwupd-remote-private.h"
 
-#include "fu-bytes.h"
-#include "fu-common.h"
 #include "fu-path.h"
 #include "fu-quirks.h"
 #include "fu-string.h"
@@ -422,7 +419,7 @@ fu_quirks_check_silo(FuQuirks *self, GError **error)
 					   XB_QUERY_FLAG_OPTIMIZE,
 					   error);
 	if (self->query_kv == NULL) {
-		g_prefix_error(error, "failed to prepare query: ");
+		g_prefix_error_literal(error, "failed to prepare query: ");
 		return FALSE;
 	}
 	self->query_vs = xb_query_new_full(self->silo,
@@ -430,7 +427,7 @@ fu_quirks_check_silo(FuQuirks *self, GError **error)
 					   XB_QUERY_FLAG_OPTIMIZE,
 					   error);
 	if (self->query_vs == NULL) {
-		g_prefix_error(error, "failed to prepare query: ");
+		g_prefix_error_literal(error, "failed to prepare query: ");
 		return FALSE;
 	}
 	if (!xb_silo_query_build_index(self->silo, "quirk/device", "id", error)) {

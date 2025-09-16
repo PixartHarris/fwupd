@@ -13,7 +13,6 @@
 #endif
 
 #include "fu-byte-array.h"
-#include "fu-bytes.h"
 #include "fu-common.h"
 #include "fu-coswid-common.h"
 #include "fu-coswid-firmware.h"
@@ -131,14 +130,15 @@ fu_coswid_firmware_parse_meta(cbor_item_t *item, gpointer user_data, GError **er
 			g_free(priv->summary);
 			priv->summary = fu_coswid_read_string(pairs[i].value, error);
 			if (priv->summary == NULL) {
-				g_prefix_error(error, "failed to parse summary: ");
+				g_prefix_error_literal(error, "failed to parse summary: ");
 				return FALSE;
 			}
 		} else if (tag_id == FU_COSWID_TAG_COLLOQUIAL_VERSION) {
 			g_free(priv->colloquial_version);
 			priv->colloquial_version = fu_coswid_read_string(pairs[i].value, error);
 			if (priv->colloquial_version == NULL) {
-				g_prefix_error(error, "failed to parse colloquial-version: ");
+				g_prefix_error_literal(error,
+						       "failed to parse colloquial-version: ");
 				return FALSE;
 			}
 		} else {
@@ -169,13 +169,13 @@ fu_coswid_firmware_parse_link(cbor_item_t *item, gpointer user_data, GError **er
 			g_free(link->href);
 			link->href = fu_coswid_read_string(pairs[i].value, error);
 			if (link->href == NULL) {
-				g_prefix_error(error, "failed to parse link href: ");
+				g_prefix_error_literal(error, "failed to parse link href: ");
 				return FALSE;
 			}
 		} else if (tag_id == FU_COSWID_TAG_REL) {
 			gint8 tmp = 0;
 			if (!fu_coswid_read_s8(pairs[i].value, &tmp, error)) {
-				g_prefix_error(error, "failed to parse link rel: ");
+				g_prefix_error_literal(error, "failed to parse link rel: ");
 				return FALSE;
 			}
 			link->rel = tmp;
@@ -226,7 +226,7 @@ fu_coswid_firmware_parse_hash(cbor_item_t *item, gpointer user_data, GError **er
 		return FALSE;
 	}
 	if (!fu_coswid_read_u8(hash_item_alg_id, &alg_id8, error)) {
-		g_prefix_error(error, "failed to parse hash alg-id: ");
+		g_prefix_error_literal(error, "failed to parse hash alg-id: ");
 		return FALSE;
 	}
 
@@ -234,7 +234,7 @@ fu_coswid_firmware_parse_hash(cbor_item_t *item, gpointer user_data, GError **er
 	hash->alg_id = alg_id8;
 	hash->value = fu_coswid_read_byte_array(hash_item_value, error);
 	if (hash->value == NULL) {
-		g_prefix_error(error, "failed to parse hash value: ");
+		g_prefix_error_literal(error, "failed to parse hash value: ");
 		return FALSE;
 	}
 	g_ptr_array_add(payload->hashes, g_steal_pointer(&hash));
@@ -270,7 +270,7 @@ fu_coswid_firmware_parse_file(cbor_item_t *item, gpointer user_data, GError **er
 			g_free(payload->name);
 			payload->name = fu_coswid_read_string(pairs[i].value, error);
 			if (payload->name == NULL) {
-				g_prefix_error(error, "failed to parse payload name: ");
+				g_prefix_error_literal(error, "failed to parse payload name: ");
 				return FALSE;
 			}
 		} else if (tag_id == FU_COSWID_TAG_SIZE) {
@@ -294,10 +294,10 @@ fu_coswid_firmware_parse_file(cbor_item_t *item, gpointer user_data, GError **er
 						return FALSE;
 				}
 			} else {
-				g_set_error(error,
-					    FWUPD_ERROR,
-					    FWUPD_ERROR_INVALID_DATA,
-					    "hashes neither an array or array of array");
+				g_set_error_literal(error,
+						    FWUPD_ERROR,
+						    FWUPD_ERROR_INVALID_DATA,
+						    "hashes neither an array or array of array");
 				return FALSE;
 			}
 		} else {
@@ -409,7 +409,7 @@ fu_coswid_firmware_parse_entity_name(FuCoswidFirmwareEntity *entity,
 
 	entity->name = fu_coswid_read_string(item, error);
 	if (entity->name == NULL) {
-		g_prefix_error(error, "failed to parse entity name: ");
+		g_prefix_error_literal(error, "failed to parse entity name: ");
 		return FALSE;
 	}
 
@@ -427,7 +427,7 @@ fu_coswid_firmware_parse_entity_regid(FuCoswidFirmwareEntity *entity,
 
 	entity->regid = fu_coswid_read_string(item, error);
 	if (entity->regid == NULL) {
-		g_prefix_error(error, "failed to parse entity regid: ");
+		g_prefix_error_literal(error, "failed to parse entity regid: ");
 		return FALSE;
 	}
 
@@ -443,7 +443,7 @@ fu_coswid_firmware_parse_entity_role(FuCoswidFirmwareEntity *entity,
 	if (cbor_isa_uint(item)) {
 		guint8 role8 = 0;
 		if (!fu_coswid_read_u8(item, &role8, error)) {
-			g_prefix_error(error, "failed to parse entity role: ");
+			g_prefix_error_literal(error, "failed to parse entity role: ");
 			return FALSE;
 		}
 		if (role8 >= FU_COSWID_ENTITY_ROLE_LAST) {
@@ -461,7 +461,7 @@ fu_coswid_firmware_parse_entity_role(FuCoswidFirmwareEntity *entity,
 			guint8 role8 = 0;
 			g_autoptr(cbor_item_t) value = cbor_array_get(item, j);
 			if (!fu_coswid_read_u8(value, &role8, error)) {
-				g_prefix_error(error, "failed to parse entity role: ");
+				g_prefix_error_literal(error, "failed to parse entity role: ");
 				return FALSE;
 			}
 			if (role8 >= FU_COSWID_ENTITY_ROLE_LAST) {
@@ -622,7 +622,7 @@ fu_coswid_firmware_parse(FuFirmware *firmware,
 		if (tag_id == FU_COSWID_TAG_TAG_ID) {
 			g_autofree gchar *str = fu_coswid_read_string(pairs[i].value, error);
 			if (str == NULL) {
-				g_prefix_error(error, "failed to parse tag-id: ");
+				g_prefix_error_literal(error, "failed to parse tag-id: ");
 				return FALSE;
 			}
 			fu_firmware_set_id(firmware, str);
@@ -630,13 +630,13 @@ fu_coswid_firmware_parse(FuFirmware *firmware,
 			g_free(priv->product);
 			priv->product = fu_coswid_read_string(pairs[i].value, error);
 			if (priv->product == NULL) {
-				g_prefix_error(error, "failed to parse product: ");
+				g_prefix_error_literal(error, "failed to parse product: ");
 				return FALSE;
 			}
 		} else if (tag_id == FU_COSWID_TAG_SOFTWARE_VERSION) {
 			g_autofree gchar *str = fu_coswid_read_string(pairs[i].value, error);
 			if (str == NULL) {
-				g_prefix_error(error, "failed to parse software-version: ");
+				g_prefix_error_literal(error, "failed to parse software-version: ");
 				return FALSE;
 			}
 			fu_firmware_set_version(firmware, str);
@@ -742,25 +742,63 @@ fu_coswid_firmware_get_checksum(FuFirmware *firmware, GChecksumType csum_kind, G
 	return NULL;
 }
 
+/**
+ * fu_coswid_firmware_get_product:
+ * @self: a #FuCoswidFirmware
+ *
+ * Gets the product name.
+ *
+ * Returns: string, or %NULL for unset
+ *
+ * Since: 2.0.12
+ **/
+const gchar *
+fu_coswid_firmware_get_product(FuCoswidFirmware *self)
+{
+	FuCoswidFirmwarePrivate *priv = GET_PRIVATE(self);
+	g_return_val_if_fail(FU_IS_COSWID_FIRMWARE(self), NULL);
+	return priv->product;
+}
+
 #ifdef HAVE_CBOR
 
-static void
-fu_coswid_firmware_write_hash(cbor_item_t *root, FuCoswidFirmwareHash *hash)
+static gboolean
+fu_coswid_firmware_write_hash(cbor_item_t *root, FuCoswidFirmwareHash *hash, GError **error)
 {
 	g_autoptr(cbor_item_t) item_hash = cbor_new_definite_array(2);
 	g_autoptr(cbor_item_t) item_hash_alg_id = cbor_build_uint8(hash->alg_id);
 	g_autoptr(cbor_item_t) item_hash_value =
 	    cbor_build_bytestring(hash->value->data, hash->value->len);
-	if (!cbor_array_push(item_hash, item_hash_alg_id))
-		g_critical("failed to push to definite array");
-	if (!cbor_array_push(item_hash, item_hash_value))
-		g_critical("failed to push to definite array");
-	if (!cbor_array_push(root, item_hash))
-		g_critical("failed to push to indefinite array");
+	if (!cbor_array_push(item_hash, item_hash_alg_id)) {
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_DATA,
+				    "failed to push hash alg-id to definite array");
+		return FALSE;
+	}
+	if (!cbor_array_push(item_hash, item_hash_value)) {
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_DATA,
+				    "failed to push hash value to definite array");
+		return FALSE;
+	}
+	if (!cbor_array_push(root, item_hash)) {
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_DATA,
+				    "failed to push hash to indefinite array");
+		return FALSE;
+	}
+
+	/* success */
+	return TRUE;
 }
 
-static void
-fu_coswid_firmware_write_payload(cbor_item_t *root, FuCoswidFirmwarePayload *payload)
+static gboolean
+fu_coswid_firmware_write_payload(cbor_item_t *root,
+				 FuCoswidFirmwarePayload *payload,
+				 GError **error)
 {
 	g_autoptr(cbor_item_t) item_payload = cbor_new_indefinite_map();
 	g_autoptr(cbor_item_t) item_file = cbor_new_indefinite_map();
@@ -774,14 +812,62 @@ fu_coswid_firmware_write_payload(cbor_item_t *root, FuCoswidFirmwarePayload *pay
 		g_autoptr(cbor_item_t) item_hashes = cbor_new_indefinite_array();
 		for (guint j = 0; j < payload->hashes->len; j++) {
 			FuCoswidFirmwareHash *hash = g_ptr_array_index(payload->hashes, j);
-			fu_coswid_firmware_write_hash(item_hashes, hash);
+			if (!fu_coswid_firmware_write_hash(item_hashes, hash, error)) {
+				g_prefix_error_literal(error, "failed to add payload: ");
+				return FALSE;
+			}
 		}
 		fu_coswid_write_tag_item(item_file, FU_COSWID_TAG_HASH, item_hashes);
 	}
 	fu_coswid_write_tag_item(item_payload, FU_COSWID_TAG_FILE, item_file);
-	if (!cbor_array_push(root, item_payload))
-		g_critical("failed to push to indefinite array");
+	if (!cbor_array_push(root, item_payload)) {
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_DATA,
+				    "failed to push payload to indefinite array");
+		return FALSE;
+	}
+
+	/* success */
+	return TRUE;
 }
+
+static gboolean
+fu_coswid_firmware_write_entity(cbor_item_t *root, FuCoswidFirmwareEntity *entity, GError **error)
+{
+	g_autoptr(cbor_item_t) item_entity = cbor_new_indefinite_map();
+	g_autoptr(cbor_item_t) item_roles = cbor_new_indefinite_array();
+	if (entity->name != NULL) {
+		fu_coswid_write_tag_string(item_entity, FU_COSWID_TAG_ENTITY_NAME, entity->name);
+	}
+	if (entity->regid != NULL) {
+		fu_coswid_write_tag_string(item_entity, FU_COSWID_TAG_REG_ID, entity->regid);
+	}
+	for (guint j = 0; j < FU_COSWID_ENTITY_ROLE_LAST; j++) {
+		if (FU_BIT_IS_SET(entity->roles, j)) {
+			g_autoptr(cbor_item_t) item_role = cbor_build_uint8(j);
+			if (!cbor_array_push(item_roles, item_role)) {
+				g_set_error_literal(error,
+						    FWUPD_ERROR,
+						    FWUPD_ERROR_INVALID_DATA,
+						    "failed to push entity to indefinite array");
+				return FALSE;
+			}
+		}
+	}
+	fu_coswid_write_tag_item(item_entity, FU_COSWID_TAG_ROLE, item_roles);
+	if (!cbor_array_push(root, item_entity)) {
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_DATA,
+				    "failed to push entity to indefinite array");
+		return FALSE;
+	}
+
+	/* success */
+	return TRUE;
+}
+
 #endif
 
 static GByteArray *
@@ -839,28 +925,8 @@ fu_coswid_firmware_write(FuFirmware *firmware, GError **error)
 		g_autoptr(cbor_item_t) item_entities = cbor_new_indefinite_array();
 		for (guint i = 0; i < priv->entities->len; i++) {
 			FuCoswidFirmwareEntity *entity = g_ptr_array_index(priv->entities, i);
-			g_autoptr(cbor_item_t) item_entity = cbor_new_indefinite_map();
-			g_autoptr(cbor_item_t) item_roles = cbor_new_indefinite_array();
-			if (entity->name != NULL) {
-				fu_coswid_write_tag_string(item_entity,
-							   FU_COSWID_TAG_ENTITY_NAME,
-							   entity->name);
-			}
-			if (entity->regid != NULL) {
-				fu_coswid_write_tag_string(item_entity,
-							   FU_COSWID_TAG_REG_ID,
-							   entity->regid);
-			}
-			for (guint j = 0; j < FU_COSWID_ENTITY_ROLE_LAST; j++) {
-				if (FU_BIT_IS_SET(entity->roles, j)) {
-					g_autoptr(cbor_item_t) item_role = cbor_build_uint8(j);
-					if (!cbor_array_push(item_roles, item_role))
-						g_critical("failed to push to indefinite array");
-				}
-			}
-			fu_coswid_write_tag_item(item_entity, FU_COSWID_TAG_ROLE, item_roles);
-			if (!cbor_array_push(item_entities, item_entity))
-				g_critical("failed to push to indefinite array");
+			if (!fu_coswid_firmware_write_entity(item_entities, entity, error))
+				return NULL;
 		}
 		fu_coswid_write_tag_item(root, FU_COSWID_TAG_ENTITY, item_entities);
 	}
@@ -877,8 +943,13 @@ fu_coswid_firmware_write(FuFirmware *firmware, GError **error)
 							   link->href);
 			}
 			fu_coswid_write_tag_s8(item_link, FU_COSWID_TAG_REL, link->rel);
-			if (!cbor_array_push(item_links, item_link))
-				g_critical("failed to push to indefinite array");
+			if (!cbor_array_push(item_links, item_link)) {
+				g_set_error_literal(error,
+						    FWUPD_ERROR,
+						    FWUPD_ERROR_INVALID_DATA,
+						    "failed to push link to indefinite array");
+				return NULL;
+			}
 		}
 		fu_coswid_write_tag_item(root, FU_COSWID_TAG_LINK, item_links);
 	}
@@ -888,7 +959,8 @@ fu_coswid_firmware_write(FuFirmware *firmware, GError **error)
 		g_autoptr(cbor_item_t) item_payloads = cbor_new_indefinite_array();
 		for (guint i = 0; i < priv->payloads->len; i++) {
 			FuCoswidFirmwarePayload *payload = g_ptr_array_index(priv->payloads, i);
-			fu_coswid_firmware_write_payload(item_payloads, payload);
+			if (!fu_coswid_firmware_write_payload(item_payloads, payload, error))
+				return NULL;
 		}
 		fu_coswid_write_tag_item(root, FU_COSWID_TAG_PAYLOAD, item_payloads);
 	}

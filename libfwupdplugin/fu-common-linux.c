@@ -31,7 +31,7 @@ fu_common_get_block_devices(GError **error)
 
 	connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, error);
 	if (connection == NULL) {
-		g_prefix_error(error, "failed to get system bus: ");
+		g_prefix_error_literal(error, "failed to get system bus: ");
 		return NULL;
 	}
 	proxy = g_dbus_proxy_new_sync(connection,
@@ -109,6 +109,7 @@ fu_common_get_kernel_cmdline_impl(GError **error)
 	    "apparmor",
 	    "audit",
 	    "auto",
+	    "bluetooth.disable_ertm",
 	    "boot",
 	    "BOOT_IMAGE",
 	    "console",
@@ -119,6 +120,7 @@ fu_common_get_kernel_cmdline_impl(GError **error)
 	    "earlycon",
 	    "earlyprintk",
 	    "ether",
+	    "init",
 	    "initrd",
 	    "ip",
 	    "LANG",
@@ -137,7 +139,9 @@ fu_common_get_kernel_cmdline_impl(GError **error)
 	    "nfs.nfs4_unique_id",
 	    "nfsroot",
 	    "noplymouth",
+	    "nowatchdog",
 	    "ostree",
+	    "preempt",
 	    "quiet",
 	    "rd.dm.uuid",
 	    "rd.luks.allow-discards",
@@ -156,12 +160,15 @@ fu_common_get_kernel_cmdline_impl(GError **error)
 	    "ro",
 	    "root",
 	    "rootflags",
+	    "rootfstype",
 	    "roothash",
 	    "rw",
 	    "security",
+	    "selinux",
 	    "showopts",
 	    "splash",
 	    "swap",
+	    "systemd.machine_id",
 	    "systemd.mask",
 	    "systemd.show_status",
 	    "systemd.unit",
@@ -172,6 +179,7 @@ fu_common_get_kernel_cmdline_impl(GError **error)
 	    "verbose",
 	    "vt.handoff",
 	    "zfs",
+	    "zswap.enabled",
 	    NULL, /* last entry */
 	};
 

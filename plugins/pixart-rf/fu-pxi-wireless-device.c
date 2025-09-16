@@ -81,10 +81,10 @@ fu_pxi_wireless_device_prepare_firmware(FuDevice *device,
 			return NULL;
 	} else if (fu_device_has_private_flag(FU_DEVICE(parent), FU_PXI_DEVICE_FLAG_IS_HPAC) !=
 		   fu_pxi_firmware_is_hpac(FU_PXI_FIRMWARE(firmware))) {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_INVALID_FILE,
-			    "The firmware is incompatible with the device");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_FILE,
+				    "firmware is incompatible with the device");
 		return NULL;
 	}
 
@@ -166,7 +166,7 @@ fu_pxi_wireless_device_check_crc(FuDevice *device, guint16 checksum, GError **er
 	/* ota check crc command */
 	fu_byte_array_append_uint8(ota_cmd, 0x3); /* ota command length */
 	fu_byte_array_append_uint8(ota_cmd, FU_PXI_DEVICE_CMD_FW_OTA_CHECK_CRC); /* ota command */
-	fu_byte_array_append_uint16(ota_cmd, checksum, G_LITTLE_ENDIAN);	 /* checkesum */
+	fu_byte_array_append_uint16(ota_cmd, checksum, G_LITTLE_ENDIAN);	 /* checksum */
 
 	/* increase the serial number */
 	self->sn++;

@@ -11,6 +11,8 @@
 #define FU_TYPE_DEVICE_EVENT (fu_device_event_get_type())
 G_DECLARE_FINAL_TYPE(FuDeviceEvent, fu_device_event, FU, DEVICE_EVENT, GObject)
 
+FuDeviceEvent *
+fu_device_event_new(const gchar *id);
 void
 fu_device_event_set_str(FuDeviceEvent *self, const gchar *key, const gchar *value)
     G_GNUC_NON_NULL(1, 2);
@@ -41,4 +43,4 @@ fu_device_event_copy_data(FuDeviceEvent *self,
 void
 fu_device_event_set_error(FuDeviceEvent *self, const GError *error) G_GNUC_NON_NULL(1, 2);
 gboolean
-fu_device_event_check_error(FuDeviceEvent *self, GError **error) G_GNUC_NON_NULL(1, 2);
+fu_device_event_check_error(FuDeviceEvent *self, GError **error) G_GNUC_NON_NULL(1);

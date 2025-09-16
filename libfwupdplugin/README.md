@@ -128,7 +128,7 @@ Remember: Plugins should be upstream!
 ## 2.0.0
 
 * `fu_hid_device_parse_descriptor()`: Use `fu_hid_device_parse_descriptors()` instead
-* `fu_io_channel_new_file()`: Add some `FuIoChannelOpenFlag`, e.g. `FU_IO_CHANNEL_OPEN_FLAG_READ|FU_IO_CHANNEL_OPEN_FLAG_WRITE`
+* `fu_io_channel_new_file()`: Add some `FuIoChannelOpenFlags`, e.g. `FU_IO_CHANNEL_OPEN_FLAG_READ|FU_IO_CHANNEL_OPEN_FLAG_WRITE`
 * `fu_udev_device_set_flags()`: Use `fu_udev_device_add_flag()` instead
 * `fu_udev_device_get_slot_depth()`: Use `fu_udev_device_get_subsystem_depth()` instead
 * `fu_usb_device_is_open()`: Use `fu_device_has_private_flag(device, FU_DEVICE_PRIVATE_FLAG_IS_OPEN)` instead
@@ -154,6 +154,8 @@ Remember: Plugins should be upstream!
 * `fu_udev_device_get_subsystem_model`: Use `fu_pci_device_get_subsystem_pid()` instead
 * `fu_udev_device_get_revision`: Use `fu_pci_device_get_revision()` instead
 * `fu_udev_device_set_revision`: Use `fu_pci_device_set_revision()` instead
+* `fu_firmware_parse_full()`: Use `fu_firmware_parse_bytes()` instead
+* `fu_firmware_parse()`: Use `fu_firmware_parse_bytes()` by adding an offset of 0x0
 
 ## 2.0.2
 
@@ -178,3 +180,16 @@ Remember: Plugins should be upstream!
 * `fu_context_get_smbios_string()`: Add an expected structure length, typically `FU_SMBIOS_STRUCTURE_LENGTH_ANY`.
 * `fu_context_get_smbios_integer()`: Add an expected structure length, typically `FU_SMBIOS_STRUCTURE_LENGTH_ANY`.
 * `fu_context_get_smbios_data()`: Add an expected structure length, typically `FU_SMBIOS_STRUCTURE_LENGTH_ANY`.
+
+## 2.0.11
+
+* `fu_device_read_firmware()`: Add `FuFirmwareParseFlags` to `fu_device_read_firmware`.
+
+## 2.0.12
+
+* Plugins that don't allow devices to function 100% through probe should use `FWUPD_PLUGIN_FLAG_MUTABLE_ENUMERATION`
+* `fu_device_get_contents_bytes()`: Add a maximum read size, typically `G_MAXSIZE`
+
+## 2.0.14
+
+* `fu_error_convert()`: Use `fwupd_error_convert()` instead

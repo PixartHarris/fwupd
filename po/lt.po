@@ -33,7 +33,7 @@ msgid "%s Battery Update"
 msgstr "„%s“ akumuliatoriaus naujinimas"
 
 #. TRANSLATORS: the CPU microcode is firmware loaded onto the CPU
-#. * at system bootup
+#. * at system boot-up
 #, c-format
 msgid "%s CPU Microcode Update"
 msgstr "„%s“ procesoriaus mikroprogramos naujinimas"
@@ -724,10 +724,6 @@ msgid "FILENAME CERTIFICATE PRIVATE-KEY"
 msgstr "FAILO-VARDAS LIUDIJIMAS PRIVATUSIS-RAKTAS"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
-msgid "FILENAME DEVICE-ID"
-msgstr "FAILO-VARDAS ĮRENGINIO-ID"
-
-#. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME [DEVICE-ID|GUID]"
 msgstr "FAILO-VARDAS [ĮRENGINIO-ID|GUID]"
 
@@ -873,10 +869,6 @@ msgstr "Gauna išsamesnę informaciją apie aparatinės programinės įrangos fa
 #. TRANSLATORS: command description
 msgid "Gets the configured remotes"
 msgstr "Gauna sukonfigūruotas nuotolines saugyklas"
-
-#. TRANSLATORS: command description
-msgid "Gets the list of updates for connected hardware"
-msgstr "Gauna naujinimų sąrašą prijungtai aparatinei įrangai"
 
 #. TRANSLATORS: command description
 msgid "Gets the releases for a device"
@@ -1134,10 +1126,6 @@ msgid "Only show single PCR value"
 msgstr "Rodyti tik vieną PCR reikšmę"
 
 #. TRANSLATORS: command line option
-msgid "Output in JSON format"
-msgstr "Išvestis JSON formatu"
-
-#. TRANSLATORS: command line option
 msgid "Override the default ESP path"
 msgstr "Nustelbti numatytąjį ESS (angl. ESP) kelią"
 
@@ -1177,7 +1165,8 @@ msgstr "Platformos derinimas"
 msgid "Please enter a number from 0 to %u: "
 msgstr "Įveskite skaičių nuo 0 iki %u: "
 
-#. TRANSLATORS: the user isn't reading the question -- %1 is 'Y' and %2 is 'N'
+#. TRANSLATORS: the user isn't reading the question -- %1 is 'Y' and %2 is
+#. * 'N'
 #, c-format
 msgid "Please enter either %s or %s: "
 msgstr "Įveskite %s arba %s: "
@@ -1429,11 +1418,6 @@ msgstr "Pavyko"
 #. * firmware take effect, usually after updating offline
 msgid "Successfully activated all devices"
 msgstr "Sėkmingai aktyvuoti visi įrenginiai"
-
-#. TRANSLATORS: success message -- where 'metadata' is information
-#. * about available firmware on the remote server
-msgid "Successfully downloaded new metadata: "
-msgstr "Sėkmingai atsisiųsti nauji metaduomenys: "
 
 #. TRANSLATORS: success message
 msgid "Successfully installed firmware"

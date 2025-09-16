@@ -8,13 +8,14 @@
 
 #include "fu-mm-backend.h"
 #include "fu-mm-device.h"
+#include "fu-mm-dfota-device.h"
 #include "fu-mm-fastboot-device.h"
+#include "fu-mm-fdl-device.h"
 #include "fu-mm-firehose-device.h"
+#include "fu-mm-mbim-device.h"
 #include "fu-mm-mhi-qcdm-device.h"
 #include "fu-mm-qcdm-device.h"
-#include "fu-mm-dfota-device.h"
-#include "fu-mm-fdl-device.h"
-#include "fu-mm-mbim-device.h"
+#include "fu-mm-qdu-mbim-device.h"
 #include "fu-mm-qmi-device.h"
 
 #define FU_MODEM_MANAGER_PLUGIN(o) fu_plugin_get_data(FU_PLUGIN(o))
@@ -64,6 +65,7 @@ fu_mm_plugin_constructed(GObject *obj)
 	fu_plugin_add_device_gtype(plugin, FU_TYPE_MM_MBIM_DEVICE);	/* coverage */
 	fu_plugin_add_device_gtype(plugin, FU_TYPE_MM_MHI_QCDM_DEVICE); /* coverage */
 	fu_plugin_add_device_gtype(plugin, FU_TYPE_MM_QCDM_DEVICE);	/* coverage */
+	fu_plugin_add_device_gtype(plugin, FU_TYPE_MM_QDU_MBIM_DEVICE); /* coverage */
 	fu_plugin_add_device_gtype(plugin, FU_TYPE_MM_QMI_DEVICE);	/* coverage */
 }
 

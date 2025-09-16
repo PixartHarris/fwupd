@@ -1,10 +1,13 @@
 
 if libsystemd.found()
-  install_data(['fwupd-refresh.timer'],
-    install_dir: systemdunitdir)
-  motd_fullpath = join_paths ('/run', motd_dir, motd_file)
+  install_data(
+    ['fwupd-refresh.timer'],
+    install_tag: 'runtime',
+    install_dir: systemdunitdir,
+  )
+  motd_fullpath = join_paths('/run', motd_dir, motd_file)
 else
-  motd_fullpath = join_paths (localstatedir, motd_dir, motd_file)
+  motd_fullpath = join_paths(localstatedir, motd_dir, motd_file)
 endif
 
 con2 = configuration_data()
@@ -15,15 +18,17 @@ con2.set('systemd_unit_user', get_option('systemd_unit_user'))
 
 if libsystemd.found()
   if get_option('systemd_unit_user') == ''
-      con2.set('user', 'DynamicUser=yes')
-      warning('Using systemd DynamicUser for fwupd-refresh.service. See https://github.com/systemd/systemd/issues/22737 for possible implications')
+    con2.set('user', 'DynamicUser=yes')
+    warning(
+      'Using systemd DynamicUser for fwupd-refresh.service. See https://github.com/systemd/systemd/issues/22737 for possible implications'
+    )
   else
-      dynamic_options = [
-                         'ProtectSystem=strict',
-                         'ProtectHome=read-only',
-                         'User=' + get_option('systemd_unit_user')
-                        ]
-      con2.set('user','\n'.join(dynamic_options))
+    dynamic_options = [
+      'ProtectSystem=strict',
+      'ProtectHome=read-only',
+      'User=' + get_option('systemd_unit_user'),
+    ]
+    con2.set('user', '\n'.join(dynamic_options))
   endif
 
   configure_file(
@@ -31,6 +36,7 @@ if libsystemd.found()
     output: 'fwupd-refresh.service',
     configuration: con2,
     install: true,
+    install_tag: 'runtime',
     install_dir: systemdunitdir,
   )
 endif
@@ -47,24 +53,37 @@ configure_file(
 
 if libsystemd.found()
   if get_option('man')
-    custom_target('fwupd-refresh.service.8',
+    custom_target(
+      'fwupd-refresh.service.8',
       input: 'fwupd-refresh.service.md',
       output: 'fwupd-refresh.service.8',
       command: [
-        generate_man, '@INPUT@', '-o', '@OUTPUT@',
-        '--replace', 'PACKAGE_VERSION', fwupd_version,
+        generate_man,
+        '@INPUT@',
+        '-o',
+        '@OUTPUT@',
+        '--replace',
+        'PACKAGE_VERSION',
+        fwupd_version,
       ],
       install: true,
+      install_tag: 'man',
       install_dir: join_paths(mandir, 'man8'),
     )
   endif
   if build_docs
-    md_targets += custom_target('fwupd-refresh.service.md',
+    md_targets += custom_target(
+      'fwupd-refresh.service.md',
       input: 'fwupd-refresh.service.md',
       output: 'fwupd-refresh.service.md',
       command: [
-        generate_man, '@INPUT@', '-o', '@OUTPUT@',
-        '--replace', 'PACKAGE_VERSION', fwupd_version,
+        generate_man,
+        '@INPUT@',
+        '-o',
+        '@OUTPUT@',
+        '--replace',
+        'PACKAGE_VERSION',
+        fwupd_version,
         '--md',
       ],
     )
@@ -81,6 +100,7 @@ if libsystemd.found() and get_option('systemd_unit_user') != ''
     output: 'fwupd.conf',
     configuration: con3,
     install: true,
+    install_tag: 'runtime',
     install_dir: systemd_sysusers_dir,
   )
 endif

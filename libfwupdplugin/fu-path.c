@@ -152,7 +152,7 @@ fu_path_mkdir(const gchar *dirname, GError **error)
 			    FWUPD_ERROR_INTERNAL,
 			    "Failed to create '%s': %s",
 			    dirname,
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 		return FALSE;
 	}
 	return TRUE;
@@ -519,6 +519,12 @@ fu_path_from_kind(FuPathKind path_kind)
 			return g_steal_pointer(&localtime);
 		return g_strdup("/etc/localtime");
 	}
+	/* /sys/kernel/debug */
+	case FU_PATH_KIND_DEBUGFSDIR:
+		tmp = g_getenv("FWUPD_DEBUGFSDIR");
+		if (tmp != NULL)
+			return g_strdup(tmp);
+		return g_strdup("/sys/kernel/debug");
 	/* this shouldn't happen */
 	default:
 		g_warning("cannot build path for unknown kind %u", path_kind);
@@ -601,7 +607,7 @@ fu_path_make_absolute(const gchar *filename, GError **error)
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_INVALID_DATA,
 			    "cannot resolve path: %s",
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 		return NULL;
 	}
 #else
@@ -610,7 +616,7 @@ fu_path_make_absolute(const gchar *filename, GError **error)
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_INVALID_DATA,
 			    "cannot resolve path: %s",
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 		return NULL;
 	}
 #endif
@@ -650,7 +656,7 @@ fu_path_get_symlink_target(const gchar *filename, GError **error)
 				 NULL,
 				 error);
 	if (info == NULL) {
-		fu_error_convert(error);
+		fwupd_error_convert(error);
 		return NULL;
 	}
 	target =

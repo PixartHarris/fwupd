@@ -62,7 +62,7 @@ fu_redfish_common_fix_version(const gchar *version)
 	if (g_strcmp0(version, "-*") == 0)
 		return NULL;
 
-	/* find the section preficed with "v" */
+	/* find the section prefixed with "v" */
 	split = g_strsplit(version, " ", -1);
 	for (guint i = 0; split[i] != NULL; i++) {
 		if (g_str_has_prefix(split[i], "v")) {
@@ -95,29 +95,35 @@ fu_redfish_common_parse_version_lenovo(const gchar *version,
 
 	/* sanity check */
 	if (g_strv_length(versplit) != 2) {
-		g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_INVALID_DATA, "not two sections");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_DATA,
+				    "not two sections");
 		return FALSE;
 	}
 	if (strlen(versplit[0]) != 3) {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_INVALID_DATA,
-			    "invalid length first section");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_DATA,
+				    "invalid length first section");
 		return FALSE;
 	}
 
 	/* milestone */
 	if (!g_ascii_isdigit(versplit[0][0]) || !g_ascii_isdigit(versplit[0][1])) {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_INVALID_DATA,
-			    "milestone number invalid");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_DATA,
+				    "milestone number invalid");
 		return FALSE;
 	}
 
 	/* build is only one letter from A -> Z */
 	if (!g_ascii_isalpha(versplit[0][2])) {
-		g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_INVALID_DATA, "build letter invalid");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_DATA,
+				    "build letter invalid");
 		return FALSE;
 	}
 

@@ -29,6 +29,7 @@ struct _FuRelease {
 	GInputStream *stream;
 	gchar *update_request_id;
 	gchar *device_version_old;
+	gchar *firmware_basename;
 	GPtrArray *soft_reqs; /* nullable, element-type XbNode */
 	GPtrArray *hard_reqs; /* nullable, element-type XbNode */
 	guint64 priority;
@@ -56,6 +57,7 @@ fu_release_to_string(FuRelease *self)
 	if (self->device != NULL)
 		fwupd_codec_string_append(str, idt, "Device", fu_device_get_id(self->device));
 	fwupd_codec_string_append(str, idt, "DeviceVersionOld", self->device_version_old);
+	fwupd_codec_string_append(str, idt, "FirmwareBasename", self->firmware_basename);
 	if (self->remote != NULL)
 		fwupd_codec_string_append(str, idt, "Remote", fwupd_remote_get_id(self->remote));
 	fwupd_codec_string_append_bool(str, idt, "HasConfig", self->config != NULL);
@@ -111,6 +113,34 @@ fu_release_get_device_version_old(FuRelease *self)
 {
 	g_return_val_if_fail(FU_IS_RELEASE(self), NULL);
 	return self->device_version_old;
+}
+
+/**
+ * fu_release_get_firmware_basename:
+ * @self: a #FuRelease
+ *
+ * Gets the name of the update binary, typically `firmware.bin`
+ *
+ * Returns: a string value, or %NULL if never set.
+ **/
+const gchar *
+fu_release_get_firmware_basename(FuRelease *self)
+{
+	g_return_val_if_fail(FU_IS_RELEASE(self), NULL);
+	return self->firmware_basename;
+}
+
+void
+fu_release_set_firmware_basename(FuRelease *self, const gchar *firmware_basename)
+{
+	g_return_if_fail(FU_IS_RELEASE(self));
+
+	/* not changed */
+	if (g_strcmp0(self->firmware_basename, firmware_basename) == 0)
+		return;
+
+	g_free(self->firmware_basename);
+	self->firmware_basename = g_strdup(firmware_basename);
 }
 
 static void
@@ -173,6 +203,15 @@ fu_release_get_stream(FuRelease *self)
 {
 	g_return_val_if_fail(FU_IS_RELEASE(self), NULL);
 	return self->stream;
+}
+
+/* private: for tests */
+void
+fu_release_set_stream(FuRelease *self, GInputStream *stream)
+{
+	g_return_if_fail(FU_IS_RELEASE(self));
+	g_return_if_fail(G_IS_INPUT_STREAM(stream));
+	g_set_object(&self->stream, stream);
 }
 
 /**
@@ -398,11 +437,14 @@ fu_release_load_artifact(FuRelease *self, XbNode *artifact, GError **error)
 
 	/* filename */
 	filename = xb_node_query_text(artifact, "filename", NULL);
-	if (filename != NULL && !g_str_has_suffix(filename, ".cab")) {
-		/* some firmware archives was signed with <artifact type="binary"> where the
-		 * checksums were the *content* checksums, not the *container* checksum */
-		g_debug("ignoring non-binary artifact entry: %s", filename);
-		return TRUE;
+	if (filename != NULL) {
+		g_autofree gchar *fn_lowercase = g_ascii_strdown(filename, -1);
+		if (!g_str_has_suffix(fn_lowercase, ".cab")) {
+			/* some firmware archives was signed with <artifact type="binary"> where the
+			 * checksums were the *content* checksums, not the *container* checksum */
+			g_debug("ignoring non-binary artifact entry: %s", filename);
+			return TRUE;
+		}
 	}
 	if (filename != NULL)
 		fu_release_set_filename(self, filename);
@@ -615,7 +657,8 @@ fu_release_check_requirements(FuRelease *self,
 	/* device requires a version check */
 	if (fu_device_has_flag(self->device, FWUPD_DEVICE_FLAG_VERSION_CHECK_REQUIRED)) {
 		if (!fu_release_check_requirements_version_check(self, error)) {
-			g_prefix_error(error, "device requires firmware with a version check: ");
+			g_prefix_error_literal(error,
+					       "device requires firmware with a version check: ");
 			return FALSE;
 		}
 	}
@@ -765,10 +808,10 @@ fu_release_check_version(FuRelease *self,
 				    fu_device_get_version_format(self->device));
 	if (fu_device_has_flag(self->device, FWUPD_DEVICE_FLAG_ONLY_VERSION_UPGRADE) &&
 	    vercmp > 0) {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "Device only supports version upgrades");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_SUPPORTED,
+				    "Device only supports version upgrades");
 		return FALSE;
 	}
 	if (vercmp == 0 && (install_flags & FWUPD_INSTALL_FLAG_ALLOW_REINSTALL) == 0) {
@@ -814,7 +857,7 @@ fu_release_get_priority(FuRelease *self)
 /**
  * fu_release_load:
  * @self: a #FuRelease
- * @cabinet: a #FuCabinet
+ * @cabinet: (nullable): a #FuCabinet
  * @component: (not nullable): a #XbNode
  * @rel_optional: (nullable): a #XbNode
  * @install_flags: a #FwupdInstallFlags, e.g. %FWUPD_INSTALL_FLAG_FORCE
@@ -1134,11 +1177,14 @@ fu_release_load(FuRelease *self,
 	/* get per-release firmware stream */
 	blob_basename = xb_node_get_data(rel, "fwupd::FirmwareBasename");
 	if (cabinet != NULL && blob_basename != NULL) {
-		const gchar *basename = (const gchar *)g_bytes_get_data(blob_basename, NULL);
 		g_autoptr(FuFirmware) img = NULL;
-		img = fu_firmware_get_image_by_id(FU_FIRMWARE(cabinet), basename, error);
+
+		self->firmware_basename = fu_strsafe_bytes(blob_basename, G_MAXSIZE);
+		img = fu_firmware_get_image_by_id(FU_FIRMWARE(cabinet),
+						  self->firmware_basename,
+						  error);
 		if (img == NULL) {
-			g_prefix_error(error, "failed to find %s: ", basename);
+			g_prefix_error(error, "failed to find %s: ", self->firmware_basename);
 			return FALSE;
 		}
 		self->stream = fu_firmware_get_stream(img, error);
@@ -1318,6 +1364,7 @@ fu_release_finalize(GObject *obj)
 
 	g_free(self->update_request_id);
 	g_free(self->device_version_old);
+	g_free(self->firmware_basename);
 	if (self->request != NULL)
 		g_object_unref(self->request);
 	if (self->device != NULL)

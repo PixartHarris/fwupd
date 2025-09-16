@@ -18,6 +18,8 @@
  *
  * A firmware made up of concatenated blobs of a different firmware type.
  *
+ * Parsed firmware images can set `FU_FIRMWARE_FLAG_IS_LAST_IMAGE` to abort processing.
+ *
  * NOTE: All the child images will be of the specified `GType`.
  *
  * See also: [class@FuFirmware]
@@ -102,7 +104,7 @@ fu_linear_firmware_parse(FuFirmware *firmware,
 
 		stream_tmp = fu_partial_input_stream_new(stream, offset, streamsz - offset, error);
 		if (stream_tmp == NULL) {
-			g_prefix_error(error, "failed to cut linear image: ");
+			g_prefix_error_literal(error, "failed to cut linear image: ");
 			return FALSE;
 		}
 		if (!fu_firmware_parse_stream(img,
@@ -116,6 +118,10 @@ fu_linear_firmware_parse(FuFirmware *firmware,
 		fu_firmware_set_offset(firmware, offset);
 		if (!fu_firmware_add_image_full(firmware, img, error))
 			return FALSE;
+
+		/* skip any padding */
+		if (fu_firmware_has_flag(img, FU_FIRMWARE_FLAG_IS_LAST_IMAGE))
+			break;
 
 		/* next! */
 		offset += fu_firmware_get_size(img);
@@ -135,6 +141,8 @@ fu_linear_firmware_write(FuFirmware *firmware, GError **error)
 	for (guint i = 0; i < images->len; i++) {
 		FuFirmware *img = g_ptr_array_index(images, i);
 		g_autoptr(GBytes) blob = NULL;
+		if (i == images->len - 1)
+			fu_firmware_add_flag(img, FU_FIRMWARE_FLAG_IS_LAST_IMAGE);
 		fu_firmware_set_offset(img, buf->len);
 		blob = fu_firmware_write(img, error);
 		if (blob == NULL)

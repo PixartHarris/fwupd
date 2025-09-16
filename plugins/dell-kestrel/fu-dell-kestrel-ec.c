@@ -73,6 +73,18 @@ fu_dell_kestrel_ec_is_dev_present(FuDellKestrelEc *self,
 	return dev_entry != NULL;
 }
 
+gboolean
+fu_dell_kestrel_ec_is_chunk_supported(FuDellKestrelEc *self, FuDellKestrelEcDevType dev_type)
+{
+	if (dev_type == FU_DELL_KESTREL_EC_DEV_TYPE_PD) {
+		guint8 chunk_support = 0;
+
+		chunk_support = fu_struct_dell_kestrel_dock_data_get_chunk_support(self->dock_data);
+		return (chunk_support & FU_DELL_KESTREL_DOCK_DATA_CHUNK_SUPPORT_BITMAP_PD);
+	}
+	return TRUE;
+}
+
 const gchar *
 fu_dell_kestrel_ec_devicetype_to_str(FuDellKestrelEcDevType dev_type,
 				     FuDellKestrelEcDevSubtype subtype,
@@ -149,9 +161,9 @@ fu_dell_kestrel_ec_read(FuDellKestrelEc *self,
 	if (!fu_dell_kestrel_hid_device_i2c_read(FU_DELL_KESTREL_HID_DEVICE(self),
 						 cmd,
 						 res,
-						 800,
+						 100,
 						 error)) {
-		g_prefix_error(error, "read over HID-I2C failed: ");
+		g_prefix_error_literal(error, "read over HID-I2C failed: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -163,7 +175,7 @@ fu_dell_kestrel_ec_write(FuDellKestrelEc *self, GByteArray *buf, GError **error)
 	g_return_val_if_fail(buf->len > 1, FALSE);
 
 	if (!fu_dell_kestrel_hid_device_i2c_write(FU_DELL_KESTREL_HID_DEVICE(self), buf, error)) {
-		g_prefix_error(error, "write over HID-I2C failed: ");
+		g_prefix_error_literal(error, "write over HID-I2C failed: ");
 		return FALSE;
 	}
 
@@ -294,7 +306,10 @@ fu_dell_kestrel_ec_dock_type_extract(FuDellKestrelEc *self, GError **error)
 
 	/* don't change error type, the plugin ignores it */
 	if (dock_type != FU_DELL_DOCK_BASE_TYPE_KESTREL) {
-		g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_NOT_FOUND, "No valid dock was found");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_FOUND,
+				    "no valid dock was found");
 		return FALSE;
 	}
 
@@ -321,7 +336,7 @@ fu_dell_kestrel_ec_dock_type_cmd(FuDellKestrelEc *self, GError **error)
 
 	/* expect response 1 byte */
 	if (!fu_dell_kestrel_ec_read(self, cmd, res, error)) {
-		g_prefix_error(error, "Failed to query dock type: ");
+		g_prefix_error_literal(error, "failed to query dock type: ");
 		return FALSE;
 	}
 
@@ -339,7 +354,7 @@ fu_dell_kestrel_ec_dock_info_cmd(FuDellKestrelEc *self, GError **error)
 
 	/* get dock info over HID */
 	if (!fu_dell_kestrel_ec_read(self, cmd, res, error)) {
-		g_prefix_error(error, "Failed to query dock info: ");
+		g_prefix_error_literal(error, "failed to query dock info: ");
 		return FALSE;
 	}
 	self->dock_info = fu_struct_dell_kestrel_dock_info_parse(res->data, res->len, 0, error);
@@ -376,7 +391,7 @@ fu_dell_kestrel_ec_dock_data_cmd(FuDellKestrelEc *self, GError **error)
 
 	/* get dock data over HID */
 	if (!fu_dell_kestrel_ec_read(self, cmd, res, error)) {
-		g_prefix_error(error, "Failed to query dock data: ");
+		g_prefix_error_literal(error, "failed to query dock data: ");
 		return FALSE;
 	}
 
@@ -413,23 +428,39 @@ fu_dell_kestrel_ec_is_dock_ready4update(FuDevice *device, GError **error)
 	return TRUE;
 }
 
+static gboolean
+fu_dell_kestrel_ec_is_new_ownership_cmd(FuDellKestrelEc *self)
+{
+	FuDevice *device = FU_DEVICE(self);
+	const gchar *version = fu_device_get_version(device);
+	FwupdVersionFormat fmt = fu_device_get_version_format(device);
+
+	if (fu_version_compare(version, "01.00.00.00", fmt) >= 0) {
+		if (fu_version_compare(version, "01.00.05.02", fmt) >= 0)
+			return TRUE;
+
+		return FALSE;
+	}
+	return fu_version_compare(version, "00.00.34.00", fmt) >= 0;
+}
+
 gboolean
 fu_dell_kestrel_ec_own_dock(FuDellKestrelEc *self, gboolean lock, GError **error)
 {
+	guint16 bitmask = 0x0;
 	g_autoptr(GByteArray) st_req = fu_struct_dell_kestrel_ec_databytes_new();
 	g_autoptr(GError) error_local = NULL;
 	g_autofree gchar *msg = NULL;
-	guint16 bitmask = 0x0;
 
 	fu_struct_dell_kestrel_ec_databytes_set_cmd(st_req, FU_DELL_KESTREL_EC_CMD_SET_MODIFY_LOCK);
 	fu_struct_dell_kestrel_ec_databytes_set_data_sz(st_req, 2);
 
 	if (lock) {
 		msg = g_strdup("own the dock");
-		bitmask = 0xFFFF;
+		bitmask = fu_dell_kestrel_ec_is_new_ownership_cmd(self) ? 0x10CC : 0xFFFF;
 	} else {
-		msg = g_strdup("relesae the dock");
-		bitmask = 0x0000;
+		msg = g_strdup("release the dock");
+		bitmask = fu_dell_kestrel_ec_is_new_ownership_cmd(self) ? 0xC001 : 0x0000;
 	}
 	if (!fu_struct_dell_kestrel_ec_databytes_set_data(st_req,
 							  (const guint8 *)&bitmask,
@@ -442,8 +473,10 @@ fu_dell_kestrel_ec_own_dock(FuDellKestrelEc *self, gboolean lock, GError **error
 		if (g_error_matches(error_local, FWUPD_ERROR, FWUPD_ERROR_NOT_FOUND))
 			g_debug("ignoring: %s", error_local->message);
 		else {
-			g_propagate_error(error, g_steal_pointer(&error_local));
-			g_prefix_error(error, "failed to %s", msg);
+			g_propagate_prefixed_error(error,
+						   g_steal_pointer(&error_local),
+						   "failed to %s: ",
+						   msg);
 			return FALSE;
 		}
 	}
@@ -471,7 +504,7 @@ fu_dell_kestrel_ec_run_passive_update(FuDellKestrelEc *self, GError **error)
 	for (guint i = 1; i <= max_tries; i++) {
 		g_debug("register passive update (uod) flow (%u/%u)", i, max_tries);
 		if (!fu_dell_kestrel_ec_write(self, st_req, error)) {
-			g_prefix_error(error, "failed to register uod flow: ");
+			g_prefix_error_literal(error, "failed to register uod flow: ");
 			return FALSE;
 		}
 		fu_device_sleep(FU_DEVICE(self), 100);
@@ -608,7 +641,7 @@ fu_dell_kestrel_ec_commit_package(FuDellKestrelEc *self, GInputStream *stream, G
 		g_set_error(error,
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_INVALID_DATA,
-			    "Invalid package size %" G_GSIZE_FORMAT,
+			    "invalid package size %" G_GSIZE_FORMAT,
 			    streamsz);
 		return FALSE;
 	}
@@ -628,7 +661,7 @@ fu_dell_kestrel_ec_commit_package(FuDellKestrelEc *self, GInputStream *stream, G
 	fu_dump_raw(G_LOG_DOMAIN, "->PACKAGE", st_req->data, st_req->len);
 
 	if (!fu_dell_kestrel_ec_write(self, st_req, error)) {
-		g_prefix_error(error, "Failed to commit package: ");
+		g_prefix_error_literal(error, "failed to commit package: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -678,11 +711,11 @@ fu_dell_kestrel_ec_reload(FuDevice *device, GError **error)
 	/* if query looks bad, wait a few seconds and retry */
 	if (!fu_device_retry_full(FU_DEVICE(self),
 				  fu_dell_kestrel_ec_query_cb,
-				  10,
-				  2000,
+				  DELL_KESTREL_MAX_RETRIES,
+				  500,
 				  NULL,
 				  error)) {
-		g_prefix_error(error, "failed to query dock ec: ");
+		g_prefix_error_literal(error, "failed to query dock ec: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -703,8 +736,13 @@ fu_dell_kestrel_ec_setup(FuDevice *device, GError **error)
 		return FALSE;
 
 	/* if query looks bad, wait a few seconds and retry */
-	if (!fu_device_retry_full(device, fu_dell_kestrel_ec_query_cb, 10, 2000, NULL, error)) {
-		g_prefix_error(error, "failed to query dock ec: ");
+	if (!fu_device_retry_full(device,
+				  fu_dell_kestrel_ec_query_cb,
+				  DELL_KESTREL_MAX_RETRIES,
+				  500,
+				  NULL,
+				  error)) {
+		g_prefix_error_literal(error, "failed to query dock ec: ");
 		return FALSE;
 	}
 
@@ -760,7 +798,7 @@ fu_dell_kestrel_ec_init(FuDellKestrelEc *self)
 {
 	fu_device_add_protocol(FU_DEVICE(self), "com.dell.kestrel");
 	fu_device_add_vendor_id(FU_DEVICE(self), "USB:0x413C");
-	fu_device_add_icon(FU_DEVICE(self), "dock-usb");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_DOCK_USB);
 	fu_device_set_summary(FU_DEVICE(self), "Dell Dock EC");
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_SIGNED_PAYLOAD);

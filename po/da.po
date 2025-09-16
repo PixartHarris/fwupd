@@ -29,7 +29,7 @@ msgid "%s Battery Update"
 msgstr "%s Opdatering for batteri"
 
 #. TRANSLATORS: the CPU microcode is firmware loaded onto the CPU
-#. * at system bootup
+#. * at system boot-up
 #, c-format
 msgid "%s CPU Microcode Update"
 msgstr "%s opdatering af CPU-mikrokode"
@@ -730,10 +730,6 @@ msgid "FILENAME CERTIFICATE PRIVATE-KEY"
 msgstr "FILNAVN CERTIFIKAT PRIVAT-NØGLE"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
-msgid "FILENAME DEVICE-ID"
-msgstr "FILNAVN ENHEDS-ID"
-
-#. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME [DEVICE-ID|GUID]"
 msgstr "FILNAVN [ENHEDS-ID|GUID]"
 
@@ -900,10 +896,6 @@ msgstr "Henter listen over godkendt firmware"
 #. TRANSLATORS: command description
 msgid "Gets the list of blocked firmware"
 msgstr "Henter listen over blokerede firmware"
-
-#. TRANSLATORS: command description
-msgid "Gets the list of updates for connected hardware"
-msgstr "Henter listen over opdateringer for tilsluttet hardware"
 
 #. TRANSLATORS: command description
 msgid "Gets the releases for a device"
@@ -1210,10 +1202,6 @@ msgid "Only version upgrades are allowed"
 msgstr "Kun versionsopgraderinger er tilladte"
 
 #. TRANSLATORS: command line option
-msgid "Output in JSON format"
-msgstr "Output i JSON-format"
-
-#. TRANSLATORS: command line option
 msgid "Override the default ESP path"
 msgstr "Tilsidesæt standard-ESP-stien"
 
@@ -1516,11 +1504,6 @@ msgstr "Det lykkedes at aktivere alle enheder"
 #. TRANSLATORS: success message
 msgid "Successfully disabled remote"
 msgstr "Det lykkedes at deaktivere fjern"
-
-#. TRANSLATORS: success message -- where 'metadata' is information
-#. * about available firmware on the remote server
-msgid "Successfully downloaded new metadata: "
-msgstr "Det lykkedes at downloade ny metadata: "
 
 #. TRANSLATORS: success message
 msgid "Successfully enabled and refreshed remote"

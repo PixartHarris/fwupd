@@ -67,7 +67,7 @@ fu_synaprom_device_cmd_send(FuSynapromDevice *self,
 					 timeout_ms,
 					 NULL,
 					 error)) {
-		g_prefix_error(error, "failed to request: ");
+		g_prefix_error_literal(error, "failed to request: ");
 		return FALSE;
 	}
 	if (actual_len < request->len) {
@@ -89,7 +89,7 @@ fu_synaprom_device_cmd_send(FuSynapromDevice *self,
 					 timeout_ms,
 					 NULL,
 					 error)) {
-		g_prefix_error(error, "failed to reply: ");
+		g_prefix_error_literal(error, "failed to reply: ");
 		return FALSE;
 	}
 	fu_dump_full(G_LOG_DOMAIN,
@@ -174,7 +174,7 @@ fu_synaprom_device_setup(FuDevice *device, GError **error)
 	fu_struct_synaprom_request_set_cmd(st_request, FU_SYNAPROM_CMD_GET_VERSION);
 	reply = fu_synaprom_reply_new(FU_STRUCT_SYNAPROM_REPLY_GET_VERSION_SIZE);
 	if (!fu_synaprom_device_cmd_send(self, st_request, reply, progress, 250, error)) {
-		g_prefix_error(error, "failed to get version: ");
+		g_prefix_error_literal(error, "failed to get version: ");
 		return FALSE;
 	}
 	st_reply = fu_struct_synaprom_reply_get_version_parse(reply->data, reply->len, 0x0, error);
@@ -419,7 +419,7 @@ fu_synaprom_device_attach(FuDevice *device, FuProgress *progress, GError **error
 		return FALSE;
 	}
 	if (!fu_usb_device_reset(FU_USB_DEVICE(device), error)) {
-		g_prefix_error(error, "failed to force-reset device: ");
+		g_prefix_error_literal(error, "failed to force-reset device: ");
 		return FALSE;
 	}
 	fu_device_remove_flag(device, FWUPD_DEVICE_FLAG_IS_BOOTLOADER);
@@ -463,7 +463,7 @@ fu_synaprom_device_detach(FuDevice *device, FuProgress *progress, GError **error
 	}
 	fu_progress_set_status(progress, FWUPD_STATUS_DEVICE_RESTART);
 	if (!fu_usb_device_reset(FU_USB_DEVICE(device), error)) {
-		g_prefix_error(error, "failed to force-reset device: ");
+		g_prefix_error_literal(error, "failed to force-reset device: ");
 		return FALSE;
 	}
 	fu_device_add_flag(device, FWUPD_DEVICE_FLAG_IS_BOOTLOADER);
@@ -494,7 +494,7 @@ fu_synaprom_device_init(FuSynapromDevice *self)
 	fu_device_set_name(FU_DEVICE(self), "Prometheus");
 	fu_device_set_summary(FU_DEVICE(self), "Fingerprint reader");
 	fu_device_set_vendor(FU_DEVICE(self), "Synaptics");
-	fu_device_add_icon(FU_DEVICE(self), "auth-fingerprint");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_AUTH_FINGERPRINT);
 	fu_usb_device_add_interface(FU_USB_DEVICE(self), 0x0);
 }
 

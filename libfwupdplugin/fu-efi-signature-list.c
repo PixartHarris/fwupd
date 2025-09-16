@@ -9,16 +9,13 @@
 #include "config.h"
 
 #include <fwupd.h>
-#include <string.h>
 
 #include "fu-byte-array.h"
-#include "fu-common.h"
 #include "fu-efi-signature-list.h"
 #include "fu-efi-signature-private.h"
 #include "fu-efi-struct.h"
 #include "fu-efi-x509-signature-private.h"
 #include "fu-input-stream.h"
-#include "fu-mem.h"
 
 /**
  * FuEfiSignatureList:
@@ -95,6 +92,7 @@ static gboolean
 fu_efi_signature_list_parse_list(FuEfiSignatureList *self,
 				 GInputStream *stream,
 				 gsize *offset,
+				 FuFirmwareParseFlags flags,
 				 GError **error)
 {
 	FuEfiSignatureKind sig_kind = FU_EFI_SIGNATURE_KIND_UNKNOWN;
@@ -155,11 +153,7 @@ fu_efi_signature_list_parse_list(FuEfiSignatureList *self,
 			sig = fu_efi_signature_new(sig_kind);
 		}
 		fu_firmware_set_size(FU_FIRMWARE(sig), size);
-		if (!fu_firmware_parse_stream(FU_FIRMWARE(sig),
-					      stream,
-					      offset_tmp,
-					      FU_FIRMWARE_PARSE_FLAG_NONE,
-					      error))
+		if (!fu_firmware_parse_stream(FU_FIRMWARE(sig), stream, offset_tmp, flags, error))
 			return FALSE;
 		if (!fu_firmware_add_image_full(FU_FIRMWARE(self), FU_FIRMWARE(sig), error))
 			return FALSE;
@@ -185,7 +179,7 @@ fu_efi_signature_list_validate(FuFirmware *firmware,
 				       offset, /* seek */
 				       sizeof(guid),
 				       error)) {
-		g_prefix_error(error, "failed to read magic: ");
+		g_prefix_error_literal(error, "failed to read magic: ");
 		return FALSE;
 	}
 	sig_type = fwupd_guid_to_string(&guid, FWUPD_GUID_FLAG_MIXED_ENDIAN);
@@ -216,7 +210,7 @@ fu_efi_signature_list_parse(FuFirmware *firmware,
 	if (!fu_input_stream_size(stream, &streamsz, error))
 		return FALSE;
 	while (offset < streamsz) {
-		if (!fu_efi_signature_list_parse_list(self, stream, &offset, error))
+		if (!fu_efi_signature_list_parse_list(self, stream, &offset, flags, error))
 			return FALSE;
 	}
 

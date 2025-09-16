@@ -17,9 +17,12 @@
 #include <string.h>
 #include <sys/ioctl.h>
 
+#ifdef HAVE_SYS_VFS_H
+#include <sys/vfs.h>
+#endif
+
 #include "fwupd-error.h"
 
-#include "fu-common.h"
 #include "fu-linux-efivars.h"
 #include "fu-path.h"
 
@@ -76,7 +79,7 @@ fu_linux_efivars_set_immutable_fd(int fd, gboolean value, gboolean *value_old, G
 				    FWUPD_ERROR,
 				    FWUPD_ERROR_NOT_SUPPORTED,
 				    "failed to get flags: %s",
-				    g_strerror(errno));
+				    fwupd_strerror(errno));
 			return FALSE;
 		}
 	} else {
@@ -105,7 +108,7 @@ fu_linux_efivars_set_immutable_fd(int fd, gboolean value, gboolean *value_old, G
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_NOT_SUPPORTED,
 			    "failed to set flags: %s",
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 		return FALSE;
 	}
 	return TRUE;
@@ -128,7 +131,7 @@ fu_linux_efivars_set_immutable(const gchar *fn, gboolean value, gboolean *value_
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_NOT_FOUND,
 			    "failed to open: %s",
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 		return FALSE;
 	}
 	istr = g_unix_input_stream_new(fd, TRUE);
@@ -252,7 +255,7 @@ fu_linux_efivars_get_data(FuEfivars *efivars,
 					      NULL,
 					      error);
 	if (info == NULL) {
-		g_prefix_error(error, "failed to get stream info: ");
+		g_prefix_error_literal(error, "failed to get stream info: ");
 		fwupd_error_convert(error);
 		return FALSE;
 	}
@@ -271,7 +274,7 @@ fu_linux_efivars_get_data(FuEfivars *efivars,
 	/* read out the attributes */
 	attr_sz = g_input_stream_read(istr, &attr_tmp, sizeof(attr_tmp), NULL, error);
 	if (attr_sz == -1) {
-		g_prefix_error(error, "failed to read attr: ");
+		g_prefix_error_literal(error, "failed to read attr: ");
 		fwupd_error_convert(error);
 		return FALSE;
 	}
@@ -292,7 +295,7 @@ fu_linux_efivars_get_data(FuEfivars *efivars,
 	if (data != NULL) {
 		g_autofree guint8 *data_tmp = g_malloc0(data_sz_tmp);
 		if (!g_input_stream_read_all(istr, data_tmp, data_sz_tmp, NULL, NULL, error)) {
-			g_prefix_error(error, "failed to read data: ");
+			g_prefix_error_literal(error, "failed to read data: ");
 			return FALSE;
 		}
 		*data = g_steal_pointer(&data_tmp);
@@ -412,6 +415,54 @@ fu_linux_efivars_space_used(FuEfivars *efivars, GError **error)
 	return total;
 }
 
+static guint64
+fu_linux_efivars_space_free(FuEfivars *efivars, GError **error)
+{
+	guint64 total = 0;
+	g_autofree gchar *path = fu_linux_efivars_get_path();
+	g_autoptr(GFile) file_fs = g_file_new_for_path(path);
+	g_autoptr(GFileInfo) info_fs = NULL;
+
+	/* try GIO first */
+	info_fs = g_file_query_info(file_fs,
+				    G_FILE_ATTRIBUTE_FILESYSTEM_FREE,
+				    G_FILE_QUERY_INFO_NONE,
+				    NULL,
+				    error);
+	if (info_fs == NULL) {
+		fwupd_error_convert(error);
+		return G_MAXUINT64;
+	}
+	total = g_file_info_get_attribute_uint64(info_fs, G_FILE_ATTRIBUTE_FILESYSTEM_FREE);
+
+#ifdef HAVE_SYS_VFS_H
+	/* fall back to standard C library */
+	if (total == 0) {
+		struct statfs sfs = {0};
+		int rc = statfs(path, &sfs);
+		if (rc != 0) {
+			g_set_error(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_SUPPORTED,
+				    "failed to get filesystem statistics: %s",
+				    fwupd_strerror(errno));
+			return G_MAXUINT64;
+		}
+		total = sfs.f_bsize * sfs.f_bfree;
+	}
+#endif
+	if (total == 0 || total == G_MAXUINT64) {
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_SUPPORTED,
+				    "getting efivars free space is not supported");
+		return G_MAXUINT64;
+	}
+
+	/* success */
+	return total;
+}
+
 static gboolean
 fu_linux_efivars_set_data(FuEfivars *efivars,
 			  const gchar *guid,
@@ -448,14 +499,14 @@ fu_linux_efivars_set_data(FuEfivars *efivars,
 			    FWUPD_ERROR_INVALID_DATA,
 			    "failed to open %s: %s",
 			    fn,
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 		return FALSE;
 	}
 	ostr = g_unix_output_stream_new(fd, TRUE);
 	memcpy(buf, &attr, sizeof(attr));     /* nocheck:blocked */
 	memcpy(buf + sizeof(attr), data, sz); /* nocheck:blocked */
 	if (g_output_stream_write(ostr, buf, sizeof(attr) + sz, NULL, error) < 0) {
-		g_prefix_error(error, "failed to write data to efivarsfs: ");
+		g_prefix_error_literal(error, "failed to write data to efivarsfs: ");
 		fwupd_error_convert(error);
 		return FALSE;
 	}
@@ -481,6 +532,7 @@ fu_linux_efivars_class_init(FuLinuxEfivarsClass *klass)
 	FuEfivarsClass *efivars_class = FU_EFIVARS_CLASS(klass);
 	efivars_class->supported = fu_linux_efivars_supported;
 	efivars_class->space_used = fu_linux_efivars_space_used;
+	efivars_class->space_free = fu_linux_efivars_space_free;
 	efivars_class->exists = fu_linux_efivars_exists;
 	efivars_class->get_monitor = fu_linux_efivars_get_monitor;
 	efivars_class->get_data = fu_linux_efivars_get_data;

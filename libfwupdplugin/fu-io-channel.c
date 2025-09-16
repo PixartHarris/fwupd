@@ -23,10 +23,8 @@
 
 #include "fwupd-error.h"
 
-#include "fu-common.h"
 #include "fu-input-stream.h"
 #include "fu-io-channel.h"
-#include "fu-string.h"
 
 /**
  * FuIOChannel:
@@ -118,7 +116,7 @@ fu_io_channel_seek(FuIOChannel *self, gsize offset, GError **error)
 #endif
 			    "failed to seek to 0x%04x: %s",
 			    (guint)offset,
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 		fwupd_error_convert(error);
 		return FALSE;
 	}
@@ -284,7 +282,7 @@ fu_io_channel_write_raw(FuIOChannel *self,
 					    FWUPD_ERROR,
 					    FWUPD_ERROR_NOT_FOUND,
 					    "failed to write: %s",
-					    g_strerror(errno));
+					    fwupd_strerror(errno));
 				return FALSE;
 			}
 			g_set_error(error,
@@ -333,7 +331,7 @@ fu_io_channel_write_raw(FuIOChannel *self,
 						    FWUPD_ERROR,
 						    FWUPD_ERROR_NOT_FOUND,
 						    "failed to write: %s",
-						    g_strerror(errno));
+						    fwupd_strerror(errno));
 					return FALSE;
 				}
 				g_set_error(error,
@@ -342,7 +340,7 @@ fu_io_channel_write_raw(FuIOChannel *self,
 					    "failed to write %" G_GSIZE_FORMAT " bytes to %i: %s",
 					    datasz,
 					    self->fd,
-					    g_strerror(errno));
+					    fwupd_strerror(errno));
 				return FALSE;
 			}
 			if (flags & FU_IO_CHANNEL_FLAG_SINGLE_SHOT)
@@ -429,7 +427,7 @@ fu_io_channel_read_byte_array(FuIOChannel *self,
 #endif
 					    "failed to read %i: %s",
 					    self->fd,
-					    g_strerror(errno));
+					    fwupd_strerror(errno));
 				fwupd_error_convert(error);
 				return NULL;
 			}
@@ -447,7 +445,7 @@ fu_io_channel_read_byte_array(FuIOChannel *self,
 		/* wait for data to appear */
 		gint rc = g_poll(&fds, 1, (gint)timeout_ms);
 		if (rc == 0) {
-			g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_TIMED_OUT, "timeout");
+			g_set_error_literal(error, FWUPD_ERROR, FWUPD_ERROR_TIMED_OUT, "timeout");
 			return NULL;
 		}
 		if (rc < 0) {
@@ -478,7 +476,7 @@ fu_io_channel_read_byte_array(FuIOChannel *self,
 #endif
 					    "failed to read %i: %s",
 					    self->fd,
-					    g_strerror(errno));
+					    fwupd_strerror(errno));
 				fwupd_error_convert(error);
 				return NULL;
 			}
@@ -614,7 +612,7 @@ fu_io_channel_unix_new(gint fd)
 /**
  * fu_io_channel_new_file:
  * @filename: device file
- * @open_flags: some #FuIoChannelOpenFlag typically %FU_IO_CHANNEL_OPEN_FLAG_READ
+ * @open_flags: some #FuIoChannelOpenFlags typically %FU_IO_CHANNEL_OPEN_FLAG_READ
  * @error: (nullable): optional return location for an error
  *
  * Creates a new object to write and/or read from.
@@ -624,7 +622,7 @@ fu_io_channel_unix_new(gint fd)
  * Since: 2.0.0
  **/
 FuIOChannel *
-fu_io_channel_new_file(const gchar *filename, FuIoChannelOpenFlag open_flags, GError **error)
+fu_io_channel_new_file(const gchar *filename, FuIoChannelOpenFlags open_flags, GError **error)
 {
 	gint fd;
 	int flags = 0;
@@ -659,7 +657,7 @@ fu_io_channel_new_file(const gchar *filename, FuIoChannelOpenFlag open_flags, GE
 #endif
 			    "failed to open %s: %s",
 			    filename,
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 		fwupd_error_convert(error);
 		return NULL;
 	}
@@ -697,7 +695,7 @@ fu_io_channel_virtual_new(const gchar *name, GError **error)
 #endif
 			    "failed to create %s: %s",
 			    name,
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 		fwupd_error_convert(error);
 		return NULL;
 	}

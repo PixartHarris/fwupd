@@ -23,7 +23,7 @@ fu_test_plugin_coldplug(FuPlugin *plugin, FuProgress *progress, GError **error)
 	fu_device_set_id(device, "FakeDevice");
 	fu_device_add_instance_id(device, "b585990a-003e-5270-89d5-3705a17f9a43");
 	fu_device_set_name(device, "Integrated_Webcam(TM)");
-	fu_device_add_icon(device, "preferences-desktop-keyboard");
+	fu_device_add_icon(device, FU_DEVICE_ICON_WEB_CAMERA);
 	fu_device_add_flag(device, FWUPD_DEVICE_FLAG_REQUIRE_AC);
 	fu_device_add_flag(device, FWUPD_DEVICE_FLAG_UPDATABLE);
 	fu_device_add_flag(device, FWUPD_DEVICE_FLAG_CAN_VERIFY_IMAGE);
@@ -42,10 +42,10 @@ fu_test_plugin_coldplug(FuPlugin *plugin, FuProgress *progress, GError **error)
 	if (fu_plugin_get_config_value_boolean(plugin, "RegistrationSupported")) {
 		fu_plugin_device_register(plugin, device);
 		if (fu_device_get_metadata(device, "BestDevice") == NULL) {
-			g_set_error(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_NOT_FOUND,
-				    "Device not set by another plugin");
+			g_set_error_literal(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_NOT_FOUND,
+					    "Device not set by another plugin");
 			return FALSE;
 		}
 	}
@@ -68,6 +68,7 @@ fu_test_plugin_coldplug(FuPlugin *plugin, FuProgress *progress, GError **error)
 		fu_device_add_flag(child1, FWUPD_DEVICE_FLAG_UPDATABLE);
 		fu_device_add_flag(child1, FWUPD_DEVICE_FLAG_UNSIGNED_PAYLOAD);
 		fu_device_add_private_flag(child1, FU_DEVICE_PRIVATE_FLAG_INSTALL_PARENT_FIRST);
+		fu_device_add_private_flag(child1, FU_DEVICE_PRIVATE_FLAG_PARENT_NAME_PREFIX);
 		fu_plugin_device_add(plugin, child1);
 
 		child2 = fu_device_new(ctx);
@@ -83,6 +84,7 @@ fu_test_plugin_coldplug(FuPlugin *plugin, FuProgress *progress, GError **error)
 		fu_device_add_flag(child2, FWUPD_DEVICE_FLAG_UPDATABLE);
 		fu_device_add_flag(child2, FWUPD_DEVICE_FLAG_UNSIGNED_PAYLOAD);
 		fu_device_add_private_flag(child2, FU_DEVICE_PRIVATE_FLAG_INSTALL_PARENT_FIRST);
+		fu_device_add_private_flag(child2, FU_DEVICE_PRIVATE_FLAG_PARENT_NAME_PREFIX);
 		fu_plugin_device_add(plugin, child2);
 	}
 
@@ -160,11 +162,9 @@ fu_test_plugin_verify(FuPlugin *plugin,
 static gchar *
 fu_test_plugin_get_version(GBytes *blob_fw)
 {
-	gsize bufsz = 0;
-	const gchar *buf = g_bytes_get_data(blob_fw, &bufsz);
 	guint64 val = 0;
 	g_autoptr(GError) error_local = NULL;
-	g_autofree gchar *str_safe = fu_strsafe(buf, bufsz);
+	g_autofree gchar *str_safe = fu_strsafe_bytes(blob_fw, G_MAXSIZE);
 
 	if (str_safe == NULL)
 		return NULL;
@@ -210,7 +210,7 @@ fu_test_plugin_write_firmware(FuPlugin *plugin,
 				 10000,
 				 FU_INTEGER_BASE_AUTO,
 				 error)) {
-			g_prefix_error(error, "failed to parse DecompressDelay: ");
+			g_prefix_error_literal(error, "failed to parse DecompressDelay: ");
 			return FALSE;
 		}
 	}
@@ -240,7 +240,7 @@ fu_test_plugin_write_firmware(FuPlugin *plugin,
 					 10000,
 					 FU_INTEGER_BASE_AUTO,
 					 error)) {
-				g_prefix_error(error, "failed to parse RequestDelay: ");
+				g_prefix_error_literal(error, "failed to parse RequestDelay: ");
 				return FALSE;
 			}
 		}
@@ -256,7 +256,7 @@ fu_test_plugin_write_firmware(FuPlugin *plugin,
 				 10000,
 				 FU_INTEGER_BASE_AUTO,
 				 error)) {
-			g_prefix_error(error, "failed to parse WriteDelay: ");
+			g_prefix_error_literal(error, "failed to parse WriteDelay: ");
 			return FALSE;
 		}
 	}
@@ -273,7 +273,7 @@ fu_test_plugin_write_firmware(FuPlugin *plugin,
 				 10000,
 				 FU_INTEGER_BASE_AUTO,
 				 error)) {
-			g_prefix_error(error, "failed to parse VerifyDelay: ");
+			g_prefix_error_literal(error, "failed to parse VerifyDelay: ");
 			return FALSE;
 		}
 	}
@@ -303,8 +303,12 @@ fu_test_plugin_write_firmware(FuPlugin *plugin,
 	} else {
 		g_autofree gchar *ver = NULL;
 		g_autoptr(GBytes) blob_fw = NULL;
+		g_autoptr(GInputStream) stream = NULL;
 
-		blob_fw = fu_firmware_get_bytes(firmware, error);
+		stream = fu_firmware_get_stream(firmware, error);
+		if (stream == NULL)
+			return FALSE;
+		blob_fw = fu_input_stream_read_bytes(stream, 0x0, 9, NULL, error);
 		if (blob_fw == NULL)
 			return FALSE;
 		ver = fu_test_plugin_get_version(blob_fw);

@@ -17,6 +17,8 @@ struct _FuUefiDbxDevice {
 
 G_DEFINE_TYPE(FuUefiDbxDevice, fu_uefi_dbx_device, FU_TYPE_UEFI_DEVICE)
 
+#define FU_UEFI_DBX_DEVICE_DEFAULT_REQUIRED_FREE (30 * 1024) /* bytes */
+
 void
 fu_uefi_dbx_device_set_snapd_notifier(FuUefiDbxDevice *self, FuUefiDbxSnapdNotifier *obs)
 {
@@ -126,14 +128,31 @@ fu_uefi_dbx_device_ensure_checksum(FuUefiDbxDevice *self, GError **error)
 
 	/* add the last checksum to the device */
 	sigs = fu_firmware_get_images(dbx);
-	if (sigs->len > 0) {
-		FuEfiSignature *sig = g_ptr_array_index(sigs, sigs->len - 1);
+
+	for (guint i = sigs->len; i > 0; i--) {
+		FuEfiSignature *sig = g_ptr_array_index(sigs, i - 1);
+		const gchar *owner = fu_efi_signature_get_owner(sig);
 		g_autofree gchar *csum =
 		    fu_firmware_get_checksum(FU_FIRMWARE(sig), G_CHECKSUM_SHA256, NULL);
+
+		if (g_strcmp0(owner, FU_EFI_SIGNATURE_GUID_MICROSOFT) != 0) {
+			g_debug("skipping dbx entry %s as non-microsoft (%s)", csum, owner);
+			continue;
+		}
+
 		if (csum != NULL) {
 			if (!fu_uefi_dbx_device_set_checksum(self, csum, error))
 				return FALSE;
+			break;
 		}
+	}
+
+	/* special entry for "empty" */
+	if (sigs->len == 1) {
+		FuEfiSignature *sig = g_ptr_array_index(sigs, 0);
+		const gchar *owner = fu_efi_signature_get_owner(sig);
+		if (g_strcmp0(owner, FU_EFI_SIGNATURE_GUID_ZERO) == 0)
+			fu_device_set_version_raw(FU_DEVICE(self), 0);
 	}
 
 	/* success */
@@ -167,7 +186,7 @@ fu_uefi_dbx_device_prepare_firmware(FuDevice *device,
 
 	/* parse dbx */
 	if (!fu_firmware_parse_stream(siglist, stream, 0x0, flags, error)) {
-		g_prefix_error(error, "cannot parse DBX update: ");
+		g_prefix_error_literal(error, "cannot parse DBX update: ");
 		return NULL;
 	}
 
@@ -178,9 +197,9 @@ fu_uefi_dbx_device_prepare_firmware(FuDevice *device,
 							 FU_EFI_SIGNATURE_LIST(siglist),
 							 flags,
 							 error)) {
-			g_prefix_error(error,
-				       "Blocked executable in the ESP, "
-				       "ensure grub and shim are up to date: ");
+			g_prefix_error_literal(error,
+					       "Blocked executable in the ESP, "
+					       "ensure grub and shim are up to date: ");
 			return NULL;
 		}
 	}
@@ -195,15 +214,17 @@ static gboolean
 fu_uefi_dbx_device_probe(FuDevice *device, GError **error)
 {
 	FuUefiDbxDevice *self = FU_UEFI_DBX_DEVICE(device);
-	FuContext *ctx = fu_device_get_context(device);
 	g_autoptr(FuFirmware) kek = NULL;
 	g_autoptr(FuProgress) progress = fu_progress_new(G_STRLOC);
 	g_autoptr(GPtrArray) sigs = NULL;
 
 	/* use each of the certificates in the KEK to generate the GUIDs */
-	kek = fu_device_read_firmware(device, progress, error);
+	kek = fu_device_read_firmware(device,
+				      progress,
+				      FU_FIRMWARE_PARSE_FLAG_IGNORE_CHECKSUM,
+				      error);
 	if (kek == NULL) {
-		g_prefix_error(error, "failed to parse KEK: ");
+		g_prefix_error_literal(error, "failed to parse KEK: ");
 		return FALSE;
 	}
 	fu_device_add_instance_strup(device, "ARCH", fu_uefi_dbx_get_efi_arch());
@@ -225,26 +246,7 @@ fu_uefi_dbx_device_probe(FuDevice *device, GError **error)
 						 NULL);
 		fu_device_build_instance_id(device, NULL, "UEFI", "CRT", "ARCH", NULL);
 	}
-
-	/* dbx changes are expected to change PCR7, warn the user that BitLocker might ask for
-	recovery key after fw update */
-	if (fu_context_has_flag(ctx, FU_CONTEXT_FLAG_FDE_BITLOCKER))
-		fu_device_add_flag(device, FWUPD_DEVICE_FLAG_AFFECTS_FDE);
-
 	return fu_uefi_dbx_device_ensure_checksum(self, error);
-}
-
-static void
-fu_uefi_dbx_device_report_metadata_pre(FuDevice *device, GHashTable *metadata)
-{
-	FuContext *ctx = fu_device_get_context(device);
-	FuEfivars *efivars = fu_context_get_efivars(ctx);
-	guint64 nvram_total = fu_efivars_space_used(efivars, NULL);
-	if (nvram_total != G_MAXUINT64) {
-		g_hash_table_insert(metadata,
-				    g_strdup("EfivarsNvramUsed"),
-				    g_strdup_printf("%" G_GUINT64_FORMAT, nvram_total));
-	}
 }
 
 static void
@@ -270,6 +272,12 @@ fu_uefi_dbx_device_cleanup(FuDevice *self,
 	return TRUE;
 }
 
+static gchar *
+fu_uefi_dbx_device_convert_version(FuDevice *device, guint64 version_raw)
+{
+	return fu_version_from_uint64(version_raw, fu_device_get_version_format(device));
+}
+
 static void
 fu_uefi_dbx_device_init(FuUefiDbxDevice *self)
 {
@@ -280,15 +288,19 @@ fu_uefi_dbx_device_init(FuUefiDbxDevice *self)
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_NUMBER);
 	fu_device_set_install_duration(FU_DEVICE(self), 1);
 	fu_device_set_firmware_gtype(FU_DEVICE(self), FU_TYPE_EFI_SIGNATURE_LIST);
-	fu_device_add_icon(FU_DEVICE(self), "application-certificate");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_APPLICATION_CERTIFICATE);
+	fu_device_set_required_free(FU_DEVICE(self), FU_UEFI_DBX_DEVICE_DEFAULT_REQUIRED_FREE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_NEEDS_REBOOT);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_ONLY_VERSION_UPGRADE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_SIGNED_PAYLOAD);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_USABLE_DURING_UPDATE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);
+	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_CAN_EMULATION_TAG);
+	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_AFFECTS_FDE);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_MD_ONLY_CHECKSUM);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_MD_SET_VERSION);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_HOST_FIRMWARE_CHILD);
+	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_INHIBIT_CHILDREN);
 	g_signal_connect(FWUPD_DEVICE(self),
 			 "notify::version",
 			 G_CALLBACK(fu_uefi_dbx_device_version_notify_cb),
@@ -316,8 +328,8 @@ fu_uefi_dbx_device_class_init(FuUefiDbxDeviceClass *klass)
 	device_class->write_firmware = fu_uefi_dbx_device_write_firmware;
 	device_class->prepare_firmware = fu_uefi_dbx_device_prepare_firmware;
 	device_class->set_progress = fu_uefi_dbx_device_set_progress;
-	device_class->report_metadata_pre = fu_uefi_dbx_device_report_metadata_pre;
 	device_class->cleanup = fu_uefi_dbx_device_cleanup;
+	device_class->convert_version = fu_uefi_dbx_device_convert_version;
 
 	object_class->finalize = fu_uefi_dbx_device_finalize;
 }

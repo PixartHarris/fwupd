@@ -37,3 +37,8 @@ fwupd.txt
 fwupdtool.txt
 *.efi
 *.zip
+/.cache/
+/compile_commands.json
+*.nix
+/.direnv
+/.envrc

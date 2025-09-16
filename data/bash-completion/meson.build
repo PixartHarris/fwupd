@@ -1,6 +1,10 @@
 if bashcomp.found()
-  completions_dir = bashcomp.get_variable(pkgconfig: 'completionsdir',
-    pkgconfig_define: bashcomp.version().version_compare('>= 2.10') ? ['datadir', datadir] : ['prefix', prefix],
+  completions_dir = bashcomp.get_variable(
+    pkgconfig: 'completionsdir',
+    pkgconfig_define: bashcomp.version().version_compare('>= 2.10') ? ['datadir', datadir] : [
+      'prefix',
+      prefix,
+    ],
   )
 
   con = configuration_data()
@@ -11,6 +15,7 @@ if bashcomp.found()
     output: 'fwupdtool',
     configuration: con,
     install: true,
+    install_tag: 'runtime',
     install_dir: completions_dir,
   )
 
@@ -20,8 +25,9 @@ if bashcomp.found()
       output: 'fwupdmgr',
       configuration: con,
       install: true,
+      install_tag: 'runtime',
       install_dir: completions_dir,
     )
-  endif # build_daemon
+  endif  # build_daemon
 
 endif # bashcomp.found()

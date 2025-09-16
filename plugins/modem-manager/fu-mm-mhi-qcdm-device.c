@@ -13,6 +13,7 @@
 struct _FuMmMhiQcdmDevice {
 	FuMmQcdmDevice parent_instance;
 	FuKernelSearchPathLocker *search_path_locker;
+	GBytes *firehose_prog;
 	gchar *firehose_prog_file;
 };
 
@@ -22,18 +23,35 @@ static gboolean
 fu_mm_mhi_qcdm_device_detach(FuDevice *device, FuProgress *progress, GError **error)
 {
 	FuMmMhiQcdmDevice *self = FU_MM_MHI_QCDM_DEVICE(device);
+	const gchar *path;
+	g_autofree gchar *fn = NULL;
 
 	/* sanity check */
+	if (self->search_path_locker == NULL) {
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_FOUND,
+				    "search path locker not set");
+		return FALSE;
+	}
 	if (self->firehose_prog_file == NULL) {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_NOT_FOUND,
-			    "Firehose prog filename is not set for the device");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_FOUND,
+				    "Firehose prog filename is not set for the device");
 		return FALSE;
 	}
 
-	/* override the baseclass to do nothing; we're handling this in ->write_firmware() */
-	return TRUE;
+	/* copy the firehose prog into the search path locker */
+	path = fu_kernel_search_path_locker_get_path(self->search_path_locker);
+	fn = g_build_filename(path, "qcom", self->firehose_prog_file, NULL);
+	if (!fu_path_mkdir_parent(fn, error))
+		return FALSE;
+	if (!fu_bytes_set_contents(fn, self->firehose_prog, error))
+		return FALSE;
+
+	/* trigger emergency download mode; this takes us to the EDL execution environment */
+	return FU_DEVICE_CLASS(fu_mm_mhi_qcdm_device_parent_class)->detach(device, progress, error);
 }
 
 static FuKernelSearchPathLocker *
@@ -52,7 +70,7 @@ fu_mm_mhi_qcdm_device_search_path_locker_new(FuMmMhiQcdmDevice *self, GError **e
 			    FWUPD_ERROR_INTERNAL,
 			    "Failed to create '%s': %s",
 			    mm_fw_dir,
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 		return NULL;
 	}
 	locker = fu_kernel_search_path_locker_new(mm_fw_dir, error);
@@ -90,45 +108,42 @@ fu_mm_mhi_qcdm_device_cleanup(FuDevice *device,
 	/* restore the firmware search path */
 	g_clear_object(&self->search_path_locker);
 
+	/* no longer required */
+	if (self->firehose_prog != NULL) {
+		g_bytes_unref(self->firehose_prog);
+		self->firehose_prog = NULL;
+	}
+
 	/* success */
 	return TRUE;
 }
 
-static gboolean
-fu_mm_mhi_qcdm_device_copy_firehose_prog(FuMmMhiQcdmDevice *self, GBytes *prog, GError **error)
-{
-	const gchar *path = fu_kernel_search_path_locker_get_path(self->search_path_locker);
-	g_autofree gchar *fn = g_build_filename(path, "qcom", self->firehose_prog_file, NULL);
-	if (!fu_path_mkdir_parent(fn, error))
-		return FALSE;
-	return fu_bytes_set_contents(fn, prog, error);
-}
-
-static gboolean
-fu_mm_mhi_qcdm_device_write_firmware(FuDevice *device,
-				     FuFirmware *firmware,
-				     FuProgress *progress,
-				     FwupdInstallFlags flags,
-				     GError **error)
+static FuFirmware *
+fu_mm_mhi_qcdm_device_prepare_firmware(FuDevice *device,
+				       GInputStream *stream,
+				       FuProgress *progress,
+				       FuFirmwareParseFlags flags,
+				       GError **error)
 {
 	FuMmMhiQcdmDevice *self = FU_MM_MHI_QCDM_DEVICE(device);
+	g_autoptr(FuFirmware) firmware = fu_archive_firmware_new();
 	g_autoptr(GBytes) firehose_prog = NULL;
+
+	/* parse as archive */
+	if (!fu_firmware_parse_stream(firmware, stream, 0x0, flags, error))
+		return NULL;
 
 	/* firehose modems that use mhi_pci drivers require firehose binary
 	 * to be present in the firmware-loader search path. */
-	firehose_prog = fu_firmware_get_image_by_id_bytes(firmware, "firehose-prog.mbn", error);
-	if (firehose_prog == NULL)
-		return FALSE;
-	if (!fu_mm_mhi_qcdm_device_copy_firehose_prog(self, firehose_prog, error))
-		return FALSE;
-
-	/* trigger emergency download mode; this takes us to the EDL execution environment */
-	if (!FU_DEVICE_CLASS(fu_mm_mhi_qcdm_device_parent_class)->detach(device, progress, error))
-		return FALSE;
+	self->firehose_prog =
+	    fu_firmware_get_image_by_id_bytes(firmware,
+					      "firehose-prog.mbn|prog_nand*.mbn|prog_firehose*",
+					      error);
+	if (self->firehose_prog == NULL)
+		return NULL;
 
 	/* success */
-	fu_device_add_flag(device, FWUPD_DEVICE_FLAG_ANOTHER_WRITE_REQUIRED);
-	return TRUE;
+	return g_steal_pointer(&firmware);
 }
 
 static gboolean
@@ -167,7 +182,6 @@ fu_mm_mhi_qcdm_device_set_progress(FuDevice *self, FuProgress *progress)
 static void
 fu_mm_mhi_qcdm_device_init(FuMmMhiQcdmDevice *self)
 {
-	fu_device_set_remove_delay(FU_DEVICE(self), 5000);
 	fu_udev_device_add_open_flag(FU_UDEV_DEVICE(self), FU_IO_CHANNEL_OPEN_FLAG_READ);
 	fu_udev_device_add_open_flag(FU_UDEV_DEVICE(self), FU_IO_CHANNEL_OPEN_FLAG_WRITE);
 	fu_device_add_protocol(FU_UDEV_DEVICE(self), "com.qualcomm.firehose");
@@ -178,6 +192,8 @@ fu_mm_mhi_qcdm_device_finalize(GObject *object)
 {
 	FuMmMhiQcdmDevice *self = FU_MM_MHI_QCDM_DEVICE(object);
 	g_free(self->firehose_prog_file);
+	if (self->firehose_prog != NULL)
+		g_bytes_unref(self->firehose_prog);
 	G_OBJECT_CLASS(fu_mm_mhi_qcdm_device_parent_class)->finalize(object);
 }
 
@@ -190,7 +206,7 @@ fu_mm_mhi_qcdm_device_class_init(FuMmMhiQcdmDeviceClass *klass)
 	device_class->detach = fu_mm_mhi_qcdm_device_detach;
 	device_class->prepare = fu_mm_mhi_qcdm_device_prepare;
 	device_class->cleanup = fu_mm_mhi_qcdm_device_cleanup;
-	device_class->write_firmware = fu_mm_mhi_qcdm_device_write_firmware;
+	device_class->prepare_firmware = fu_mm_mhi_qcdm_device_prepare_firmware;
 	device_class->set_quirk_kv = fu_mm_mhi_qcdm_device_set_quirk_kv;
 	device_class->set_progress = fu_mm_mhi_qcdm_device_set_progress;
 }

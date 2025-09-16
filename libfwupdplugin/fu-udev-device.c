@@ -23,8 +23,8 @@
 
 #include "fu-device-event-private.h"
 #include "fu-device-private.h"
-#include "fu-i2c-device.h"
 #include "fu-ioctl-private.h"
+#include "fu-output-stream.h"
 #include "fu-path.h"
 #include "fu-string.h"
 #include "fu-udev-device-private.h"
@@ -45,7 +45,7 @@ typedef struct {
 	gchar *devtype;
 	guint64 number;
 	FuIOChannel *io_channel;
-	FuIoChannelOpenFlag open_flags;
+	FuIoChannelOpenFlags open_flags;
 	GHashTable *properties;
 	gboolean properties_valid;
 } FuUdevDevicePrivate;
@@ -92,7 +92,7 @@ fu_udev_device_to_string(FuDevice *device, guint idt, GString *str)
 {
 	FuUdevDevice *self = FU_UDEV_DEVICE(device);
 	FuUdevDevicePrivate *priv = GET_PRIVATE(self);
-	g_autofree gchar *open_flags = fu_io_channel_open_flag_to_string(priv->open_flags);
+	g_autofree gchar *open_flags = fu_io_channel_open_flags_to_string(priv->open_flags);
 
 	fwupd_codec_string_append_hex(str, idt, "Number", priv->number);
 	fwupd_codec_string_append(str, idt, "Subsystem", priv->subsystem);
@@ -349,7 +349,7 @@ fu_udev_device_probe(FuDevice *device, GError **error)
 		g_autofree gchar *subsystem_tmp =
 		    fu_udev_device_get_symlink_target(self, "subsystem", error);
 		if (subsystem_tmp == NULL) {
-			g_prefix_error(error, "failed to read subsystem: ");
+			g_prefix_error_literal(error, "failed to read subsystem: ");
 			return FALSE;
 		}
 		fu_udev_device_set_subsystem(self, subsystem_tmp);
@@ -471,14 +471,6 @@ fu_udev_device_probe(FuDevice *device, GError **error)
 						 NULL);
 	}
 
-	/* determine if we're wired internally */
-	if (g_strcmp0(priv->subsystem, "i2c") != 0) {
-		g_autoptr(FuDevice) parent_i2c =
-		    fu_device_get_backend_parent_with_subsystem(device, "i2c", NULL);
-		if (parent_i2c != NULL)
-			fu_device_add_flag(device, FWUPD_DEVICE_FLAG_INTERNAL);
-	}
-
 	/* success */
 	return TRUE;
 }
@@ -529,7 +521,6 @@ fu_udev_device_unbind_driver(FuDevice *device, GError **error)
 	FuUdevDevice *self = FU_UDEV_DEVICE(device);
 	FuUdevDevicePrivate *priv = GET_PRIVATE(self);
 	g_autofree gchar *fn = NULL;
-	g_autoptr(GFile) file = NULL;
 	g_autoptr(GOutputStream) stream = NULL;
 
 	/* emulated */
@@ -548,9 +539,7 @@ fu_udev_device_unbind_driver(FuDevice *device, GError **error)
 	/* write bus ID to file */
 	if (!fu_udev_device_ensure_bind_id(self, error))
 		return FALSE;
-	file = g_file_new_for_path(fn);
-	stream =
-	    G_OUTPUT_STREAM(g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, error));
+	stream = fu_output_stream_from_path(fn, error);
 	if (stream == NULL)
 		return FALSE;
 	return g_output_stream_write_all(stream,
@@ -620,7 +609,7 @@ fu_udev_device_bind_driver(FuDevice *device,
 					 error);
 }
 
-static FuIoChannelOpenFlag
+static FuIoChannelOpenFlags
 fu_udev_device_get_open_flags(FuUdevDevice *self)
 {
 	FuUdevDevicePrivate *priv = GET_PRIVATE(self);
@@ -856,7 +845,7 @@ fu_udev_device_get_device_file_from_subsystem(FuUdevDevice *self,
 			return NULL;
 		}
 		g_propagate_error(error, g_steal_pointer(&error_local));
-		fu_error_convert(error);
+		fwupd_error_convert(error);
 		return NULL;
 	}
 	fn = g_dir_read_name(dir);
@@ -1046,7 +1035,7 @@ fu_udev_device_set_io_channel(FuUdevDevice *self, FuIOChannel *io_channel)
  * Since: 2.0.0
  **/
 void
-fu_udev_device_remove_open_flag(FuUdevDevice *self, FuIoChannelOpenFlag flag)
+fu_udev_device_remove_open_flag(FuUdevDevice *self, FuIoChannelOpenFlags flag)
 {
 	FuUdevDevicePrivate *priv = GET_PRIVATE(self);
 	g_return_if_fail(FU_IS_UDEV_DEVICE(self));
@@ -1066,7 +1055,7 @@ fu_udev_device_remove_open_flag(FuUdevDevice *self, FuIoChannelOpenFlag flag)
  * Since: 2.0.0
  **/
 void
-fu_udev_device_add_open_flag(FuUdevDevice *self, FuIoChannelOpenFlag flag)
+fu_udev_device_add_open_flag(FuUdevDevice *self, FuIoChannelOpenFlags flag)
 {
 	FuUdevDevicePrivate *priv = GET_PRIVATE(self);
 	g_return_if_fail(FU_IS_UDEV_DEVICE(self));
@@ -1245,10 +1234,13 @@ fu_udev_device_ioctl(FuUdevDevice *self,
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_INTERNAL,
 			    "ioctl error: %s [%i]",
-			    g_strerror(errno),
+			    fwupd_strerror(errno),
 			    errno);
 #else
-		g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_INTERNAL, "unspecified ioctl error");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INTERNAL,
+				    "unspecified ioctl error");
 #endif
 		return FALSE;
 	}
@@ -1256,10 +1248,10 @@ fu_udev_device_ioctl(FuUdevDevice *self,
 	/* success */
 	return TRUE;
 #else
-	g_set_error(error,
-		    FWUPD_ERROR,
-		    FWUPD_ERROR_NOT_SUPPORTED,
-		    "Not supported as <sys/ioctl.h> not found");
+	g_set_error_literal(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_NOT_SUPPORTED,
+			    "not supported as <sys/ioctl.h> not found");
 	return FALSE;
 #endif
 }
@@ -1289,7 +1281,7 @@ fu_udev_device_pread(FuUdevDevice *self, goffset port, guint8 *buf, gsize bufsz,
 	g_return_val_if_fail(buf != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	/* emulated */
+	/* need event ID */
 	if (fu_device_has_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_EMULATED) ||
 	    fu_context_has_flag(fu_device_get_context(FU_DEVICE(self)),
 				FU_CONTEXT_FLAG_SAVE_EVENTS)) {
@@ -1334,7 +1326,7 @@ fu_udev_device_pread(FuUdevDevice *self, goffset port, guint8 *buf, gsize bufsz,
 #endif
 			    "failed to read from port 0x%04x: %s",
 			    (guint)port,
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 		fwupd_error_convert(error);
 		return FALSE;
 	}
@@ -1411,13 +1403,43 @@ fu_udev_device_pwrite(FuUdevDevice *self,
 		      GError **error)
 {
 	FuUdevDevicePrivate *priv = GET_PRIVATE(self);
+	FuDeviceEvent *event = NULL;
+	g_autofree gchar *event_id = NULL;
 
 	g_return_val_if_fail(FU_IS_UDEV_DEVICE(self), FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* emulated */
-	if (fu_device_has_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_EMULATED))
+	if (fu_device_has_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_EMULATED) &&
+	    !fu_device_check_fwupd_version(FU_DEVICE(self), "2.0.13")) {
 		return TRUE;
+	}
+
+	/* need event ID */
+	if (fu_device_has_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_EMULATED) ||
+	    fu_context_has_flag(fu_device_get_context(FU_DEVICE(self)),
+				FU_CONTEXT_FLAG_SAVE_EVENTS)) {
+		g_autofree gchar *data_base64 = g_base64_encode(buf, bufsz);
+		event_id = g_strdup_printf("Pwrite:"
+					   "Port=0x%x,"
+					   "Data=%s,"
+					   "Length=0x%x",
+					   (guint)port,
+					   data_base64,
+					   (guint)bufsz);
+	}
+
+	/* emulated */
+	if (fu_device_has_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_EMULATED)) {
+		event = fu_device_load_event(FU_DEVICE(self), event_id, error);
+		if (event == NULL)
+			return FALSE;
+		return TRUE;
+	}
+
+	/* save */
+	if (event_id != NULL)
+		event = fu_device_save_event(FU_DEVICE(self), event_id);
 
 	/* not open! */
 	if (priv->io_channel == NULL) {
@@ -1442,10 +1464,16 @@ fu_udev_device_pwrite(FuUdevDevice *self,
 #endif
 			    "failed to write to port %04x: %s",
 			    (guint)port,
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 		fwupd_error_convert(error);
 		return FALSE;
 	}
+
+	/* save response */
+	if (event != NULL)
+		fu_device_event_set_data(event, "Data", buf, bufsz);
+
+	/* success */
 	return TRUE;
 #else
 	g_set_error_literal(error,
@@ -1491,7 +1519,7 @@ fu_udev_device_read(FuUdevDevice *self,
 	g_return_val_if_fail(buf != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	/* emulated */
+	/* need event ID */
 	if (fu_device_has_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_EMULATED) ||
 	    fu_context_has_flag(fu_device_get_context(FU_DEVICE(self)),
 				FU_CONTEXT_FLAG_SAVE_EVENTS)) {

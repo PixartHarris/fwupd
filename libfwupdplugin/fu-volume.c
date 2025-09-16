@@ -508,7 +508,7 @@ fu_volume_get_block_size_from_device_name(const gchar *device_name, GError **err
 		g_set_error_literal(error,
 				    G_IO_ERROR, /* nocheck:error */
 				    g_io_error_from_errno(errno),
-				    g_strerror(errno));
+				    fwupd_strerror(errno));
 		fwupd_error_convert(error);
 		return 0;
 	}
@@ -517,21 +517,23 @@ fu_volume_get_block_size_from_device_name(const gchar *device_name, GError **err
 		g_set_error_literal(error,
 				    G_IO_ERROR, /* nocheck:error */
 				    g_io_error_from_errno(errno),
-				    g_strerror(errno));
+				    fwupd_strerror(errno));
 		fwupd_error_convert(error);
+		/* nocheck:error-false-return */
 	} else if (sector_size == 0) {
 		g_set_error_literal(error,
 				    FWUPD_ERROR,
 				    FWUPD_ERROR_NOT_SUPPORTED,
 				    "failed to get non-zero logical sector size");
+		/* nocheck:error-false-return */
 	}
 	g_close(fd, NULL);
 	return sector_size;
 #else
-	g_set_error(error,
-		    FWUPD_ERROR,
-		    FWUPD_ERROR_NOT_SUPPORTED,
-		    "Not supported as <sys/ioctl.h> or BLKSSZGET not found");
+	g_set_error_literal(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_NOT_SUPPORTED,
+			    "not supported as <sys/ioctl.h> or BLKSSZGET not found");
 	return 0;
 #endif
 }
@@ -879,33 +881,6 @@ fu_volume_unmount(FuVolume *self, GError **error)
 	g_free(self->mount_path);
 	self->mount_path = NULL;
 	return TRUE;
-}
-
-/**
- * fu_volume_locker:
- * @self: a @FuVolume
- * @error: (nullable): optional return location for an error
- *
- * Locks the volume, mounting it and unmounting it as required. If the volume is
- * already mounted then it is is _not_ unmounted when the locker is closed.
- *
- * Returns: (transfer full): a device locker for success, or %NULL
- *
- * Since: 1.4.6
- **/
-FuDeviceLocker *
-fu_volume_locker(FuVolume *self, GError **error)
-{
-	g_return_val_if_fail(FU_IS_VOLUME(self), NULL);
-	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
-
-	/* already open, so NOP */
-	if (fu_volume_is_mounted(self))
-		return g_object_new(FU_TYPE_DEVICE_LOCKER, NULL);
-	return fu_device_locker_new_full(self,
-					 (FuDeviceLockerFunc)fu_volume_mount,
-					 (FuDeviceLockerFunc)fu_volume_unmount,
-					 error);
 }
 
 /* private */

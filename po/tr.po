@@ -567,10 +567,6 @@ msgid "FILENAME"
 msgstr "DOSYA-ADI"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
-msgid "FILENAME DEVICE-ID"
-msgstr "DOSYAADI AYGIT-KİMLİĞİ"
-
-#. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME [DEVICE-ID|GUID]"
 msgstr "DOSYAADI [AYGIT-KİMLİĞİ|GUID]"
 
@@ -721,10 +717,6 @@ msgstr "Etkinleştirilmiş tüm eklentileri sisteme kaydettir"
 #. TRANSLATORS: command description
 msgid "Gets details about a firmware file"
 msgstr "Donanım yazılımı dosyasıyla ilgili ayrıntıları al"
-
-#. TRANSLATORS: command description
-msgid "Gets the list of updates for connected hardware"
-msgstr "Bağlı donanım için güncelleme listesini al"
 
 #. TRANSLATORS: command description
 msgid "Gets the releases for a device"
@@ -1077,10 +1069,6 @@ msgid "Only version upgrades are allowed"
 msgstr "Sadece sürüm yükseltmelerine izin veriliyor"
 
 #. TRANSLATORS: command line option
-msgid "Output in JSON format"
-msgstr "JSON formatında dışarı aktar"
-
-#. TRANSLATORS: command line option
 msgid "Override the default ESP path"
 msgstr "Öntanımlı ESP yolunu geçersiz kıl"
 
@@ -1355,11 +1343,6 @@ msgstr "dbx veri tabanı dosyasını belirt"
 #. * firmware take effect, usually after updating offline
 msgid "Successfully activated all devices"
 msgstr "Tüm aygıtlar başarıyla etkinleştirildi"
-
-#. TRANSLATORS: success message -- where 'metadata' is information
-#. * about available firmware on the remote server
-msgid "Successfully downloaded new metadata: "
-msgstr "Yeni üst veri başarıyla indirildi:"
 
 #. TRANSLATORS: success message
 msgid "Successfully installed firmware"

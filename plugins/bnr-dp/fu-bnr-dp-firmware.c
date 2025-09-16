@@ -13,7 +13,7 @@
 #include "fu-bnr-dp-struct.h"
 
 struct _FuBnrDpFirmware {
-	FuFirmwareClass parent_instance;
+	FuFirmware parent_instance;
 
 	/* mandatory XML header attributes, not part of payload. additionally, "Ver" (version) is
 	 * also mandatory */
@@ -469,7 +469,7 @@ fu_bnr_dp_firmware_patch_boot_counter(FuBnrDpFirmware *self,
 	fu_struct_bnr_dp_payload_header_set_flags(
 	    st_header,
 	    fu_struct_bnr_dp_payload_header_get_flags(st_header) &
-		~FU_BNR_DP_PAYLOAD_FLAGS_CRC_ERROR);
+		~FU_BNR_DP_PAYLOAD_FLAG_CRC_ERROR);
 
 	/* update checksum */
 	crc = fu_crc16(FU_CRC_KIND_B16_BNR,

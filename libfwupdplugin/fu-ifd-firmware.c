@@ -9,14 +9,13 @@
 #include "config.h"
 
 #include "fu-byte-array.h"
-#include "fu-bytes.h"
 #include "fu-common.h"
 #include "fu-composite-input-stream.h"
 #include "fu-efi-volume.h"
 #include "fu-ifd-bios.h"
-#include "fu-ifd-common.h"
 #include "fu-ifd-firmware.h"
 #include "fu-ifd-image.h"
+#include "fu-ifd-struct.h"
 #include "fu-input-stream.h"
 #include "fu-mem.h"
 #include "fu-partial-input-stream.h"
@@ -123,6 +122,38 @@ fu_ifd_firmware_fixup_stream(GInputStream *stream, GError **error)
 	return g_steal_pointer(&stream2);
 }
 
+static FuIfdAccess
+fu_ifd_firmware_region_to_access(FuIfdRegion region, guint32 flash_master, gboolean new_layout)
+{
+	guint8 bit_r = 0;
+	guint8 bit_w = 0;
+
+	/* new layout */
+	if (new_layout) {
+		bit_r = (flash_master >> (region + 8)) & 0b1;
+		bit_w = (flash_master >> (region + 20)) & 0b1;
+		return (bit_r ? FU_IFD_ACCESS_READ : FU_IFD_ACCESS_NONE) |
+		       (bit_w ? FU_IFD_ACCESS_WRITE : FU_IFD_ACCESS_NONE);
+	}
+
+	/* old layout */
+	if (region == FU_IFD_REGION_DESC) {
+		bit_r = 16;
+		bit_w = 24;
+	} else if (region == FU_IFD_REGION_BIOS) {
+		bit_r = 17;
+		bit_w = 25;
+	} else if (region == FU_IFD_REGION_ME) {
+		bit_r = 18;
+		bit_w = 26;
+	} else if (region == FU_IFD_REGION_GBE) {
+		bit_r = 19;
+		bit_w = 27;
+	}
+	return ((flash_master >> bit_r) & 0b1 ? FU_IFD_ACCESS_READ : FU_IFD_ACCESS_NONE) |
+	       ((flash_master >> bit_w) & 0b1 ? FU_IFD_ACCESS_WRITE : FU_IFD_ACCESS_NONE);
+}
+
 static gboolean
 fu_ifd_firmware_parse(FuFirmware *firmware,
 		      GInputStream *stream,
@@ -224,7 +255,7 @@ fu_ifd_firmware_parse(FuFirmware *firmware,
 		g_debug("freg %s 0x%04x -> 0x%04x", freg_str, freg_base, freg_limt);
 		partial_stream = fu_partial_input_stream_new(stream2, freg_base, freg_size, error);
 		if (partial_stream == NULL) {
-			g_prefix_error(error, "failed to cut IFD image: ");
+			g_prefix_error_literal(error, "failed to cut IFD image: ");
 			return FALSE;
 		}
 		if (i == FU_IFD_REGION_BIOS) {
@@ -248,7 +279,9 @@ fu_ifd_firmware_parse(FuFirmware *firmware,
 		/* is writable by anything other than the region itself */
 		for (FuIfdRegion r = 1; r <= 3; r++) {
 			FuIfdAccess acc;
-			acc = fu_ifd_region_to_access(i, priv->flash_master[r], priv->new_layout);
+			acc = fu_ifd_firmware_region_to_access(i,
+							       priv->flash_master[r],
+							       priv->new_layout);
 			fu_ifd_image_set_access(FU_IFD_IMAGE(img), r, acc);
 		}
 	}

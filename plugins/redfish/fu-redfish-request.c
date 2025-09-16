@@ -135,7 +135,8 @@ fu_redfish_request_load_json(FuRedfishRequest *self, GByteArray *buf, GError **e
 		else if (g_strcmp0(id, "SMC.1.0.OemLicenseNotPassed") == 0)
 			error_code = FWUPD_ERROR_NOT_SUPPORTED;
 		else if (g_strcmp0(id, "SMC.1.0.OemFirmwareAlreadyInUpdateMode") == 0 ||
-			 g_strcmp0(id, "SMC.1.0.OemBiosUpdateIsInProgress") == 0)
+			 g_strcmp0(id, "SMC.1.0.OemBiosUpdateIsInProgress") == 0 ||
+			 g_pattern_match_simple("IDRAC.*.RED014", id))
 			error_code = FWUPD_ERROR_ALREADY_PENDING;
 		g_set_error_literal(error, FWUPD_ERROR, error_code, msg);
 		return FALSE;
@@ -253,7 +254,7 @@ fu_redfish_request_perform_full(FuRedfishRequest *self,
 						path,
 						FU_REDFISH_REQUEST_PERFORM_FLAG_LOAD_JSON,
 						error)) {
-			g_prefix_error(error, "failed to request etag: ");
+			g_prefix_error_literal(error, "failed to request etag: ");
 			return FALSE;
 		}
 		json_obj = fu_redfish_request_get_json_object(self);
@@ -263,7 +264,7 @@ fu_redfish_request_perform_full(FuRedfishRequest *self,
 					    json_object_get_string_member(json_obj, "@odata.etag"));
 		}
 
-		/* allow us to re-use the request */
+		/* allow us to reuse the request */
 		fu_redfish_request_reset(self);
 	}
 

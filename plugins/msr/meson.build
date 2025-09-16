@@ -1,11 +1,14 @@
-if hsi and has_cpuid
+hsi or subdir_done()
+has_cpuid or subdir_done()
+
 cargs = ['-DG_LOG_DOMAIN="FuPluginMsr"']
 plugins += {meson.current_source_dir().split('/')[-1]: true}
 
 if libsystemd.found()
-install_data(['fwupd-msr.conf'],
-  install_dir: systemd_modules_load_dir,
-)
+  install_data(['fwupd-msr.conf'],
+    install_tag: 'runtime',
+    install_dir: systemd_modules_load_dir,
+  )
 endif
 
 plugin_builtins += static_library('fu_plugin_msr',
@@ -17,4 +20,3 @@ plugin_builtins += static_library('fu_plugin_msr',
   c_args: cargs,
   dependencies: plugin_deps,
 )
-endif

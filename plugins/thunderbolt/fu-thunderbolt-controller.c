@@ -120,10 +120,9 @@ static gboolean
 fu_thunderbolt_controller_read_status_block(FuThunderboltController *self, GError **error)
 {
 	gsize nr_chunks;
+	g_autofree gchar *nvmem = NULL;
 	g_autoptr(GBytes) blob = NULL;
-	g_autoptr(GFile) nvmem = NULL;
 	g_autoptr(GInputStream) istr = NULL;
-	g_autoptr(GInputStream) istr_partial = NULL;
 	g_autoptr(FuFirmware) firmware = NULL;
 
 	nvmem = fu_thunderbolt_device_find_nvmem(FU_THUNDERBOLT_DEVICE(self), TRUE, error);
@@ -132,14 +131,15 @@ fu_thunderbolt_controller_read_status_block(FuThunderboltController *self, GErro
 
 	/* read just enough bytes to read the status byte */
 	nr_chunks = (FU_TBT_OFFSET_NATIVE + FU_TBT_CHUNK_SZ - 1) / FU_TBT_CHUNK_SZ;
-	istr = G_INPUT_STREAM(g_file_read(nvmem, NULL, error));
-	if (istr == NULL)
-		return FALSE;
-	blob = fu_input_stream_read_bytes(istr, 0x0, nr_chunks * FU_TBT_CHUNK_SZ, NULL, error);
+	blob = fu_device_get_contents_bytes(FU_DEVICE(self),
+					    nvmem,
+					    nr_chunks * FU_TBT_CHUNK_SZ,
+					    NULL,
+					    error);
 	if (blob == NULL)
 		return FALSE;
-	istr_partial = g_memory_input_stream_new_from_bytes(blob);
-	firmware = fu_firmware_new_from_gtypes(istr_partial,
+	istr = g_memory_input_stream_new_from_bytes(blob);
+	firmware = fu_firmware_new_from_gtypes(istr,
 					       0x0,
 					       FU_FIRMWARE_PARSE_FLAG_NO_SEARCH,
 					       error,
@@ -159,7 +159,7 @@ static gboolean
 fu_thunderbolt_controller_can_update(FuThunderboltController *self)
 {
 	g_autoptr(GError) nvmem_error = NULL;
-	g_autoptr(GFile) non_active_nvmem = NULL;
+	g_autofree gchar *non_active_nvmem = NULL;
 
 	non_active_nvmem =
 	    fu_thunderbolt_device_find_nvmem(FU_THUNDERBOLT_DEVICE(self), FALSE, &nvmem_error);
@@ -188,6 +188,14 @@ fu_thunderbolt_controller_set_port_online_cb(gpointer user_data)
 static gboolean
 fu_thunderbolt_controller_setup_usb4(FuThunderboltController *self, GError **error)
 {
+	FuContext *ctx = fu_device_get_context(FU_DEVICE(self));
+
+	/* it takes 5 seconds (!) before we can re-online the thunderbolt controller */
+	if (fu_context_has_flag(ctx, FU_CONTEXT_FLAG_NO_IDLE_SOURCES)) {
+		g_message("skipping usb4 setup as port needs to be onlined");
+		return TRUE;
+	}
+
 	if (!fu_thunderbolt_udev_set_port_offline(FU_UDEV_DEVICE(self), error))
 		return FALSE;
 	if (!fu_thunderbolt_udev_rescan_port(FU_UDEV_DEVICE(self), error))
@@ -310,10 +318,10 @@ fu_thunderbolt_controller_setup(FuDevice *device, GError **error)
 				return FALSE;
 
 		} else {
-			g_set_error(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_NOT_SUPPORTED,
-				    "updates are distributed as part of the platform");
+			g_set_error_literal(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_NOT_SUPPORTED,
+					    "updates are distributed as part of the platform");
 			return FALSE;
 		}
 		fu_device_add_instance_id(device, device_id);
@@ -342,6 +350,8 @@ fu_thunderbolt_controller_setup(FuDevice *device, GError **error)
 
 	/* set up signed payload attribute */
 	if (self->controller_kind == FU_THUNDERBOLT_CONTROLLER_KIND_HOST && self->gen >= 3)
+		fu_device_add_flag(device, FWUPD_DEVICE_FLAG_SIGNED_PAYLOAD);
+	else if (self->gen == 3)
 		fu_device_add_flag(device, FWUPD_DEVICE_FLAG_SIGNED_PAYLOAD);
 
 	/* success */

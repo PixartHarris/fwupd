@@ -12,11 +12,9 @@
 #include <string.h>
 
 #include "fu-byte-array.h"
-#include "fu-bytes.h"
 #include "fu-common.h"
 #include "fu-ifwi-cpd-firmware.h"
 #include "fu-oprom-firmware.h"
-#include "fu-oprom-struct.h"
 #include "fu-string.h"
 
 /**
@@ -28,9 +26,9 @@
  */
 
 typedef struct {
-	guint16 machine_type;
-	guint16 subsystem;
-	guint16 compression_type;
+	FuOpromMachineType machine_type;
+	FuOpromSubsystem subsystem;
+	FuOpromCompressionType compression_type;
 	guint16 vendor_id;
 	guint16 device_id;
 } FuOpromFirmwarePrivate;
@@ -38,8 +36,7 @@ typedef struct {
 G_DEFINE_TYPE_WITH_PRIVATE(FuOpromFirmware, fu_oprom_firmware, FU_TYPE_FIRMWARE)
 #define GET_PRIVATE(o) (fu_oprom_firmware_get_instance_private(o))
 
-#define FU_OPROM_FIRMWARE_ALIGN_LEN		   512u
-#define FU_OPROM_FIRMWARE_LAST_IMAGE_INDICATOR_BIT (1u << 7)
+#define FU_OPROM_FIRMWARE_ALIGN_LEN 512u
 
 /**
  * fu_oprom_firmware_get_machine_type:
@@ -47,11 +44,11 @@ G_DEFINE_TYPE_WITH_PRIVATE(FuOpromFirmware, fu_oprom_firmware, FU_TYPE_FIRMWARE)
  *
  * Gets the machine type.
  *
- * Returns: an integer
+ * Returns: a #FuOpromMachineType
  *
  * Since: 1.8.2
  **/
-guint16
+FuOpromMachineType
 fu_oprom_firmware_get_machine_type(FuOpromFirmware *self)
 {
 	FuOpromFirmwarePrivate *priv = GET_PRIVATE(self);
@@ -65,11 +62,11 @@ fu_oprom_firmware_get_machine_type(FuOpromFirmware *self)
  *
  * Gets the machine type.
  *
- * Returns: an integer
+ * Returns: a #FuOpromSubsystem
  *
  * Since: 1.8.2
  **/
-guint16
+FuOpromSubsystem
 fu_oprom_firmware_get_subsystem(FuOpromFirmware *self)
 {
 	FuOpromFirmwarePrivate *priv = GET_PRIVATE(self);
@@ -83,11 +80,11 @@ fu_oprom_firmware_get_subsystem(FuOpromFirmware *self)
  *
  * Gets the machine type.
  *
- * Returns: an integer
+ * Returns: a #FuOpromCompressionType
  *
  * Since: 1.8.2
  **/
-guint16
+FuOpromCompressionType
 fu_oprom_firmware_get_compression_type(FuOpromFirmware *self)
 {
 	FuOpromFirmwarePrivate *priv = GET_PRIVATE(self);
@@ -138,10 +135,10 @@ fu_oprom_firmware_parse(FuFirmware *firmware,
 	/* get PCI offset */
 	pci_header_offset = fu_struct_oprom_get_pci_header_offset(st_hdr);
 	if (pci_header_offset == 0x0) {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_INVALID_DATA,
-			    "no PCI data structure offset provided");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_DATA,
+				    "no PCI data structure offset provided");
 		return FALSE;
 	}
 
@@ -155,11 +152,15 @@ fu_oprom_firmware_parse(FuFirmware *firmware,
 	/* get length */
 	image_length = fu_struct_oprom_pci_get_image_length(st_pci);
 	if (image_length == 0x0) {
-		g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_INVALID_DATA, "invalid image length");
+		g_set_error_literal(error, FWUPD_ERROR, FWUPD_ERROR_INVALID_DATA, "invalid image");
 		return FALSE;
 	}
 	fu_firmware_set_size(firmware, image_length * FU_OPROM_FIRMWARE_ALIGN_LEN);
 	fu_firmware_set_idx(firmware, fu_struct_oprom_pci_get_code_type(st_pci));
+
+	/* is last image */
+	if (fu_struct_oprom_pci_get_indicator(st_pci) & FU_OPROM_INDICATOR_FLAG_LAST)
+		fu_firmware_add_flag(firmware, FU_FIRMWARE_FLAG_IS_LAST_IMAGE);
 
 	/* get CPD offset */
 	expansion_header_offset = fu_struct_oprom_get_expansion_header_offset(st_hdr);
@@ -173,7 +174,7 @@ fu_oprom_firmware_parse(FuFirmware *firmware,
 						  FU_TYPE_FIRMWARE,
 						  G_TYPE_INVALID);
 		if (img == NULL) {
-			g_prefix_error(error, "failed to build firmware: ");
+			g_prefix_error_literal(error, "failed to build firmware: ");
 			return FALSE;
 		}
 		fu_firmware_set_id(img, "cpd");
@@ -221,7 +222,8 @@ fu_oprom_firmware_write(FuFirmware *firmware, GError **error)
 	fu_struct_oprom_pci_set_device_id(st_pci, priv->device_id);
 	fu_struct_oprom_pci_set_image_length(st_pci, image_size / FU_OPROM_FIRMWARE_ALIGN_LEN);
 	fu_struct_oprom_pci_set_code_type(st_pci, fu_firmware_get_idx(firmware));
-	fu_struct_oprom_pci_set_indicator(st_pci, FU_OPROM_FIRMWARE_LAST_IMAGE_INDICATOR_BIT);
+	if (fu_firmware_has_flag(firmware, FU_FIRMWARE_FLAG_IS_LAST_IMAGE))
+		fu_struct_oprom_pci_set_indicator(st_pci, FU_OPROM_INDICATOR_FLAG_LAST);
 	g_byte_array_append(buf, st_pci->data, st_pci->len);
 	fu_byte_array_align_up(buf, FU_FIRMWARE_ALIGNMENT_512, 0xFF);
 

@@ -633,7 +633,7 @@ fu_parade_lspcon_device_write_firmware(FuDevice *device,
 	if (buf == NULL)
 		return FALSE;
 	if (!fu_memcmp_safe(buf->data, buf->len, 0x0, readback_buf, blocksz, 0x0, blocksz, error)) {
-		g_prefix_error(error, "flash contents do not match: ");
+		g_prefix_error_literal(error, "flash contents do not match: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -670,7 +670,7 @@ fu_parade_lspcon_device_write_firmware(FuDevice *device,
 			    0x0,
 			    MIN(sizeof(flag_data), blocksz),
 			    error)) {
-		g_prefix_error(error, "flag partition contents do not match: ");
+		g_prefix_error_literal(error, "flag partition contents do not match: ");
 		return FALSE;
 	}
 
@@ -910,7 +910,7 @@ static void
 fu_parade_lspcon_device_init(FuParadeLspconDevice *self)
 {
 	fu_device_add_protocol(FU_DEVICE(self), "com.paradetech.ps176");
-	fu_device_add_icon(FU_DEVICE(self), "video-display");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_VIDEO_DISPLAY);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_INTERNAL);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_DUAL_IMAGE);

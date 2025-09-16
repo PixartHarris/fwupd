@@ -19,14 +19,14 @@ G_DEFINE_TYPE(FuLogitechHidppRadio, fu_logitech_hidpp_radio, FU_TYPE_DEVICE)
 static void
 fu_logitech_hidpp_radio_to_string(FuDevice *device, guint idt, GString *str)
 {
-	FuLogitechHidppRadio *self = FU_HIDPP_RADIO(device);
+	FuLogitechHidppRadio *self = FU_LOGITECH_HIDPP_RADIO(device);
 	fwupd_codec_string_append_hex(str, idt, "Entity", self->entity);
 }
 
 static gboolean
 fu_logitech_hidpp_radio_attach(FuDevice *device, FuProgress *progress, GError **error)
 {
-	FuLogitechHidppRadio *self = FU_HIDPP_RADIO(device);
+	FuLogitechHidppRadio *self = FU_LOGITECH_HIDPP_RADIO(device);
 	FuDevice *parent = fu_device_get_parent(device);
 	g_autoptr(FuDeviceLocker) locker = NULL;
 
@@ -36,7 +36,7 @@ fu_logitech_hidpp_radio_attach(FuDevice *device, FuProgress *progress, GError **
 		return FALSE;
 
 	fu_device_add_flag(device, FWUPD_DEVICE_FLAG_WAIT_FOR_REPLUG);
-	return fu_logitech_hidpp_device_attach(FU_HIDPP_DEVICE(parent),
+	return fu_logitech_hidpp_device_attach(FU_LOGITECH_HIDPP_DEVICE(parent),
 					       self->entity,
 					       progress,
 					       error);
@@ -96,6 +96,7 @@ fu_logitech_hidpp_radio_init(FuLogitechHidppRadio *self)
 	fu_device_set_install_duration(FU_DEVICE(self), 270);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_REPLUG_MATCH_GUID);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_USE_PARENT_FOR_BATTERY);
+	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_PARENT_NAME_PREFIX);
 	fu_device_add_protocol(FU_DEVICE(self), "com.logitech.unifyingsigned");
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_HEX);
 }

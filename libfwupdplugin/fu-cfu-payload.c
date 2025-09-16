@@ -8,11 +8,8 @@
 
 #include "config.h"
 
-#include "fu-byte-array.h"
-#include "fu-bytes.h"
 #include "fu-cfu-firmware-struct.h"
 #include "fu-cfu-payload.h"
-#include "fu-common.h"
 #include "fu-input-stream.h"
 
 /**
@@ -97,6 +94,7 @@ fu_cfu_payload_write(FuFirmware *firmware, GError **error)
 static void
 fu_cfu_payload_init(FuCfuPayload *self)
 {
+	fu_firmware_add_flag(FU_FIRMWARE(self), FU_FIRMWARE_FLAG_NO_AUTO_DETECTION);
 }
 
 static void

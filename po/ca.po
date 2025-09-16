@@ -35,7 +35,7 @@ msgid "%s Battery Update"
 msgstr "Actualització de la bateria %s"
 
 #. TRANSLATORS: the CPU microcode is firmware loaded onto the CPU
-#. * at system bootup
+#. * at system boot-up
 #, c-format
 msgid "%s CPU Microcode Update"
 msgstr "Actualització del microcodi de la CPU %s"
@@ -683,6 +683,10 @@ msgid "Changed"
 msgstr "S'ha canviat"
 
 #. TRANSLATORS: command description
+msgid "Check if any devices are pending a reboot to complete update"
+msgstr "Comprova si hi ha dispositius pendents de reiniciar per a completar l'actualització"
+
+#. TRANSLATORS: command description
 msgid "Checks cryptographic hash matches firmware"
 msgstr "Comprova que la suma criptogràfica coincideix amb el microprogramari."
 
@@ -1097,6 +1101,10 @@ msgstr "Aboca les dades al SMBIOS des d'un fitxer."
 msgid "Duration"
 msgstr "Durada"
 
+#. TRANSLATORS: command argument: uppercase, spaces->dashes
+msgid "EMULATION-FILE [ARCHIVE-FILE]"
+msgstr "FITXER-DEMULACIÓ [ARXIU-FITXER]"
+
 #. TRANSLATORS: longer description
 msgid "Each system should have tests to ensure firmware security."
 msgstr "Cada sistema haurà de tenir proves per a assegurar la seguretat del microprogramari."
@@ -1217,10 +1225,6 @@ msgstr "NOM_FITXER"
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME CERTIFICATE PRIVATE-KEY"
 msgstr "NOM_FITXER CERTIFICAT CLAU_PRIVADA"
-
-#. TRANSLATORS: command argument: uppercase, spaces->dashes
-msgid "FILENAME DEVICE-ID"
-msgstr "NOM_FITXER ID_DISPOSITIU"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME OFFSET DATA [FIRMWARE-TYPE]"
@@ -1521,8 +1525,8 @@ msgid "Gets the list of blocked firmware"
 msgstr "Obté la llista del microprogramari bloquejat."
 
 #. TRANSLATORS: command description
-msgid "Gets the list of updates for connected hardware"
-msgstr "Obté la llista d'actualitzacions per al maquinari connectat."
+msgid "Gets the list of updates for all specified devices, or all devices if unspecified"
+msgstr "Obtén la llista d'actualitzacions per a tots els dispositius especificats, o de tots els dispositius si no s'especifica"
 
 #. TRANSLATORS: command description
 msgid "Gets the releases for a device"
@@ -1549,7 +1553,6 @@ msgid "Host Security Events"
 msgstr "Esdeveniments de seguretat a l'amfitrió"
 
 #. TRANSLATORS: error message for unsupported feature
-#, c-format
 msgid "Host Security ID (HSI) is not supported"
 msgstr "L'ID de seguretat de l'amfitrió (HSI) no està admès"
 
@@ -2100,6 +2103,10 @@ msgstr "No s'ha trobat cap microprogramari"
 msgid "No hardware detected with firmware update capability"
 msgstr "No s'ha detectat cap maquinari amb capacitat per a l'actualització del microprogramari"
 
+#. TRANSLATORS: no rebooting needed
+msgid "No reboot is necessary"
+msgstr "No cal reiniciar"
+
 #. TRANSLATORS: no repositories to download from
 msgid "No releases available"
 msgstr "No hi ha cap llançament disponible"
@@ -2153,6 +2160,10 @@ msgid "Old version"
 msgstr "Versió antiga"
 
 #. TRANSLATORS: command line option
+msgid "Only install onto emulated devices"
+msgstr "Instal·la només en els dispositius emulats"
+
+#. TRANSLATORS: command line option
 msgid "Only show single PCR value"
 msgstr "Mostra només un únic valor de PCR"
 
@@ -2166,8 +2177,8 @@ msgid "Only version upgrades are allowed"
 msgstr "Només es permeten actualitzacions de la versió"
 
 #. TRANSLATORS: command line option
-msgid "Output in JSON format"
-msgstr "Sortida en el format JSON"
+msgid "Output in JSON format (disables all interactive prompts)"
+msgstr "Sortida en el format JSON (desactiva totes les indicacions interactives)"
 
 #. TRANSLATORS: command line option
 msgid "Override the default ESP path"
@@ -2238,7 +2249,8 @@ msgstr "Abans de continuar, assegureu-vos que teniu la clau de recuperació del 
 msgid "Please enter a number from 0 to %u: "
 msgstr "Introduïu un número del 0 al %u: "
 
-#. TRANSLATORS: the user isn't reading the question -- %1 is 'Y' and %2 is 'N'
+#. TRANSLATORS: the user isn't reading the question -- %1 is 'Y' and %2 is
+#. * 'N'
 #, c-format
 msgid "Please enter either %s or %s: "
 msgstr "Introduïu %s o %s:"
@@ -2734,11 +2746,6 @@ msgstr "El remot s'ha inhabilitat correctament"
 msgid "Successfully disabled test devices"
 msgstr "Els dispositius de prova s'han inhabilitat amb èxit"
 
-#. TRANSLATORS: success message -- where 'metadata' is information
-#. * about available firmware on the remote server
-msgid "Successfully downloaded new metadata: "
-msgstr "S'han baixat les metadades noves amb èxit:"
-
 #. TRANSLATORS: success message
 msgid "Successfully enabled and refreshed remote"
 msgstr "S'ha habilitat i refrescat el remot amb èxit"
@@ -2992,6 +2999,14 @@ msgstr "El PCR0 del TPM difereix de la reconstrucció."
 msgid "The UEFI Platform Key is used to determine if device software comes from a trusted source."
 msgstr "La clau de la plataforma UEFI s'empra per a determinar si el programari del dispositiu prové d'una font de confiança."
 
+#. TRANSLATORS: HSI event title
+msgid "The UEFI certificate store is now up to date"
+msgstr "El magatzem de certificats UEFI ja està actualitzat"
+
+#. TRANSLATORS: longer description
+msgid "The UEFI db contains the list of valid certificates that can be used to authorize what EFI binaries are allowed to run."
+msgstr "La base de dades UEFI conté la llista dels certificats vàlids que es poden usar per a autoritzar quins binaris EFI es poden executar."
+
 #. TRANSLATORS: longer description
 msgid "The UEFI system can set up memory attributes at boot which prevent common exploits from running."
 msgstr "El sistema UEFI pot configurar atributs de memòria a l'arrencada que impedeixen que s’executin els explotadors habituals."
@@ -3167,6 +3182,10 @@ msgstr "Variables del servei d'arrencada UEFI"
 msgid "UEFI capsule updates not available or enabled in firmware setup"
 msgstr "Les actualitzacions de la càpsula UEFI no estan disponibles o habilitades a la configuració del microprogramari"
 
+#. TRANSLATORS: Title: is UEFI db up-to-date
+msgid "UEFI db"
+msgstr "Bd UEFI"
+
 #. TRANSLATORS: program name
 msgid "UEFI dbx Utility"
 msgstr "Utilitat dbx UEFI"
@@ -3320,13 +3339,6 @@ msgstr "Actualitza les metadades emmagatzemades amb el contingut actual."
 #. TRANSLATORS: command description
 msgid "Updates all specified devices to latest firmware version, or all devices if unspecified"
 msgstr "Actualitza tots els dispositius especificats a la versió més recent del microprogramari o tots els dispositius sense especificar"
-
-#. TRANSLATORS: how many local devices can expect updates now
-#, c-format
-msgid "Updates have been published for %u local device"
-msgid_plural "Updates have been published for %u of %u local devices"
-msgstr[0] "S'han publicat les actualitzacions per a %u dispositiu local"
-msgstr[1] "S'han publicat les actualitzacions de %u per a %u dispositius locals"
 
 msgid "Updating"
 msgstr "S'està actualitzant"

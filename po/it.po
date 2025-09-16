@@ -37,7 +37,7 @@ msgid "%s Battery Update"
 msgstr "Aggiornamento batteria %s"
 
 #. TRANSLATORS: the CPU microcode is firmware loaded onto the CPU
-#. * at system bootup
+#. * at system boot-up
 #, c-format
 msgid "%s CPU Microcode Update"
 msgstr "Aggiornamento microcode CPU %s"
@@ -1040,10 +1040,6 @@ msgid "FILENAME CERTIFICATE PRIVATE-KEY"
 msgstr "NOMEFILE CERTIFICATO CHIAVE-PRIVATA"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
-msgid "FILENAME DEVICE-ID"
-msgstr "NOMEFILE ID-DISPOSITIVO"
-
-#. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME OFFSET DATA [FIRMWARE-TYPE]"
 msgstr "FILENAME OFFSET DATA [TIPO-FIRMWARE]"
 
@@ -1280,10 +1276,6 @@ msgstr "Recupera l'elenco dei firmware approvati"
 #. TRANSLATORS: command description
 msgid "Gets the list of blocked firmware"
 msgstr "Recupera l'elenco del firmware bloccato"
-
-#. TRANSLATORS: command description
-msgid "Gets the list of updates for connected hardware"
-msgstr "Ottiene l'elenco degli aggiornamenti per l'hardware connesso"
 
 #. TRANSLATORS: command description
 msgid "Gets the releases for a device"
@@ -1780,10 +1772,6 @@ msgid "Only version upgrades are allowed"
 msgstr "Sono consentiti solo avanzamenti di versione"
 
 #. TRANSLATORS: command line option
-msgid "Output in JSON format"
-msgstr "Output in formato JSON"
-
-#. TRANSLATORS: command line option
 msgid "Override the default ESP path"
 msgstr "Sovrascrive il percorso ESP predefinito"
 
@@ -2232,11 +2220,6 @@ msgstr "Attivazione di tutti i dispositivi avvenuta con successo"
 #. TRANSLATORS: success message
 msgid "Successfully disabled remote"
 msgstr "Remoto disabilitato con successo"
-
-#. TRANSLATORS: success message -- where 'metadata' is information
-#. * about available firmware on the remote server
-msgid "Successfully downloaded new metadata: "
-msgstr "Nuovi metadati scaricati con successo:"
 
 #. TRANSLATORS: success message
 msgid "Successfully enabled and refreshed remote"

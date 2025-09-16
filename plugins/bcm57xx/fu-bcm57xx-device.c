@@ -84,7 +84,7 @@ fu_bcm57xx_device_submit_ifreq(FuBcm57xxDevice *self, guint8 *buf, gsize bufsz, 
 			      500, /* ms */
 			      FU_IOCTL_FLAG_NONE,
 			      error)) {
-		g_prefix_error(error, "failed to SIOCETHTOOL: ");
+		g_prefix_error_literal(error, "failed to SIOCETHTOOL: ");
 		return FALSE;
 	}
 
@@ -135,7 +135,7 @@ fu_bcm57xx_device_nvram_write(FuBcm57xxDevice *self,
 					    (guint8 *)eeprom,
 					    eepromsz,
 					    error)) {
-		g_prefix_error(error, "cannot write eeprom: ");
+		g_prefix_error_literal(error, "cannot write eeprom: ");
 		return FALSE;
 	}
 
@@ -190,7 +190,7 @@ fu_bcm57xx_device_nvram_read(FuBcm57xxDevice *self,
 					    (guint8 *)eeprom,
 					    eepromsz,
 					    error)) {
-		g_prefix_error(error, "cannot read eeprom: ");
+		g_prefix_error_literal(error, "cannot read eeprom: ");
 		return FALSE;
 	}
 
@@ -236,7 +236,7 @@ fu_bcm57xx_device_nvram_check(FuBcm57xxDevice *self, GError **error)
 					    (guint8 *)&drvinfo,
 					    sizeof(drvinfo),
 					    error)) {
-		g_prefix_error(error, "cannot get driver information: ");
+		g_prefix_error_literal(error, "cannot get driver information: ");
 		return FALSE;
 	}
 	g_debug("FW version %s", drvinfo.fw_version);
@@ -262,10 +262,10 @@ fu_bcm57xx_device_nvram_check(FuBcm57xxDevice *self, GError **error)
 	/* success */
 	return TRUE;
 #else
-	g_set_error(error,
-		    FWUPD_ERROR,
-		    FWUPD_ERROR_NOT_SUPPORTED,
-		    "Not supported as <linux/ethtool.h> not found");
+	g_set_error_literal(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_NOT_SUPPORTED,
+			    "not supported as <linux/ethtool.h> not found");
 	return FALSE;
 #endif
 }
@@ -340,7 +340,7 @@ fu_bcm57xx_device_prepare_firmware(FuDevice *device,
 
 	/* try to parse NVRAM, stage1 or APE */
 	if (!fu_firmware_parse_stream(firmware_tmp, stream, 0x0, flags, error)) {
-		g_prefix_error(error, "failed to parse new firmware: ");
+		g_prefix_error_literal(error, "failed to parse new firmware: ");
 		return NULL;
 	}
 
@@ -373,7 +373,7 @@ fu_bcm57xx_device_prepare_firmware(FuDevice *device,
 				     0x0,
 				     FU_FIRMWARE_PARSE_FLAG_NO_SEARCH,
 				     error)) {
-		g_prefix_error(error, "failed to parse existing firmware: ");
+		g_prefix_error_literal(error, "failed to parse existing firmware: ");
 		return NULL;
 	}
 	str_existing = fu_firmware_to_string(firmware);
@@ -571,7 +571,7 @@ fu_bcm57xx_device_open(FuDevice *device, GError **error)
 			    FWUPD_ERROR_NOT_SUPPORTED,
 			    "failed to open socket: %s",
 #ifdef HAVE_ERRNO_H
-			    g_strerror(errno));
+			    fwupd_strerror(errno));
 #else
 			    "unspecified error");
 #endif
@@ -646,7 +646,7 @@ fu_bcm57xx_device_init(FuBcm57xxDevice *self)
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_NEEDS_SHUTDOWN);
 	fu_device_add_request_flag(FU_DEVICE(self), FWUPD_REQUEST_FLAG_NON_GENERIC_MESSAGE);
 	fu_device_add_protocol(FU_DEVICE(self), "com.broadcom.bcm57xx");
-	fu_device_add_icon(FU_DEVICE(self), "network-wired");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_NETWORK_WIRED);
 
 	/* other values are set from a quirk */
 	fu_device_set_firmware_size(FU_DEVICE(self), BCM_FIRMWARE_SIZE);

@@ -32,12 +32,14 @@
 #include <libfwupdplugin/fu-config.h>
 #include <libfwupdplugin/fu-context-helper.h>
 #include <libfwupdplugin/fu-context.h>
+#include <libfwupdplugin/fu-coswid-firmware.h>
 #include <libfwupdplugin/fu-crc.h>
 #include <libfwupdplugin/fu-csv-entry.h>
 #include <libfwupdplugin/fu-csv-firmware.h>
 #include <libfwupdplugin/fu-device-event.h>
 #include <libfwupdplugin/fu-device-locker.h>
 #include <libfwupdplugin/fu-device-metadata.h>
+#include <libfwupdplugin/fu-device-poll-locker.h>
 #include <libfwupdplugin/fu-device.h>
 #include <libfwupdplugin/fu-dfu-firmware.h>
 #include <libfwupdplugin/fu-dfuse-firmware.h>
@@ -87,6 +89,7 @@
 #include <libfwupdplugin/fu-intel-thunderbolt-nvm.h>
 #include <libfwupdplugin/fu-io-channel.h>
 #include <libfwupdplugin/fu-ioctl.h>
+#include <libfwupdplugin/fu-kenv.h>
 #include <libfwupdplugin/fu-kernel-search-path.h>
 #include <libfwupdplugin/fu-kernel.h>
 #include <libfwupdplugin/fu-linear-firmware.h>
@@ -96,6 +99,7 @@
 #include <libfwupdplugin/fu-msgpack.h>
 #include <libfwupdplugin/fu-oprom-device.h>
 #include <libfwupdplugin/fu-oprom-firmware.h>
+#include <libfwupdplugin/fu-output-stream.h>
 #include <libfwupdplugin/fu-partial-input-stream.h>
 #include <libfwupdplugin/fu-path.h>
 #include <libfwupdplugin/fu-pci-device.h>
@@ -115,6 +119,7 @@
 #include <libfwupdplugin/fu-udev-device.h>
 #include <libfwupdplugin/fu-usb-bos-descriptor.h>
 #include <libfwupdplugin/fu-v4l-device.h>
+#include <libfwupdplugin/fu-volume-locker.h>
 #include <libfwupdplugin/fu-x509-certificate.h>
 // #include <libfwupdplugin/fu-usb-common.h>
 #include <libfwupdplugin/fu-uefi-device.h>

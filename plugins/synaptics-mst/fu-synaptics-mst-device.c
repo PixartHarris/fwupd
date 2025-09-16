@@ -17,6 +17,11 @@
 #include "fu-synaptics-mst-firmware.h"
 #include "fu-synaptics-mst-struct.h"
 
+/*
+ * NOTE: DO NOT ALLOW ANY MORE MAGIC CONSTANTS IN THIS FILE
+ * nocheck:magic-defines=26
+ */
+
 #define FU_SYNAPTICS_MST_ID_CTRL_SIZE	 0x1000
 #define SYNAPTICS_UPDATE_ENUMERATE_TRIES 3
 
@@ -106,7 +111,7 @@ fu_synaptics_mst_device_init(FuSynapticsMstDevice *self)
 	fu_device_set_vendor(FU_DEVICE(self), "Synaptics");
 	fu_device_build_vendor_id_u16(FU_DEVICE(self), "DRM_DP_AUX_DEV", 0x06CB);
 	fu_device_set_summary(FU_DEVICE(self), "Multi-stream transport device");
-	fu_device_add_icon(FU_DEVICE(self), "video-display");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_VIDEO_DISPLAY);
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_TRIPLET);
 	fu_device_register_private_flag(FU_DEVICE(self),
 					FU_SYNAPTICS_MST_DEVICE_FLAG_IGNORE_BOARD_ID);
@@ -115,6 +120,7 @@ fu_synaptics_mst_device_init(FuSynapticsMstDevice *self)
 	fu_device_register_private_flag(FU_DEVICE(self),
 					FU_SYNAPTICS_MST_DEVICE_FLAG_IS_SOMEWHAT_EMULATED);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);
+	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_PARENT_NAME_PREFIX);
 	fu_device_add_request_flag(FU_DEVICE(self), FWUPD_REQUEST_FLAG_ALLOW_GENERIC_MESSAGE);
 
 	/* this is set from ->incorporate() */
@@ -194,7 +200,7 @@ fu_synaptics_mst_device_rc_send_command_and_wait_cb(FuDevice *device,
 				  sizeof(buf),
 				  FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 				  error)) {
-		g_prefix_error(error, "failed to read command: ");
+		g_prefix_error_literal(error, "failed to read command: ");
 		return FALSE;
 	}
 	if (buf[0] & 0x80) {
@@ -227,7 +233,7 @@ fu_synaptics_mst_device_rc_send_command_and_wait(FuSynapticsMstDevice *self,
 				   sizeof(buf),
 				   FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 				   error)) {
-		g_prefix_error(error, "failed to write command: ");
+		g_prefix_error_literal(error, "failed to write command: ");
 		return FALSE;
 	}
 
@@ -238,12 +244,12 @@ fu_synaptics_mst_device_rc_send_command_and_wait(FuSynapticsMstDevice *self,
 				  100, /* ms */
 				  &helper,
 				  error)) {
-		g_prefix_error(error, "remote command failed: ");
+		g_prefix_error_literal(error, "remote command failed: ");
 		return FALSE;
 	}
 	if (helper.rc != FU_SYNAPTICS_MST_UPDC_RC_SUCCESS) {
 		if (!fu_synaptics_mst_device_rc_to_error(helper.rc, error)) {
-			g_prefix_error(error, "remote command failed: ");
+			g_prefix_error_literal(error, "remote command failed: ");
 			return FALSE;
 		}
 	}
@@ -284,7 +290,7 @@ fu_synaptics_mst_device_rc_set_command(FuSynapticsMstDevice *self,
 					   fu_chunk_get_data_sz(chk),
 					   FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 					   error)) {
-			g_prefix_error(error, "failure writing data register: ");
+			g_prefix_error_literal(error, "failure writing data register: ");
 			return FALSE;
 		}
 
@@ -296,7 +302,7 @@ fu_synaptics_mst_device_rc_set_command(FuSynapticsMstDevice *self,
 					   sizeof(buf2),
 					   FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 					   error)) {
-			g_prefix_error(error, "failure writing offset register: ");
+			g_prefix_error_literal(error, "failure writing offset register: ");
 			return FALSE;
 		}
 
@@ -308,7 +314,7 @@ fu_synaptics_mst_device_rc_set_command(FuSynapticsMstDevice *self,
 					   sizeof(buf2),
 					   FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 					   error)) {
-			g_prefix_error(error, "failure writing length register: ");
+			g_prefix_error_literal(error, "failure writing length register: ");
 			return FALSE;
 		}
 
@@ -360,7 +366,7 @@ fu_synaptics_mst_device_rc_get_command(FuSynapticsMstDevice *self,
 					   sizeof(buf2),
 					   FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 					   error)) {
-			g_prefix_error(error, "failed to write offset: ");
+			g_prefix_error_literal(error, "failed to write offset: ");
 			return FALSE;
 		}
 
@@ -372,7 +378,7 @@ fu_synaptics_mst_device_rc_get_command(FuSynapticsMstDevice *self,
 					   sizeof(buf2),
 					   FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 					   error)) {
-			g_prefix_error(error, "failed to write length: ");
+			g_prefix_error_literal(error, "failed to write length: ");
 			return FALSE;
 		}
 
@@ -390,7 +396,7 @@ fu_synaptics_mst_device_rc_get_command(FuSynapticsMstDevice *self,
 					  fu_chunk_get_data_sz(chk),
 					  FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 					  error)) {
-			g_prefix_error(error, "failed to read data: ");
+			g_prefix_error_literal(error, "failed to read data: ");
 			return FALSE;
 		}
 	}
@@ -437,7 +443,7 @@ fu_synaptics_mst_device_enable_rc(FuSynapticsMstDevice *self, GError **error)
 		return TRUE;
 
 	if (!fu_synaptics_mst_device_disable_rc(self, error)) {
-		g_prefix_error(error, "failed to disable-to-enable: ");
+		g_prefix_error_literal(error, "failed to disable-to-enable: ");
 		return FALSE;
 	}
 	if (!fu_synaptics_mst_device_rc_set_command(self,
@@ -446,7 +452,7 @@ fu_synaptics_mst_device_enable_rc(FuSynapticsMstDevice *self, GError **error)
 						    (guint8 *)sc,
 						    strlen(sc),
 						    error)) {
-		g_prefix_error(error, "failed to enable remote control: ");
+		g_prefix_error_literal(error, "failed to enable remote control: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -473,7 +479,7 @@ fu_synaptics_mst_device_rc_special_get_command(FuSynapticsMstDevice *self,
 						   cmd_datasz,
 						   FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 						   error)) {
-				g_prefix_error(error, "Failed to write command data: ");
+				g_prefix_error_literal(error, "failed to write command data: ");
 				return FALSE;
 			}
 		}
@@ -486,7 +492,7 @@ fu_synaptics_mst_device_rc_special_get_command(FuSynapticsMstDevice *self,
 					   sizeof(buf2),
 					   FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 					   error)) {
-			g_prefix_error(error, "failed to write offset: ");
+			g_prefix_error_literal(error, "failed to write offset: ");
 			return FALSE;
 		}
 
@@ -498,7 +504,7 @@ fu_synaptics_mst_device_rc_special_get_command(FuSynapticsMstDevice *self,
 					   sizeof(buf2),
 					   FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 					   error)) {
-			g_prefix_error(error, "failed to write length: ");
+			g_prefix_error_literal(error, "failed to write length: ");
 			return FALSE;
 		}
 	}
@@ -515,7 +521,7 @@ fu_synaptics_mst_device_rc_special_get_command(FuSynapticsMstDevice *self,
 					  bufsz,
 					  FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 					  error)) {
-			g_prefix_error(error, "failed to read length: ");
+			g_prefix_error_literal(error, "failed to read length: ");
 			return FALSE;
 		}
 	}
@@ -543,7 +549,7 @@ fu_synaptics_mst_device_get_flash_checksum(FuSynapticsMstDevice *self,
 		buf,
 		sizeof(buf),
 		error)) {
-		g_prefix_error(error, "failed to get flash checksum: ");
+		g_prefix_error_literal(error, "failed to get flash checksum: ");
 		return FALSE;
 	}
 
@@ -815,7 +821,7 @@ fu_synaptics_mst_device_get_active_bank_panamera(FuSynapticsMstDevice *self, GEr
 						    (guint8 *)buf,
 						    ((sizeof(buf) / sizeof(buf[0])) * 4),
 						    error)) {
-		g_prefix_error(error, "get active bank failed: ");
+		g_prefix_error_literal(error, "get active bank failed: ");
 		return FALSE;
 	}
 	if ((buf[0] & BIT(7)) || (buf[0] & BIT(30)))
@@ -875,7 +881,7 @@ fu_synaptics_mst_device_update_panamera_firmware_cb(FuDevice *device,
 				fu_chunk_get_data(chk),
 				fu_chunk_get_data_sz(chk),
 				error)) {
-				g_prefix_error(error, "firmware write failed: ");
+				g_prefix_error_literal(error, "firmware write failed: ");
 				return FALSE;
 			}
 		}
@@ -895,7 +901,7 @@ fu_synaptics_mst_device_update_panamera_firmware_cb(FuDevice *device,
 			buf,
 			sizeof(buf),
 			error)) {
-			g_prefix_error(error, "failed to get flash checksum: ");
+			g_prefix_error_literal(error, "failed to get flash checksum: ");
 			return FALSE;
 		}
 		flash_checksum = fu_memread_uint32(buf, G_LITTLE_ENDIAN);
@@ -948,7 +954,7 @@ fu_synaptics_mst_device_update_panamera_set_new_valid_cb(FuDevice *device,
 		buf,
 		sizeof(buf),
 		error)) {
-		g_prefix_error(error, "failed to write tag: ");
+		g_prefix_error_literal(error, "failed to write tag: ");
 		return FALSE;
 	}
 	fu_device_sleep(FU_DEVICE(self), 1); /* ms */
@@ -959,7 +965,7 @@ fu_synaptics_mst_device_update_panamera_set_new_valid_cb(FuDevice *device,
 		buf_verify,
 		sizeof(buf_verify),
 		error)) {
-		g_prefix_error(error, "failed to read tag: ");
+		g_prefix_error_literal(error, "failed to read tag: ");
 		return FALSE;
 	}
 	if (memcmp(buf, buf_verify, sizeof(buf)) != 0) {
@@ -1004,7 +1010,7 @@ fu_synaptics_mst_device_update_panamera_set_old_invalid_cb(FuDevice *device,
 		&checksum_nul,
 		sizeof(checksum_nul),
 		error)) {
-		g_prefix_error(error, "failed to clear CRC: ");
+		g_prefix_error_literal(error, "failed to clear CRC: ");
 		return FALSE;
 	}
 	if (!fu_synaptics_mst_device_rc_get_command(
@@ -1014,7 +1020,7 @@ fu_synaptics_mst_device_update_panamera_set_old_invalid_cb(FuDevice *device,
 		&checksum_tmp,
 		sizeof(checksum_tmp),
 		error)) {
-		g_prefix_error(error, "failed to read CRC from flash: ");
+		g_prefix_error_literal(error, "failed to read CRC from flash: ");
 		return FALSE;
 	}
 	if (checksum_tmp != checksum_nul) {
@@ -1106,7 +1112,7 @@ fu_synaptics_mst_device_update_panamera_firmware(FuSynapticsMstDevice *self,
 		&checksum8,
 		sizeof(checksum8),
 		error)) {
-		g_prefix_error(error, "failed to read tag from flash: ");
+		g_prefix_error_literal(error, "failed to read tag from flash: ");
 		return FALSE;
 	}
 	helper->checksum = checksum8;
@@ -1133,7 +1139,7 @@ fu_synaptics_mst_device_panamera_prepare_write(FuSynapticsMstDevice *self, GErro
 						    (guint8 *)buf,
 						    4,
 						    error)) {
-		g_prefix_error(error, "ESM disable failed: ");
+		g_prefix_error_literal(error, "ESM disable failed: ");
 		return FALSE;
 	}
 
@@ -1147,7 +1153,7 @@ fu_synaptics_mst_device_panamera_prepare_write(FuSynapticsMstDevice *self, GErro
 						    (guint8 *)buf,
 						    ((sizeof(buf) / sizeof(buf[0])) * 4),
 						    error)) {
-		g_prefix_error(error, "quad query failed: ");
+		g_prefix_error_literal(error, "quad query failed: ");
 		return FALSE;
 	}
 
@@ -1158,7 +1164,7 @@ fu_synaptics_mst_device_panamera_prepare_write(FuSynapticsMstDevice *self, GErro
 						    (guint8 *)buf,
 						    4,
 						    error)) {
-		g_prefix_error(error, "quad disable failed: ");
+		g_prefix_error_literal(error, "quad disable failed: ");
 		return FALSE;
 	}
 
@@ -1169,7 +1175,7 @@ fu_synaptics_mst_device_panamera_prepare_write(FuSynapticsMstDevice *self, GErro
 						    (guint8 *)buf,
 						    4,
 						    error)) {
-		g_prefix_error(error, "HDCP query failed: ");
+		g_prefix_error_literal(error, "HDCP query failed: ");
 		return FALSE;
 	}
 
@@ -1180,7 +1186,7 @@ fu_synaptics_mst_device_panamera_prepare_write(FuSynapticsMstDevice *self, GErro
 						    (guint8 *)buf,
 						    4,
 						    error)) {
-		g_prefix_error(error, "HDCP disable failed: ");
+		g_prefix_error_literal(error, "HDCP disable failed: ");
 		return FALSE;
 	}
 
@@ -1250,7 +1256,7 @@ fu_synaptics_mst_device_update_firmware_cb(FuDevice *device, gpointer user_data,
 		buf,
 		sizeof(buf),
 		error)) {
-		g_prefix_error(error, "Failed to get flash checksum: ");
+		g_prefix_error_literal(error, "failed to get flash checksum: ");
 		return FALSE;
 	}
 	flash_checksum = fu_memread_uint32(buf, G_LITTLE_ENDIAN);
@@ -1291,10 +1297,10 @@ fu_synaptics_mst_device_update_firmware(FuSynapticsMstDevice *self,
 		fw_size = CARRERA_FIRMWARE_SIZE;
 		break;
 	default:
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "Unsupported chip family");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_SUPPORTED,
+				    "unsupported chip family");
 		return FALSE;
 	}
 
@@ -1322,7 +1328,7 @@ fu_synaptics_mst_device_update_firmware(FuSynapticsMstDevice *self,
 						    NULL,
 						    0,
 						    error)) {
-		g_prefix_error(error, "active firmware failed: ");
+		g_prefix_error_literal(error, "active firmware failed: ");
 		return FALSE;
 	}
 
@@ -1350,10 +1356,10 @@ fu_synaptics_mst_device_restart(FuSynapticsMstDevice *self, GError **error)
 		offset = 0x2020A024;
 		break;
 	default:
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "Unsupported chip family");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_SUPPORTED,
+				    "unsupported chip family");
 		return FALSE;
 	}
 	/* issue the reboot command, ignore return code (triggers before returning) */
@@ -1444,7 +1450,7 @@ fu_synaptics_mst_device_write_firmware(FuDevice *device,
 	/* enable remote control and disable on exit */
 	if (!fu_device_has_private_flag(device, FU_DEVICE_PRIVATE_FLAG_SKIPS_RESTART)) {
 		locker =
-		    fu_device_locker_new_full(self,
+		    fu_device_locker_new_full(device,
 					      (FuDeviceLockerFunc)fu_synaptics_mst_device_enable_rc,
 					      (FuDeviceLockerFunc)fu_synaptics_mst_device_restart,
 					      error);
@@ -1452,7 +1458,7 @@ fu_synaptics_mst_device_write_firmware(FuDevice *device,
 		fu_device_set_remove_delay(FU_DEVICE(self), 10000); /* a long time */
 	} else {
 		locker = fu_device_locker_new_full(
-		    self,
+		    device,
 		    (FuDeviceLockerFunc)fu_synaptics_mst_device_enable_rc,
 		    (FuDeviceLockerFunc)fu_synaptics_mst_device_disable_rc,
 		    error);
@@ -1468,21 +1474,21 @@ fu_synaptics_mst_device_write_firmware(FuDevice *device,
 									fw,
 									progress,
 									error)) {
-			g_prefix_error(error, "Firmware update failed: ");
+			g_prefix_error_literal(error, "firmware update failed: ");
 			return FALSE;
 		}
 		break;
 	case FU_SYNAPTICS_MST_FAMILY_PANAMERA:
 		if (!fu_synaptics_mst_device_panamera_prepare_write(self, error)) {
-			g_prefix_error(error, "Failed to prepare for write: ");
+			g_prefix_error_literal(error, "failed to prepare for write: ");
 			return FALSE;
 		}
 		if (!fu_synaptics_mst_device_update_esm(self, fw, progress, error)) {
-			g_prefix_error(error, "ESM update failed: ");
+			g_prefix_error_literal(error, "ESM update failed: ");
 			return FALSE;
 		}
 		if (!fu_synaptics_mst_device_update_panamera_firmware(self, fw, progress, error)) {
-			g_prefix_error(error, "Firmware update failed: ");
+			g_prefix_error_literal(error, "firmware update failed: ");
 			return FALSE;
 		}
 		break;
@@ -1490,15 +1496,15 @@ fu_synaptics_mst_device_write_firmware(FuDevice *device,
 	case FU_SYNAPTICS_MST_FAMILY_SPYDER:
 	case FU_SYNAPTICS_MST_FAMILY_CARRERA:
 		if (!fu_synaptics_mst_device_update_firmware(self, fw, progress, error)) {
-			g_prefix_error(error, "Firmware update failed: ");
+			g_prefix_error_literal(error, "firmware update failed: ");
 			return FALSE;
 		}
 		break;
 	default:
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "Unsupported chip family");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_SUPPORTED,
+				    "unsupported chip family");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -1567,7 +1573,7 @@ fu_synaptics_mst_device_ensure_board_id(FuSynapticsMstDevice *self, GError **err
 							    buf,
 							    sizeof(buf),
 							    error)) {
-			g_prefix_error(error, "RC command failed: ");
+			g_prefix_error_literal(error, "RC command failed: ");
 			return FALSE;
 		}
 		if (!fu_memread_uint16_safe(buf,
@@ -1592,10 +1598,10 @@ fu_synaptics_mst_device_ensure_board_id(FuSynapticsMstDevice *self, GError **err
 			offset = (gint)ADDR_MEMORY_CUSTOMER_ID_SPYDER;
 			break;
 		default:
-			g_set_error(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_NOT_SUPPORTED,
-				    "Unsupported chip family");
+			g_set_error_literal(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_NOT_SUPPORTED,
+					    "unsupported chip family");
 			return FALSE;
 		}
 
@@ -1606,7 +1612,7 @@ fu_synaptics_mst_device_ensure_board_id(FuSynapticsMstDevice *self, GError **err
 			buf,
 			sizeof(buf),
 			error)) {
-			g_prefix_error(error, "memory query failed: ");
+			g_prefix_error_literal(error, "memory query failed: ");
 			return FALSE;
 		}
 		if (!fu_memread_uint16_safe(buf,
@@ -1625,9 +1631,7 @@ static gboolean
 fu_synaptics_mst_device_setup(FuDevice *device, GError **error)
 {
 	FuSynapticsMstDevice *self = FU_SYNAPTICS_MST_DEVICE(device);
-	FuDevice *parent;
 	const gchar *name_family;
-	const gchar *name_parent = NULL;
 	guint8 buf_ver[3] = {0x0};
 	guint8 buf_cid[2] = {0x0};
 	guint8 rc_cap = 0x0;
@@ -1647,7 +1651,7 @@ fu_synaptics_mst_device_setup(FuDevice *device, GError **error)
 				  sizeof(rc_cap),
 				  FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 				  error)) {
-		g_prefix_error(error, "failed to read remote control capabilities: ");
+		g_prefix_error_literal(error, "failed to read remote control capabilities: ");
 		return FALSE;
 	}
 	if ((rc_cap & 0x04) == 0) {
@@ -1659,7 +1663,7 @@ fu_synaptics_mst_device_setup(FuDevice *device, GError **error)
 	}
 
 	/* enable remote control and disable on exit */
-	locker = fu_device_locker_new_full(self,
+	locker = fu_device_locker_new_full(device,
 					   (FuDeviceLockerFunc)fu_synaptics_mst_device_enable_rc,
 					   (FuDeviceLockerFunc)fu_synaptics_mst_device_disable_rc,
 					   &error_local);
@@ -1669,9 +1673,9 @@ fu_synaptics_mst_device_setup(FuDevice *device, GError **error)
 					    FWUPD_ERROR,
 					    FWUPD_ERROR_NOT_SUPPORTED,
 					    "downstream endpoint not supported");
-		} else {
-			g_propagate_error(error, g_steal_pointer(&error_local));
+			return FALSE;
 		}
+		g_propagate_error(error, g_steal_pointer(&error_local));
 		return FALSE;
 	}
 
@@ -1682,7 +1686,7 @@ fu_synaptics_mst_device_setup(FuDevice *device, GError **error)
 				  sizeof(buf_ver),
 				  FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 				  error)) {
-		g_prefix_error(error, "failed to read firmware version: ");
+		g_prefix_error_literal(error, "failed to read firmware version: ");
 		return FALSE;
 	}
 
@@ -1696,7 +1700,7 @@ fu_synaptics_mst_device_setup(FuDevice *device, GError **error)
 				  sizeof(buf_cid),
 				  FU_SYNAPTICS_MST_DEVICE_READ_TIMEOUT,
 				  error)) {
-		g_prefix_error(error, "failed to read chip id: ");
+		g_prefix_error_literal(error, "failed to read chip id: ");
 		return FALSE;
 	}
 	self->chip_id = fu_memread_uint16(buf_cid, G_BIG_ENDIAN);
@@ -1736,14 +1740,7 @@ fu_synaptics_mst_device_setup(FuDevice *device, GError **error)
 	if (!fu_synaptics_mst_device_ensure_board_id(self, error))
 		return FALSE;
 
-	parent = fu_device_get_parent(FU_DEVICE(self));
-	if (parent != NULL)
-		name_parent = fu_device_get_name(parent);
-	if (name_parent != NULL) {
-		name = g_strdup_printf("VMM%04x inside %s", self->chip_id, name_parent);
-	} else {
-		name = g_strdup_printf("VMM%04x", self->chip_id);
-	}
+	name = g_strdup_printf("VMM%04x", self->chip_id);
 	fu_device_set_name(FU_DEVICE(self), name);
 
 	/* set up the device name and kind via quirks */

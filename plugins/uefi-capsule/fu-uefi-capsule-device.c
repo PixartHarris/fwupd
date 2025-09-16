@@ -15,7 +15,7 @@
 
 typedef struct {
 	FuVolume *esp;
-	FuDeviceLocker *esp_locker;
+	FuVolumeLocker *esp_locker;
 	gchar *fw_class;
 	FuUefiCapsuleDeviceKind kind;
 	guint32 capsule_flags;
@@ -306,7 +306,7 @@ fu_uefi_capsule_device_clear_status(FuUefiCapsuleDevice *self, GError **error)
 		return FALSE;
 	st_inf = fu_struct_efi_update_info_parse(data, datasz, 0x0, error);
 	if (st_inf == NULL) {
-		g_prefix_error(error, "EFI variable is corrupt: ");
+		g_prefix_error_literal(error, "EFI variable is corrupt: ");
 		return FALSE;
 	}
 
@@ -321,7 +321,7 @@ fu_uefi_capsule_device_clear_status(FuUefiCapsuleDevice *self, GError **error)
 				 FU_EFIVARS_ATTR_NON_VOLATILE | FU_EFIVARS_ATTR_BOOTSERVICE_ACCESS |
 				     FU_EFIVARS_ATTR_RUNTIME_ACCESS,
 				 error)) {
-		g_prefix_error(error, "could not set EfiUpdateInfo: ");
+		g_prefix_error_literal(error, "could not set EfiUpdateInfo: ");
 		return FALSE;
 	}
 
@@ -375,7 +375,7 @@ fu_uefi_capsule_device_fixup_firmware(FuUefiCapsuleDevice *self, GBytes *fw, GEr
 	guid_new = fwupd_guid_to_string((fwupd_guid_t *)buf, FWUPD_GUID_FLAG_MIXED_ENDIAN);
 
 	/* ESRT header matches payload */
-	if (g_strcmp0(fu_uefi_capsule_device_get_guid(self), guid_new) == 0) {
+	if (g_strcmp0(priv->fw_class, guid_new) == 0) {
 		g_debug("ESRT matches payload GUID");
 		return g_bytes_ref(fw);
 	}
@@ -391,15 +391,15 @@ fu_uefi_capsule_device_fixup_firmware(FuUefiCapsuleDevice *self, GBytes *fw, GEr
 	fu_struct_efi_capsule_header_set_flags(st_cap, priv->capsule_flags);
 	fu_struct_efi_capsule_header_set_header_size(st_cap, hdrsize);
 	fu_struct_efi_capsule_header_set_image_size(st_cap, bufsz + hdrsize);
-	if (fu_uefi_capsule_device_get_guid(self) == NULL) {
+	if (priv->fw_class == NULL) {
 		g_set_error_literal(error, FWUPD_ERROR, FWUPD_ERROR_INTERNAL, "no GUID set");
 		return NULL;
 	}
-	if (!fwupd_guid_from_string(fu_uefi_capsule_device_get_guid(self),
+	if (!fwupd_guid_from_string(priv->fw_class,
 				    &esrt_guid,
 				    FWUPD_GUID_FLAG_MIXED_ENDIAN,
 				    error)) {
-		g_prefix_error(error, "Invalid ESRT GUID: ");
+		g_prefix_error_literal(error, "Invalid ESRT GUID: ");
 		return NULL;
 	}
 	fu_struct_efi_capsule_header_set_guid(st_cap, &esrt_guid);
@@ -424,12 +424,6 @@ fu_uefi_capsule_device_write_update_info(FuUefiCapsuleDevice *self,
 	g_autoptr(FuEfiDevicePathList) dp_buf = NULL;
 	g_autoptr(GBytes) dp_blob = NULL;
 	g_autoptr(GByteArray) st_inf = fu_struct_efi_update_info_new();
-
-	/* set the body as the device path */
-	if (g_getenv("FWUPD_UEFI_TEST") != NULL) {
-		g_debug("not building device path, in tests....");
-		return TRUE;
-	}
 
 	/* convert to EFI device path */
 	dp_buf = fu_uefi_capsule_device_build_dp_buf(priv->esp, capsule_path, error);
@@ -480,7 +474,7 @@ fu_uefi_capsule_device_check_asset(FuUefiCapsuleDevice *self, GError **error)
 
 	source_app = fu_uefi_get_built_app_path(efivars, "fwupd", error);
 	if (source_app == NULL && secureboot_enabled) {
-		g_prefix_error(error, "missing signed bootloader for secure boot: ");
+		g_prefix_error_literal(error, "missing signed bootloader for secure boot: ");
 		return FALSE;
 	}
 
@@ -497,7 +491,7 @@ fu_uefi_capsule_device_prepare(FuDevice *device,
 	FuUefiCapsuleDevicePrivate *priv = GET_PRIVATE(self);
 
 	/* mount if required */
-	priv->esp_locker = fu_volume_locker(priv->esp, error);
+	priv->esp_locker = fu_volume_locker_new(priv->esp, error);
 	if (priv->esp_locker == NULL)
 		return FALSE;
 
@@ -514,7 +508,7 @@ fu_uefi_capsule_device_cleanup(FuDevice *device,
 	FuUefiCapsuleDevicePrivate *priv = GET_PRIVATE(self);
 
 	/* unmount ESP if we opened it */
-	if (!fu_device_locker_close(priv->esp_locker, error))
+	if (!fu_volume_locker_close(priv->esp_locker, error))
 		return FALSE;
 	g_clear_object(&priv->esp_locker);
 
@@ -559,17 +553,9 @@ fu_uefi_capsule_device_probe(FuDevice *device, GError **error)
 		fu_device_set_version_lowest(device, version_lowest);
 	}
 
-	/* set flags */
-	fu_device_add_flag(device, FWUPD_DEVICE_FLAG_INTERNAL);
-	fu_device_add_flag(device, FWUPD_DEVICE_FLAG_NEEDS_REBOOT);
-	fu_device_add_flag(device, FWUPD_DEVICE_FLAG_REQUIRE_AC);
-	fu_device_add_private_flag(device, FU_DEVICE_PRIVATE_FLAG_MD_SET_VERFMT);
-	fu_device_add_private_flag(device, FU_DEVICE_PRIVATE_FLAG_MD_SET_ICON);
-	fu_device_add_private_flag(device, FU_DEVICE_PRIVATE_FLAG_MD_SET_VENDOR);
-
 	/* add icons */
 	if (priv->kind == FU_UEFI_CAPSULE_DEVICE_KIND_SYSTEM_FIRMWARE) {
-		fu_device_add_icon(device, "computer");
+		fu_device_add_icon(device, FU_DEVICE_ICON_COMPUTER);
 		fu_device_add_private_flag(device, FU_DEVICE_PRIVATE_FLAG_HOST_FIRMWARE);
 	}
 
@@ -632,7 +618,7 @@ fu_uefi_capsule_device_perhaps_enable_debugging(FuUefiCapsuleDevice *self, GErro
 					     FU_EFIVARS_ATTR_BOOTSERVICE_ACCESS |
 					     FU_EFIVARS_ATTR_RUNTIME_ACCESS,
 					 error)) {
-			g_prefix_error(error, "failed to enable debugging: ");
+			g_prefix_error_literal(error, "failed to enable debugging: ");
 			return FALSE;
 		}
 		return TRUE;
@@ -771,6 +757,12 @@ static void
 fu_uefi_capsule_device_init(FuUefiCapsuleDevice *self)
 {
 	fu_device_add_protocol(FU_DEVICE(self), "org.uefi.capsule");
+	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_INTERNAL);
+	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_NEEDS_REBOOT);
+	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_REQUIRE_AC);
+	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_MD_SET_VERFMT);
+	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_MD_SET_ICON);
+	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_MD_SET_VENDOR);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_MD_SET_SIGNED);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_MD_SET_FLAGS);
 	fu_device_register_private_flag(FU_DEVICE(self), FU_UEFI_CAPSULE_DEVICE_FLAG_NO_UX_CAPSULE);

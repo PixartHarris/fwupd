@@ -43,8 +43,10 @@ plugins = {
   'dell': false,
   'dell-dock': false,
   'dell-kestrel': false,
+  'devlink': false,
   'dfu': false,
   'ebitdo': false,
+  'egis-moc': false,
   'elantp': false,
   'elanfp': false,
   'elan-kbd': false,
@@ -54,16 +56,17 @@ plugins = {
   'flashrom': false,
   'focalfp': false,
   'fpc': false,
+  'framework-qmk': false,
   'fresco-pd': false,
   'genesys': false,
   'genesys-gl32xx': false,
   'goodix-moc': false,
   'goodix-tp': false,
   'gpio': false,
-  'hailuck': false,
   'hpi-cfu': false,
   'huddly-usb': false,
   'hughski-colorhug': false,
+  'ilitek-its': false,
   'intel-amt': false,
   'intel-cvs': false,
   'intel-gsc': false,
@@ -108,7 +111,6 @@ plugins = {
   'realtek-mst': false,
   'redfish': false,
   'rp-pico': false,
-  'rts54hid': false,
   'rts54hub': false,
   'steelseries': false,
   'scsi': false,
@@ -120,7 +122,7 @@ plugins = {
   'synaptics-vmm9': false,
   'system76-launch': false,
   'test': false,
-  'telink-dfu':false,
+  'telink-dfu': false,
   'thelio-io': false,
   'thunderbolt': false,
   'ti-tps6598x': false,
@@ -147,7 +149,7 @@ umockdev_tests = []
 umockdev_ioctls = []
 device_tests = []
 enumeration_data = []
-foreach plugin, enabled: plugins
+foreach plugin, enabled : plugins
   subdir(plugin)
 endforeach
 
@@ -161,19 +163,31 @@ if umockdev_integration_tests.allowed()
   envs.set('PYTHONPATH', join_paths(meson.project_source_root(), 'data', 'tests'))
   envs.set('STATE_DIRECTORY', join_paths(meson.project_build_root(), 'state'))
 
-  foreach suite: umockdev_tests
-    r = run_command(unittest_inspector, suite,
-                    check: true, env: envs)
+  foreach suite : umockdev_tests
+    r = run_command(
+      unittest_inspector,
+      suite,
+      check: true,
+      env: envs,
+    )
     unit_tests = r.stdout().strip().split('\n')
-    foreach ut: unit_tests
-        test(ut, python3, args: [suite, ut], is_parallel: false, env: envs)
+    foreach ut : unit_tests
+      test(
+        ut,
+        python3,
+        args: [suite, ut],
+        is_parallel: false,
+        env: envs,
+      )
     endforeach
-    install_data(suite,
+    install_data(
+      suite,
       install_dir: installed_test_datadir,
     )
   endforeach
-  foreach ioctl: umockdev_ioctls
-    install_data(ioctl,
+  foreach ioctl : umockdev_ioctls
+    install_data(
+      ioctl,
       install_dir: installed_test_datadir,
     )
   endforeach

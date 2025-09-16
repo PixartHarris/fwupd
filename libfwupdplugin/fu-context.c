@@ -21,7 +21,7 @@
 #include "fu-hwids-private.h"
 #include "fu-path.h"
 #include "fu-pefile-firmware.h"
-#include "fu-smbios-private.h"
+#include "fu-volume-locker.h"
 #include "fu-volume-private.h"
 
 /**
@@ -136,7 +136,7 @@ fu_context_get_fdt(FuContext *self, GError **error)
 					    file,
 					    FU_FIRMWARE_PARSE_FLAG_NO_SEARCH,
 					    error)) {
-			g_prefix_error(error, "failed to parse FDT: ");
+			g_prefix_error_literal(error, "failed to parse FDT: ");
 			return NULL;
 		}
 		priv->fdt = g_steal_pointer(&fdt_tmp);
@@ -162,6 +162,48 @@ fu_context_get_efivars(FuContext *self)
 	FuContextPrivate *priv = GET_PRIVATE(self);
 	g_return_val_if_fail(FU_IS_CONTEXT(self), NULL);
 	return priv->efivars;
+}
+
+/**
+ * fu_context_efivars_check_free_space:
+ * @self: a #FuContext
+ * @count: size in bytes
+ * @error: (nullable): optional return location for an error
+ *
+ * Checks for a given amount of free space in the EFI NVRAM variable store.
+ *
+ * Returns: %TRUE for success
+ *
+ * Since: 2.0.12
+ **/
+gboolean
+fu_context_efivars_check_free_space(FuContext *self, gsize count, GError **error)
+{
+	FuContextPrivate *priv = GET_PRIVATE(self);
+	guint64 total;
+
+	g_return_val_if_fail(FU_IS_CONTEXT(self), FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* escape hatch */
+	if (fu_context_has_flag(self, FU_CONTEXT_FLAG_IGNORE_EFIVARS_FREE_SPACE))
+		return TRUE;
+
+	total = fu_efivars_space_free(priv->efivars, error);
+	if (total == G_MAXUINT64)
+		return FALSE;
+	if (total < count) {
+		g_autofree gchar *countstr = g_format_size(count);
+		g_autofree gchar *totalstr = g_format_size(total);
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_BROKEN_SYSTEM,
+			    "Not enough efivarfs space, requested %s and got %s",
+			    countstr,
+			    totalstr);
+		return FALSE;
+	}
+	return TRUE;
 }
 
 /**
@@ -1057,8 +1099,14 @@ fu_context_hwid_quirk_cb(FuContext *self,
 	FuContextPrivate *priv = GET_PRIVATE(self);
 	if (value != NULL) {
 		g_auto(GStrv) values = g_strsplit(value, ",", -1);
-		for (guint j = 0; values[j] != NULL; j++)
-			g_hash_table_add(priv->hwid_flags, g_strdup(values[j]));
+		for (guint i = 0; values[i] != NULL; i++) {
+			const gchar *value_tmp = values[i];
+			if (g_str_has_prefix(value, "~")) {
+				g_hash_table_remove(priv->hwid_flags, value_tmp + 1);
+				continue;
+			}
+			g_hash_table_add(priv->hwid_flags, g_strdup(value_tmp));
+		}
 	}
 }
 
@@ -1082,6 +1130,7 @@ fu_context_load_hwinfo(FuContext *self,
 		       GError **error)
 {
 	FuContextPrivate *priv = GET_PRIVATE(self);
+	FuConfigLoadFlags config_load_flags = FU_CONFIG_LOAD_FLAG_NONE;
 	GPtrArray *guids;
 	g_autoptr(GError) error_hwids = NULL;
 	g_autoptr(GError) error_bios_settings = NULL;
@@ -1109,7 +1158,11 @@ fu_context_load_hwinfo(FuContext *self,
 	fu_progress_add_step(progress, FWUPD_STATUS_LOADING, 94, "reload-bios-settings");
 
 	/* required always */
-	if (!fu_config_load(priv->config, error))
+	if (flags & FU_CONTEXT_HWID_FLAG_WATCH_FILES)
+		config_load_flags |= FU_CONFIG_LOAD_FLAG_WATCH_FILES;
+	if (flags & FU_CONTEXT_HWID_FLAG_FIX_PERMISSIONS)
+		config_load_flags |= FU_CONFIG_LOAD_FLAG_FIX_PERMISSIONS;
+	if (!fu_config_load(priv->config, config_load_flags, error))
 		return FALSE;
 
 	/* run all the HWID setup funcs */
@@ -1236,16 +1289,6 @@ fu_context_set_power_state(FuContext *self, FuPowerState power_state)
 {
 	FuContextPrivate *priv = GET_PRIVATE(self);
 	g_return_if_fail(FU_IS_CONTEXT(self));
-
-	/* quirk for behavior on Framework systems where the EC reports as discharging
-	 * while on AC but at 100% */
-	if (power_state == FU_POWER_STATE_BATTERY_DISCHARGING && priv->battery_level == 100 &&
-	    fu_context_has_hwid_flag(self, "discharging-when-fully-changed")) {
-		power_state = FU_POWER_STATE_AC_FULLY_CHARGED;
-		g_debug("quirking power state to %s", fu_power_state_to_string(power_state));
-	}
-
-	/* is the same */
 	if (priv->power_state == power_state)
 		return;
 	priv->power_state = power_state;
@@ -1737,11 +1780,11 @@ fu_context_get_default_esp(FuContext *self, GError **error)
 			FuVolume *esp = g_ptr_array_index(esp_volumes, i);
 			guint score = 0;
 			g_autofree gchar *kind = NULL;
-			g_autoptr(FuDeviceLocker) locker = NULL;
+			g_autoptr(FuVolumeLocker) locker = NULL;
 			g_autoptr(GError) error_local = NULL;
 
 			/* ignore the volume completely if we cannot mount it */
-			locker = fu_volume_locker(esp, &error_local);
+			locker = fu_volume_locker_new(esp, &error_local);
 			if (locker == NULL) {
 				g_warning("failed to mount ESP: %s", error_local->message);
 				continue;
@@ -1781,10 +1824,10 @@ fu_context_get_default_esp(FuContext *self, GError **error)
 		}
 
 		if (g_hash_table_size(esp_scores) == 0) {
-			g_set_error(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_NOT_SUPPORTED,
-				    "no EFI system partition found");
+			g_set_error_literal(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_NOT_SUPPORTED,
+					    "no EFI system partition found");
 			return NULL;
 		}
 
@@ -1799,10 +1842,10 @@ fu_context_get_default_esp(FuContext *self, GError **error)
 
 	if (esp_volumes->len == 1) {
 		FuVolume *esp = g_ptr_array_index(esp_volumes, 0);
-		g_autoptr(FuDeviceLocker) locker = NULL;
+		g_autoptr(FuVolumeLocker) locker = NULL;
 
 		/* ensure it can be mounted */
-		locker = fu_volume_locker(esp, error);
+		locker = fu_volume_locker_new(esp, error);
 		if (locker == NULL)
 			return NULL;
 
@@ -1867,7 +1910,7 @@ fu_context_get_esp_volume_by_hard_drive_device_path(FuContext *self,
 	}
 
 	/* failed */
-	g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_NOT_FOUND, "could not find EFI DP");
+	g_set_error_literal(error, FWUPD_ERROR, FWUPD_ERROR_NOT_FOUND, "could not find EFI DP");
 	return NULL;
 }
 
@@ -1920,7 +1963,7 @@ fu_context_get_esp_files_for_entry(FuContext *self,
 	g_autofree gchar *filename = NULL;
 	g_autofree gchar *mount_point = NULL;
 	g_autofree gchar *shim_name = fu_context_build_uefi_basename_for_arch("shim");
-	g_autoptr(FuDeviceLocker) volume_locker = NULL;
+	g_autoptr(FuVolumeLocker) volume_locker = NULL;
 	g_autoptr(FuEfiFilePathDevicePath) dp_path = NULL;
 	g_autoptr(FuEfiHardDriveDevicePath) dp_hdd = NULL;
 	g_autoptr(FuFirmware) dp_list = NULL;
@@ -1959,7 +2002,7 @@ fu_context_get_esp_files_for_entry(FuContext *self,
 				    "cannot mount volume by policy");
 		return FALSE;
 	}
-	volume_locker = fu_volume_locker(volume, error);
+	volume_locker = fu_volume_locker_new(volume, error);
 	if (volume_locker == NULL)
 		return FALSE;
 	dp_filename = fu_efi_file_path_device_path_get_name(dp_path, error);

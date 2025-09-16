@@ -1,4 +1,6 @@
-if gnutls.found() and host_machine.system() == 'linux'
+host_machine.system() == 'linux' or subdir_done()
+gnutls.found() or subdir_done()
+
 cargs = ['-DG_LOG_DOMAIN="FuPluginSynapticsRmi"']
 plugins += {meson.current_source_dir().split('/')[-1]: true}
 
@@ -44,11 +46,11 @@ if get_option('tests')
     ],
     install: true,
     install_rpath: libdir_pkg,
+    install_tag: 'tests',
     install_dir: installed_test_bindir,
     c_args: [
       '-DSRCDIR="' + meson.current_source_dir() + '"',
     ],
   )
   test('synaptics-rmi-self-test', e, env: env)
-endif
 endif

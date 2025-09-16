@@ -1,3 +1,5 @@
+allow_uefi or subdir_done()
+
 cargs = ['-DG_LOG_DOMAIN="FuPluginUefiDbx"']
 plugins += {meson.current_source_dir().split('/')[-1]: true}
 
@@ -44,6 +46,7 @@ if get_option('tests')
     ],
     install: true,
     install_rpath: libdir_pkg,
+    install_tag: 'tests',
     install_dir: installed_test_bindir,
     c_args: [
       cargs,
@@ -79,6 +82,7 @@ if get_option('man')
       '--replace', 'PACKAGE_VERSION', fwupd_version,
     ],
     install: true,
+    install_tag: 'man',
     install_dir: join_paths(mandir, 'man1'),
   )
 endif

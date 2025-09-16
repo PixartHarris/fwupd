@@ -138,6 +138,8 @@ class EnumItem:
     @property
     def c_define(self) -> str:
         name_snake = _camel_to_snake(self.obj.name)
+        if name_snake.endswith("flags"):
+            name_snake = name_snake[:-1]
         return f"{name_snake.upper()}_{_camel_to_snake(self.name).replace('-', '_').upper()}"
 
     def parse_default(self, val: str) -> None:
@@ -225,11 +227,7 @@ class StructObj:
             self.add_private_export("Validate")
         elif derive == "ValidateInternal":
             for item in self.items:
-                if (
-                    item.constant
-                    and item.type != Type.STRING
-                    and not (item.type == Type.U8 and item.n_elements)
-                ):
+                if item.constant and not (item.type == Type.U8 and item.n_elements):
                     item.add_private_export("Getters")
                 if item.struct_obj:
                     item.struct_obj.add_private_export("ValidateInternal")
@@ -459,11 +457,23 @@ class StructItem:
                 val_hex += f"\\x{value:x}"
             return val_hex
         if self.type == Type.U8 and self.n_elements:
+            val_hex = ""
+            if val.startswith("[") and val.endswith("]"):
+                value, n_elements = val[1:-1].split(";", maxsplit=1)
+                if not value.startswith("0x"):
+                    raise ValueError(f"0x prefix for hex number expected, got: {val}")
+                if self.size != int(n_elements):
+                    raise ValueError(
+                        f"data has to be {self.size} bytes exactly. Is {n_elements}"
+                    )
+                for _ in range(int(n_elements)):
+                    val_hex += f"\\x{value[2:]}"
+                return val_hex
+
             if not val.startswith("0x"):
                 raise ValueError(f"0x prefix for hex number expected, got: {val}")
             if len(val) != (self.size * 2) + 2:
                 raise ValueError(f"data has to be {self.size} bytes exactly")
-            val_hex = ""
             for idx in range(2, len(val), 2):
                 val_hex += f"\\x{val[idx:idx+2]}"
             return val_hex
@@ -481,14 +491,6 @@ class StructItem:
         raise ValueError(f"do not know how to parse value for type: {self.type}")
 
     def parse_default(self, val: str) -> None:
-        if (
-            self.type == Type.U8
-            and self.n_elements
-            and val.startswith("0x")
-            and len(val) == 4
-        ):
-            self.padding = val
-            return
         self.default = self._parse_default(val)
 
     def parse_constant(self, val: str) -> None:

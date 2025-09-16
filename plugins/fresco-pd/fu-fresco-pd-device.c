@@ -53,7 +53,7 @@ fu_fresco_pd_device_transfer_read(FuFrescoPdDevice *self,
 					    NULL,
 					    error)) {
 		g_prefix_error(error, "failed to read from offset 0x%x: ", offset);
-		fu_error_convert(error);
+		fwupd_error_convert(error);
 		return FALSE;
 	}
 	if (bufsz != actual_length) {
@@ -280,15 +280,15 @@ fu_fresco_pd_device_write_firmware(FuDevice *device,
 	 * 0x6C04 = 0x08 */
 	g_debug("disable MCU, and enable mtp write");
 	if (!fu_fresco_pd_device_and_byte(self, 0xa001, ~(1 << 2), error)) {
-		g_prefix_error(error, "failed to disable MCU bit 2: ");
+		g_prefix_error_literal(error, "failed to disable MCU bit 2: ");
 		return FALSE;
 	}
 	if (!fu_fresco_pd_device_and_byte(self, 0x6c00, ~(1 << 1), error)) {
-		g_prefix_error(error, "failed to disable MCU bit 1: ");
+		g_prefix_error_literal(error, "failed to disable MCU bit 1: ");
 		return FALSE;
 	}
 	if (!fu_fresco_pd_device_write_byte(self, 0x6c04, 0x08, error)) {
-		g_prefix_error(error, "failed to disable MCU: ");
+		g_prefix_error_literal(error, "failed to disable MCU: ");
 		return FALSE;
 	}
 
@@ -416,7 +416,7 @@ fu_fresco_pd_device_set_progress(FuDevice *self, FuProgress *progress)
 static void
 fu_fresco_pd_device_init(FuFrescoPdDevice *self)
 {
-	fu_device_add_icon(FU_DEVICE(self), "usb-hub");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_USB_HUB);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UNSIGNED_PAYLOAD);
 	fu_device_add_protocol(FU_DEVICE(self), "com.frescologic.pd");

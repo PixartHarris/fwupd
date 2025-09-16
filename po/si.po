@@ -34,7 +34,7 @@ msgid "%s Battery Update"
 msgstr "%s බැටරි යාවත්කාලීන කිරීම"
 
 #. TRANSLATORS: the CPU microcode is firmware loaded onto the CPU
-#. * at system bootup
+#. * at system boot-up
 #, c-format
 msgid "%s CPU Microcode Update"
 msgstr "%s CPU මයික්‍රොකෝඩ් යාවත්කාලීන කිරීම"
@@ -857,10 +857,6 @@ msgid "FILENAME CERTIFICATE PRIVATE-KEY"
 msgstr "ගොනු නාම සහතිකය පුද්ගලික යතුර"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
-msgid "FILENAME DEVICE-ID"
-msgstr "FILENAME උපාංගය-ID"
-
-#. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME OFFSET DATA [FIRMWARE-TYPE]"
 msgstr "FILENAME OFFSET දත්ත [FIRMWARE-TYPE]"
 
@@ -1048,10 +1044,6 @@ msgstr "අනුමත ස්ථිරාංග ලැයිස්තුව ල
 #. TRANSLATORS: command description
 msgid "Gets the list of blocked firmware"
 msgstr "අවහිර කළ ස්ථිරාංග ලැයිස්තුව ලබා ගනී"
-
-#. TRANSLATORS: command description
-msgid "Gets the list of updates for connected hardware"
-msgstr "සම්බන්ධිත දෘඩාංග සඳහා යාවත්කාලීන ලැයිස්තුව ලබා ගනී"
 
 #. TRANSLATORS: command description
 msgid "Gets the releases for a device"
@@ -1418,10 +1410,6 @@ msgstr "තනි PCR අගය පමණක් පෙන්වන්න"
 #. * be downgraded or reinstalled with the existing version
 msgid "Only version upgrades are allowed"
 msgstr "අනුවාද උත්ශ්‍රේණි කිරීමට පමණක් අවසර ඇත"
-
-#. TRANSLATORS: command line option
-msgid "Output in JSON format"
-msgstr "JSON ආකෘතියෙන් ප්‍රතිදානය"
 
 #. TRANSLATORS: command line option
 msgid "Override the default ESP path"
@@ -1792,11 +1780,6 @@ msgstr "සියලුම උපාංග සාර්ථකව සක්‍ර
 #. TRANSLATORS: success message
 msgid "Successfully disabled remote"
 msgstr "දුරස්ථ පාලකය සාර්ථකව අබල කරන ලදී"
-
-#. TRANSLATORS: success message -- where 'metadata' is information
-#. * about available firmware on the remote server
-msgid "Successfully downloaded new metadata: "
-msgstr "නව පාරදත්ත සාර්ථකව බාගන්නා ලදී: "
 
 #. TRANSLATORS: success message
 msgid "Successfully enabled and refreshed remote"

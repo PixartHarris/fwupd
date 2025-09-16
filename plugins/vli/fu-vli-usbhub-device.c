@@ -17,6 +17,11 @@
 #include "fu-vli-usbhub-pd-device.h"
 #include "fu-vli-usbhub-rtd21xx-device.h"
 
+/*
+ * NOTE: DO NOT ALLOW ANY MORE MAGIC CONSTANTS IN THIS FILE
+ * nocheck:magic-inlines=111
+ */
+
 struct _FuVliUsbhubDevice {
 	FuVliDevice parent_instance;
 	gboolean disable_powersave;
@@ -76,7 +81,7 @@ fu_vli_usbhub_device_vdr_unlock_813(FuVliUsbhubDevice *self, GError **error)
 					    FU_VLI_DEVICE_TIMEOUT,
 					    NULL,
 					    error)) {
-		g_prefix_error(error, "failed to UnLock_VL813: ");
+		g_prefix_error_literal(error, "failed to UnLock_VL813: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -234,7 +239,7 @@ fu_vli_usbhub_device_spi_write_enable(FuVliDevice *self, GError **error)
 					    FU_VLI_DEVICE_TIMEOUT,
 					    NULL,
 					    error)) {
-		g_prefix_error(error, "failed to write enable SPI: ");
+		g_prefix_error_literal(error, "failed to write enable SPI: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -484,42 +489,42 @@ fu_vli_usbhub_device_guess_kind(FuVliUsbhubDevice *self, GError **error)
 	gint tPid = fu_device_get_pid(FU_DEVICE(self)) & 0x0fff;
 
 	if (!fu_vli_usbhub_device_read_reg(self, 0xf88c, &chipver, error)) {
-		g_prefix_error(error, "Read_ChipVer failed: ");
+		g_prefix_error_literal(error, "Read_ChipVer failed: ");
 		return FALSE;
 	}
 	g_debug("chipver = 0x%02x", chipver);
 	if (!fu_vli_usbhub_device_read_reg(self, 0xf63f, &chipver2, error)) {
-		g_prefix_error(error, "Read_ChipVer2 failed: ");
+		g_prefix_error_literal(error, "Read_ChipVer2 failed: ");
 		return FALSE;
 	}
 	g_debug("chipver2 = 0x%02x", chipver2);
 	if (!fu_vli_usbhub_device_read_reg(self, 0xf800, &b811P812, error)) {
-		g_prefix_error(error, "Read_811P812 failed: ");
+		g_prefix_error_literal(error, "Read_811P812 failed: ");
 		return FALSE;
 	}
 	g_debug("b811P812 = 0x%02x", b811P812);
 	if (!fu_vli_usbhub_device_read_reg(self, 0xf88e, &chipid1, error)) {
-		g_prefix_error(error, "Read_ChipID1 failed: ");
+		g_prefix_error_literal(error, "Read_ChipID1 failed: ");
 		return FALSE;
 	}
 	g_debug("chipid1 = 0x%02x", chipid1);
 	if (!fu_vli_usbhub_device_read_reg(self, 0xf88f, &chipid2, error)) {
-		g_prefix_error(error, "Read_ChipID2 failed: ");
+		g_prefix_error_literal(error, "Read_ChipID2 failed: ");
 		return FALSE;
 	}
 	g_debug("chipid2 = 0x%02x", chipid2);
 	if (!fu_vli_usbhub_device_read_reg(self, 0xf64e, &chipid12, error)) {
-		g_prefix_error(error, "Read_ChipID12 failed: ");
+		g_prefix_error_literal(error, "Read_ChipID12 failed: ");
 		return FALSE;
 	}
 	g_debug("chipid12 = 0x%02x", chipid12);
 	if (!fu_vli_usbhub_device_read_reg(self, 0xf64f, &chipid22, error)) {
-		g_prefix_error(error, "Read_ChipID22 failed: ");
+		g_prefix_error_literal(error, "Read_ChipID22 failed: ");
 		return FALSE;
 	}
 	g_debug("chipid22 = 0x%02x", chipid22);
 	if (!fu_vli_usbhub_device_read_reg(self, 0xf651, &pkgtype, error)) {
-		g_prefix_error(error, "Read_820Q7Q8 failed: ");
+		g_prefix_error_literal(error, "Read_820Q7Q8 failed: ");
 		return FALSE;
 	}
 	g_debug("pkgtype = 0x%02x", pkgtype);
@@ -566,10 +571,10 @@ fu_vli_usbhub_device_guess_kind(FuVliUsbhubDevice *self, GError **error)
 						       FU_VLI_DEVICE_KIND_VL819Q8);
 				break;
 			default:
-				g_set_error(error,
-					    FWUPD_ERROR,
-					    FWUPD_ERROR_NOT_SUPPORTED,
-					    "packet Type match failed: ");
+				g_set_error_literal(error,
+						    FWUPD_ERROR,
+						    FWUPD_ERROR_NOT_SUPPORTED,
+						    "packet Type match failed: ");
 				return FALSE;
 			}
 		} else {
@@ -592,10 +597,10 @@ fu_vli_usbhub_device_guess_kind(FuVliUsbhubDevice *self, GError **error)
 		if (chipver == 0xC0 || chipver == 0xC1)
 			fu_vli_device_set_kind(FU_VLI_DEVICE(self), FU_VLI_DEVICE_KIND_VL822C0);
 		else {
-			g_set_error(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_NOT_SUPPORTED,
-				    "not supported 99 type");
+			g_set_error_literal(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_NOT_SUPPORTED,
+					    "not supported 99 type");
 			return FALSE;
 		}
 	} else if (chipid2 == 0x35 && chipid1 == 0x66) {
@@ -626,10 +631,10 @@ fu_vli_usbhub_device_guess_kind(FuVliUsbhubDevice *self, GError **error)
 		else
 			fu_vli_device_set_kind(FU_VLI_DEVICE(self), FU_VLI_DEVICE_KIND_VL812B3);
 	} else {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "hardware is not supported");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_SUPPORTED,
+				    "hardware is not supported");
 		return FALSE;
 	}
 
@@ -760,7 +765,7 @@ fu_vli_usbhub_device_ready(FuDevice *device, GError **error)
 						  self->st_hd1->data,
 						  self->st_hd1->len,
 						  error)) {
-			g_prefix_error(error, "813 unlock fail: ");
+			g_prefix_error_literal(error, "813 unlock fail: ");
 			return FALSE;
 		}
 		g_debug("813 unlock OK");
@@ -777,7 +782,7 @@ fu_vli_usbhub_device_ready(FuDevice *device, GError **error)
 					  self->st_hd1->data,
 					  self->st_hd1->len,
 					  error)) {
-		g_prefix_error(error, "failed to read HD1 header: ");
+		g_prefix_error_literal(error, "failed to read HD1 header: ");
 		return FALSE;
 	}
 
@@ -831,7 +836,7 @@ fu_vli_usbhub_device_ready(FuDevice *device, GError **error)
 						  self->st_hd2->data,
 						  self->st_hd2->len,
 						  error)) {
-			g_prefix_error(error, "failed to read HD2 header: ");
+			g_prefix_error_literal(error, "failed to read HD2 header: ");
 			return FALSE;
 		}
 	}
@@ -923,7 +928,7 @@ fu_vli_usbhub_device_update_v1(FuVliUsbhubDevice *self,
 	if (!fu_vli_device_spi_erase_all(FU_VLI_DEVICE(self),
 					 fu_progress_get_child(progress),
 					 error)) {
-		g_prefix_error(error, "failed to erase chip: ");
+		g_prefix_error_literal(error, "failed to erase chip: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -1063,7 +1068,7 @@ fu_vli_usbhub_device_update_v2(FuVliUsbhubDevice *self,
 			if (!fu_vli_device_spi_erase_sector(FU_VLI_DEVICE(self),
 							    VLI_USBHUB_FLASHMAP_ADDR_HD2,
 							    error)) {
-				g_prefix_error(error, "failed to erase sector at header 1: ");
+				g_prefix_error_literal(error, "failed to erase sector at hdr 1: ");
 				return FALSE;
 			}
 			if (!fu_vli_device_spi_write_block(FU_VLI_DEVICE(self),
@@ -1072,14 +1077,14 @@ fu_vli_usbhub_device_update_v2(FuVliUsbhubDevice *self,
 							   self->st_hd1->len,
 							   progress,
 							   error)) {
-				g_prefix_error(error, "failed to write block at header 1: ");
+				g_prefix_error_literal(error, "failed to write block at hdr 1: ");
 				return FALSE;
 			}
 			if (!fu_vli_usbhub_device_hd1_recover(self,
 							      self->st_hd1,
 							      progress,
 							      error)) {
-				g_prefix_error(error, "failed to write header: ");
+				g_prefix_error_literal(error, "failed to write header: ");
 				return FALSE;
 			}
 		}
@@ -1102,7 +1107,7 @@ fu_vli_usbhub_device_update_v2(FuVliUsbhubDevice *self,
 			return fu_vli_usbhub_device_update_v2_recovery(self, fw, progress, error);
 		}
 		if (!fu_vli_usbhub_device_hd1_recover(self, self->st_hd1, progress, error)) {
-			g_prefix_error(error, "failed to get root header in backup zone: ");
+			g_prefix_error_literal(error, "failed to get root hdr in backup zone: ");
 			return FALSE;
 		}
 	}
@@ -1159,7 +1164,7 @@ fu_vli_usbhub_device_update_v2(FuVliUsbhubDevice *self,
 				     hd2_fw_sz,
 				     fu_progress_get_child(progress),
 				     error)) {
-		g_prefix_error(error, "failed to write payload: ");
+		g_prefix_error_literal(error, "failed to write payload: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -1173,7 +1178,7 @@ fu_vli_usbhub_device_update_v2(FuVliUsbhubDevice *self,
 	if (!fu_vli_device_spi_erase_sector(FU_VLI_DEVICE(self),
 					    VLI_USBHUB_FLASHMAP_ADDR_HD2,
 					    error)) {
-		g_prefix_error(error, "failed to erase sectors for HD2: ");
+		g_prefix_error_literal(error, "failed to erase sectors for HD2: ");
 		return FALSE;
 	}
 	if (!fu_vli_device_spi_write_block(FU_VLI_DEVICE(self),
@@ -1182,7 +1187,7 @@ fu_vli_usbhub_device_update_v2(FuVliUsbhubDevice *self,
 					   st_hd->len,
 					   fu_progress_get_child(progress),
 					   error)) {
-		g_prefix_error(error, "failed to write HD2: ");
+		g_prefix_error_literal(error, "failed to write HD2: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -1221,7 +1226,7 @@ fu_vli_usbhub_device_update_v3(FuVliUsbhubDevice *self,
 			if (!fu_vli_device_spi_erase_sector(FU_VLI_DEVICE(self),
 							    VLI_USBHUB_FLASHMAP_ADDR_HD2,
 							    error)) {
-				g_prefix_error(error, "failed to erase sector at header 1: ");
+				g_prefix_error_literal(error, "failed to erase sector at hdr 1: ");
 				return FALSE;
 			}
 			if (!fu_vli_device_spi_write_block(FU_VLI_DEVICE(self),
@@ -1230,14 +1235,14 @@ fu_vli_usbhub_device_update_v3(FuVliUsbhubDevice *self,
 							   self->st_hd1->len,
 							   progress,
 							   error)) {
-				g_prefix_error(error, "failed to write block at header 1: ");
+				g_prefix_error_literal(error, "failed to write block at hdr 1: ");
 				return FALSE;
 			}
 			if (!fu_vli_usbhub_device_hd1_recover(self,
 							      self->st_hd1,
 							      progress,
 							      error)) {
-				g_prefix_error(error, "failed to write header: ");
+				g_prefix_error_literal(error, "failed to write header: ");
 				return FALSE;
 			}
 		}
@@ -1260,7 +1265,7 @@ fu_vli_usbhub_device_update_v3(FuVliUsbhubDevice *self,
 			return fu_vli_usbhub_device_update_v2_recovery(self, fw, progress, error);
 		}
 		if (!fu_vli_usbhub_device_hd1_recover(self, self->st_hd1, progress, error)) {
-			g_prefix_error(error, "failed to get root header in backup zone: ");
+			g_prefix_error_literal(error, "failed to get root hdr in backup zone: ");
 			return FALSE;
 		}
 	}
@@ -1312,7 +1317,7 @@ fu_vli_usbhub_device_update_v3(FuVliUsbhubDevice *self,
 				     hd2_fw_sz,
 				     fu_progress_get_child(progress),
 				     error)) {
-		g_prefix_error(error, "failed to write payload: ");
+		g_prefix_error_literal(error, "failed to write payload: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -1326,7 +1331,7 @@ fu_vli_usbhub_device_update_v3(FuVliUsbhubDevice *self,
 	if (!fu_vli_device_spi_erase_sector(FU_VLI_DEVICE(self),
 					    VLI_USBHUB_FLASHMAP_ADDR_HD2,
 					    error)) {
-		g_prefix_error(error, "failed to erase sectors for HD2: ");
+		g_prefix_error_literal(error, "failed to erase sectors for HD2: ");
 		return FALSE;
 	}
 	if (!fu_vli_device_spi_write_block(FU_VLI_DEVICE(self),
@@ -1335,7 +1340,7 @@ fu_vli_usbhub_device_update_v3(FuVliUsbhubDevice *self,
 					   st_hd->len,
 					   fu_progress_get_child(progress),
 					   error)) {
-		g_prefix_error(error, "failed to write HD2: ");
+		g_prefix_error_literal(error, "failed to write HD2: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -1370,7 +1375,7 @@ fu_vli_usbhub_device_write_firmware(FuDevice *device,
 	/* disable powersaving if required */
 	if (self->disable_powersave) {
 		if (!fu_vli_usbhub_device_disable_u1u2(self, error)) {
-			g_prefix_error(error, "disabling powersave failed: ");
+			g_prefix_error_literal(error, "disabling powersave failed: ");
 			return FALSE;
 		}
 	}
@@ -1408,7 +1413,7 @@ fu_vli_usbhub_device_init(FuVliUsbhubDevice *self)
 {
 	self->st_hd1 = fu_struct_vli_usbhub_hdr_new();
 	self->st_hd2 = fu_struct_vli_usbhub_hdr_new();
-	fu_device_add_icon(FU_DEVICE(self), "usb-hub");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_USB_HUB);
 	fu_device_add_protocol(FU_DEVICE(self), "com.vli.usbhub");
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_USE_PROXY_FALLBACK);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_AUTO_PARENT_CHILDREN);

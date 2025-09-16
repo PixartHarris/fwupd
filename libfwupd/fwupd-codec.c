@@ -256,7 +256,10 @@ fwupd_codec_to_json_string(FwupdCodec *self, FwupdCodecFlags flags, GError **err
 	json_generator_set_root(json_generator, json_root);
 	data = json_generator_to_data(json_generator, NULL);
 	if (data == NULL) {
-		g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_INTERNAL, "failed to convert to json");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INTERNAL,
+				    "failed to convert to json");
 		return NULL;
 	}
 	return g_steal_pointer(&data);
@@ -605,7 +608,7 @@ fwupd_codec_string_append_time(GString *str, guint idt, const gchar *key, guint6
 		return;
 
 	date = g_date_time_new_from_unix_utc((gint64)value);
-	tmp = g_date_time_format(date, "%F");
+	tmp = g_date_time_format(date, "%F %T");
 	fwupd_codec_string_append(str, idt, key, tmp);
 }
 
@@ -716,4 +719,36 @@ fwupd_codec_json_append_strv(JsonBuilder *builder, const gchar *key, gchar **val
 	for (guint i = 0; value[i] != NULL; i++)
 		json_builder_add_string_value(builder, value[i]);
 	json_builder_end_array(builder);
+}
+
+/**
+ * fwupd_codec_json_append_map:
+ * @builder: (not nullable): a #JsonBuilder
+ * @key: (not nullable): a string
+ * @value: (element-type utf8 utf8): a hash table
+ *
+ * Appends a key and string hash map to a JSON builder.
+ *
+ * Since: 2.0.10
+ */
+void
+fwupd_codec_json_append_map(JsonBuilder *builder, const gchar *key, GHashTable *value)
+{
+	GHashTableIter iter;
+	gpointer hash_key, hash_value;
+
+	g_return_if_fail(JSON_IS_BUILDER(builder));
+	g_return_if_fail(key != NULL);
+
+	if (value == NULL)
+		return;
+	json_builder_set_member_name(builder, key);
+	json_builder_begin_object(builder);
+	g_hash_table_iter_init(&iter, value);
+	while (g_hash_table_iter_next(&iter, &hash_key, &hash_value)) {
+		fwupd_codec_json_append(builder,
+					(const gchar *)hash_key,
+					(const gchar *)hash_value);
+	}
+	json_builder_end_object(builder);
 }

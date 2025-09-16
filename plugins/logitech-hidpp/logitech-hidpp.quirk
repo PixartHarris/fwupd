@@ -16,7 +16,6 @@ InstallDuration = 30
 [HIDRAW\VEN_046D&DEV_AB07]
 Plugin = logitech_hidpp
 Name = Bolt Receiver
-Vendor = Logitech
 GType = FuLogitechHidppDevice
 CounterpartGuid = HIDRAW\VEN_046D&DEV_C548
 InstallDuration = 30
@@ -195,3 +194,10 @@ Plugin = logitech_hidpp
 GType = FuLogitechHidppDevice
 Flags = add-radio,ble,rebind-attach,no-request-required
 InstallDuration = 270
+
+# MX Mechanical (BLE direct)
+[HIDRAW\VEN_046D&DEV_B34E]
+Plugin = logitech_hidpp
+GType = FuLogitechHidppDevice
+Flags = ~add-radio,ble,no-request-required
+InstallDuration = 650

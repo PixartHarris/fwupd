@@ -273,8 +273,9 @@ fu_qc_firehose_impl_read_xml_cb(FuQcFirehoseImpl *self,
 					 G_MAXUINT64,
 					 FU_INTEGER_BASE_AUTO,
 					 error)) {
-				g_prefix_error(error,
-					       "failed to parse MaxPayloadSizeToTargetInBytes:");
+				g_prefix_error_literal(
+				    error,
+				    "failed to parse MaxPayloadSizeToTargetInBytes:");
 				return FALSE;
 			}
 			g_debug("max payload size now 0x%x", (guint)helper->max_payload_size);
@@ -447,12 +448,25 @@ fu_qc_firehose_impl_erase(FuQcFirehoseImpl *self,
 {
 	g_autoptr(XbBuilderNode) bn = xb_builder_node_new("data");
 	g_autoptr(XbBuilderNode) bc = xb_builder_node_insert(bn, xb_node_get_element(xn), NULL);
+#if LIBXMLB_CHECK_VERSION(0, 3, 24)
+	XbNodeAttrIter xn_iter;
+	const gchar *attr_name = NULL;
+	const gchar *attr_value = NULL;
+#else
 	const gchar *names[] = {
 	    "PAGES_PER_BLOCK",
 	    "SECTOR_SIZE_IN_BYTES",
 	    "num_partition_sectors",
+	    "physical_partition_number",
 	    "start_sector",
+	    /* these are Quectel-specific */
+	    "a_rawdata_start_sector",
+	    "b_rawdata_num_sector",
+	    "c_project_name",
+	    "d_project_type",
+	    "vendor",
 	};
+#endif
 
 	/* sanity check */
 	if (!fu_qc_firehose_impl_has_function(self, FU_QC_FIREHOSE_FUNCTIONS_ERASE)) {
@@ -462,11 +476,20 @@ fu_qc_firehose_impl_erase(FuQcFirehoseImpl *self,
 				    "erase is not supported");
 		return FALSE;
 	}
+
+#if LIBXMLB_CHECK_VERSION(0, 3, 24)
+	/* copy over all attributes */
+	xb_node_attr_iter_init(&xn_iter, xn);
+	while (xb_node_attr_iter_next(&xn_iter, &attr_name, &attr_value))
+		xb_builder_node_set_attr(bc, attr_name, attr_value);
+#else
+	/* copy over all *known* attributes */
 	for (guint i = 0; i < G_N_ELEMENTS(names); i++) {
 		const gchar *value = xb_node_get_attr(xn, names[i]);
 		if (value != NULL)
 			xb_builder_node_set_attr(bc, names[i], value);
 	}
+#endif
 	if (!fu_qc_firehose_impl_write_xml(self, bn, error))
 		return FALSE;
 	return fu_qc_firehose_impl_read_xml(self, 30000, helper, error);
@@ -537,6 +560,11 @@ fu_qc_firehose_impl_program(FuQcFirehoseImpl *self,
 	g_autoptr(GBytes) blob_padded = NULL;
 	g_autoptr(XbBuilderNode) bn = xb_builder_node_new("data");
 	g_autoptr(XbBuilderNode) bc = xb_builder_node_insert(bn, xb_node_get_element(xn), NULL);
+#if LIBXMLB_CHECK_VERSION(0, 3, 24)
+	XbNodeAttrIter xn_iter;
+	const gchar *attr_name = NULL;
+	const gchar *attr_value = NULL;
+#else
 	const gchar *names[] = {
 	    "PAGES_PER_BLOCK",
 	    "SECTOR_SIZE_IN_BYTES",
@@ -546,6 +574,7 @@ fu_qc_firehose_impl_program(FuQcFirehoseImpl *self,
 	    "start_sector",
 	    "last_sector",
 	};
+#endif
 
 	/* sanity check */
 	if (!fu_qc_firehose_impl_has_function(self, FU_QC_FIREHOSE_FUNCTIONS_PROGRAM)) {
@@ -564,16 +593,23 @@ fu_qc_firehose_impl_program(FuQcFirehoseImpl *self,
 	if (blob == NULL)
 		return FALSE;
 
-	/* copy across */
+#if LIBXMLB_CHECK_VERSION(0, 3, 24)
+	/* copy over all attributes */
+	xb_node_attr_iter_init(&xn_iter, xn);
+	while (xb_node_attr_iter_next(&xn_iter, &attr_name, &attr_value))
+		xb_builder_node_set_attr(bc, attr_name, attr_value);
+#else
+	/* copy over all *known* attributes */
 	for (guint i = 0; i < G_N_ELEMENTS(names); i++) {
 		const gchar *value = xb_node_get_attr(xn, names[i]);
 		if (value != NULL)
 			xb_builder_node_set_attr(bc, names[i], value);
 	}
+#endif
 	if (!fu_qc_firehose_impl_write_xml(self, bn, error))
 		return FALSE;
 	if (!fu_qc_firehose_impl_read_xml(self, 2500, helper, error)) {
-		g_prefix_error(error, "failed to setup: ");
+		g_prefix_error_literal(error, "failed to setup: ");
 		return FALSE;
 	}
 
@@ -629,6 +665,11 @@ fu_qc_firehose_impl_apply_patch(FuQcFirehoseImpl *self,
 {
 	g_autoptr(XbBuilderNode) bn = xb_builder_node_new("data");
 	g_autoptr(XbBuilderNode) bc = xb_builder_node_insert(bn, xb_node_get_element(xn), NULL);
+#if LIBXMLB_CHECK_VERSION(0, 3, 24)
+	XbNodeAttrIter xn_iter;
+	const gchar *attr_name = NULL;
+	const gchar *attr_value = NULL;
+#else
 	const gchar *names[] = {
 	    "SECTOR_SIZE_IN_BYTES",
 	    "byte_offset",
@@ -638,6 +679,7 @@ fu_qc_firehose_impl_apply_patch(FuQcFirehoseImpl *self,
 	    "start_sector",
 	    "value",
 	};
+#endif
 
 	/* sanity check */
 	if (!fu_qc_firehose_impl_has_function(self, FU_QC_FIREHOSE_FUNCTIONS_PATCH)) {
@@ -647,11 +689,20 @@ fu_qc_firehose_impl_apply_patch(FuQcFirehoseImpl *self,
 				    "patch is not supported");
 		return FALSE;
 	}
+
+#if LIBXMLB_CHECK_VERSION(0, 3, 24)
+	/* copy over all attributes */
+	xb_node_attr_iter_init(&xn_iter, xn);
+	while (xb_node_attr_iter_next(&xn_iter, &attr_name, &attr_value))
+		xb_builder_node_set_attr(bc, attr_name, attr_value);
+#else
+	/* copy over all *known* attributes */
 	for (guint i = 0; i < G_N_ELEMENTS(names); i++) {
 		const gchar *value = xb_node_get_attr(xn, names[i]);
 		if (value != NULL)
 			xb_builder_node_set_attr(bc, names[i], value);
 	}
+#endif
 	if (!fu_qc_firehose_impl_write_xml(self, bn, error))
 		return FALSE;
 	return fu_qc_firehose_impl_read_xml(self, 5000, helper, error);
@@ -830,7 +881,7 @@ fu_qc_firehose_impl_setup(FuQcFirehoseImpl *self, GError **error)
 	if (!fu_qc_firehose_impl_has_function(self, FU_QC_FIREHOSE_FUNCTIONS_CONFIGURE)) {
 		helper.read_func = fu_qc_firehose_impl_read_xml_nop_cb;
 		if (!fu_qc_firehose_impl_send_nop(self, &helper, error)) {
-			g_prefix_error(error, "failed to send NOP: ");
+			g_prefix_error_literal(error, "failed to send NOP: ");
 			return FALSE;
 		}
 	}
@@ -863,10 +914,9 @@ fu_qc_firehose_impl_write_firmware(FuQcFirehoseImpl *self,
 
 	/* progress */
 	fu_progress_set_id(progress, G_STRLOC);
-	fu_progress_add_flag(progress, FU_PROGRESS_FLAG_GUESSED);
 	fu_progress_add_step(progress, FWUPD_STATUS_DEVICE_BUSY, 1, NULL);
-	fu_progress_add_step(progress, FWUPD_STATUS_DEVICE_ERASE, 20, NULL);
-	fu_progress_add_step(progress, FWUPD_STATUS_DEVICE_WRITE, 80, NULL);
+	fu_progress_add_step(progress, FWUPD_STATUS_DEVICE_ERASE, 4, NULL);
+	fu_progress_add_step(progress, FWUPD_STATUS_DEVICE_WRITE, 94, NULL);
 	fu_progress_add_step(progress, FWUPD_STATUS_DEVICE_WRITE, 1, "patch");
 
 	/* load XML */
@@ -890,7 +940,7 @@ fu_qc_firehose_impl_write_firmware(FuQcFirehoseImpl *self,
 
 	/* hardcode storage */
 	if (!fu_qc_firehose_impl_configure(self, "nand", &helper, error)) {
-		g_prefix_error(error, "failed to configure: ");
+		g_prefix_error_literal(error, "failed to configure: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -903,7 +953,7 @@ fu_qc_firehose_impl_write_firmware(FuQcFirehoseImpl *self,
 						       &helper,
 						       fu_progress_get_child(progress),
 						       error)) {
-			g_prefix_error(error, "failed to erase targets: ");
+			g_prefix_error_literal(error, "failed to erase targets: ");
 			return FALSE;
 		}
 	}
@@ -917,7 +967,7 @@ fu_qc_firehose_impl_write_firmware(FuQcFirehoseImpl *self,
 							 &helper,
 							 fu_progress_get_child(progress),
 							 error)) {
-			g_prefix_error(error, "failed to program targets: ");
+			g_prefix_error_literal(error, "failed to program targets: ");
 			return FALSE;
 		}
 	}
@@ -931,7 +981,7 @@ fu_qc_firehose_impl_write_firmware(FuQcFirehoseImpl *self,
 						       &helper,
 						       fu_progress_get_child(progress),
 						       error)) {
-			g_prefix_error(error, "failed to patch targets: ");
+			g_prefix_error_literal(error, "failed to patch targets: ");
 			return FALSE;
 		}
 	}
@@ -948,7 +998,7 @@ fu_qc_firehose_impl_write_firmware(FuQcFirehoseImpl *self,
 							      (guint)bootable,
 							      &helper,
 							      error)) {
-				g_prefix_error(error, "failed to set bootable: ");
+				g_prefix_error_literal(error, "failed to set bootable: ");
 				return FALSE;
 			}
 		}

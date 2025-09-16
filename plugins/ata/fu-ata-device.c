@@ -329,7 +329,7 @@ fu_ata_device_parse_id(FuAtaDevice *self, const guint8 *buf, gsize sz, GError **
 	gboolean has_oui_quirk = FALSE;
 	guint16 xfer_min = 1;
 	guint16 xfer_max = 0xffff;
-	guint16 id[FU_ATA_IDENTIFY_SIZE / 2];
+	guint16 id[FU_ATA_IDENTIFY_SIZE / 2] = {0};
 	g_autofree gchar *name = NULL;
 	g_autofree gchar *sku = NULL;
 
@@ -655,7 +655,7 @@ fu_ata_device_setup(FuDevice *device, GError **error)
 	tf.command = ATA_OP_IDENTIFY;
 	tf.nsect = 1; /* 512 bytes */
 	if (!fu_ata_device_command(self, &tf, SG_DXFER_FROM_DEV, 1000, id, sizeof(id), error)) {
-		g_prefix_error(error, "failed to IDENTIFY: ");
+		g_prefix_error_literal(error, "failed to IDENTIFY: ");
 		return FALSE;
 	}
 	fu_dump_raw(G_LOG_DOMAIN, "IDENTIFY", id, sizeof(id));
@@ -682,7 +682,7 @@ fu_ata_device_activate(FuDevice *device, FuProgress *progress, GError **error)
 				   NULL,
 				   0,
 				   error)) {
-		g_prefix_error(error, "failed to flush cache immediate: ");
+		g_prefix_error_literal(error, "failed to flush cache immediate: ");
 		return FALSE;
 	}
 	tf.command = ATA_OP_STANDBY_IMMEDIATE;
@@ -693,7 +693,7 @@ fu_ata_device_activate(FuDevice *device, FuProgress *progress, GError **error)
 				   NULL,
 				   0,
 				   error)) {
-		g_prefix_error(error, "failed to standby immediate: ");
+		g_prefix_error_literal(error, "failed to standby immediate: ");
 		return FALSE;
 	}
 
@@ -708,7 +708,7 @@ fu_ata_device_activate(FuDevice *device, FuProgress *progress, GError **error)
 				   NULL,
 				   0,
 				   error)) {
-		g_prefix_error(error, "failed to activate firmware: ");
+		g_prefix_error_literal(error, "failed to activate firmware: ");
 		return FALSE;
 	}
 
@@ -911,7 +911,7 @@ fu_ata_device_init(FuAtaDevice *self)
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_MD_SET_SIGNED);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_MD_SET_FLAGS);
 	fu_device_set_summary(FU_DEVICE(self), "ATA drive");
-	fu_device_add_icon(FU_DEVICE(self), "drive-harddisk");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_DRIVE_HARDDISK);
 	fu_device_add_protocol(FU_DEVICE(self), "org.t13.ata");
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_PLAIN);
 	fu_udev_device_add_open_flag(FU_UDEV_DEVICE(self), FU_IO_CHANNEL_OPEN_FLAG_READ);

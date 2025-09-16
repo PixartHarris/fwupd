@@ -9,10 +9,8 @@
 #include "config.h"
 
 #include "fu-byte-array.h"
-#include "fu-bytes.h"
 #include "fu-csv-firmware.h"
 #include "fu-input-stream.h"
-#include "fu-mem.h"
 #include "fu-partial-input-stream.h"
 #include "fu-sbatlevel-section-struct.h"
 #include "fu-sbatlevel-section.h"
@@ -56,7 +54,7 @@ fu_sbatlevel_section_add_entry(FuFirmware *firmware,
 	fu_firmware_set_offset(entry_fw, offset);
 	partial_stream = fu_partial_input_stream_new(stream, offset, streamsz - offset, error);
 	if (partial_stream == NULL) {
-		g_prefix_error(error, "failed to cut CSV section: ");
+		g_prefix_error_literal(error, "failed to cut CSV section: ");
 		return FALSE;
 	}
 	if (!fu_firmware_parse_stream(entry_fw, partial_stream, 0, flags, error)) {

@@ -64,7 +64,7 @@ fu_vli_usbhub_pd_device_setup(FuDevice *device, GError **error)
 					  buf,
 					  bufsz,
 					  error)) {
-		g_prefix_error(error, "failed to read legacy PD header: ");
+		g_prefix_error_literal(error, "failed to read legacy PD header: ");
 		return FALSE;
 	}
 	st = fu_struct_vli_pd_hdr_parse(buf, bufsz, 0x0, error);
@@ -80,7 +80,7 @@ fu_vli_usbhub_pd_device_setup(FuDevice *device, GError **error)
 						  buf,
 						  bufsz,
 						  error)) {
-			g_prefix_error(error, "failed to read PD header: ");
+			g_prefix_error_literal(error, "failed to read PD header: ");
 			return FALSE;
 		}
 		fu_struct_vli_pd_hdr_unref(st);
@@ -92,7 +92,10 @@ fu_vli_usbhub_pd_device_setup(FuDevice *device, GError **error)
 	/* just empty space */
 	fwver = fu_struct_vli_pd_hdr_get_fwver(st);
 	if (fwver == G_MAXUINT32) {
-		g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_NOT_FOUND, "no PD device header found");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_FOUND,
+				    "no PD device header found");
 		return FALSE;
 	}
 
@@ -142,7 +145,7 @@ fu_vli_usbhub_pd_device_setup(FuDevice *device, GError **error)
 static gboolean
 fu_vli_usbhub_pd_device_reload(FuDevice *device, GError **error)
 {
-	FuVliUsbhubDevice *parent = FU_VLI_USBHUB_DEVICE(fu_device_get_parent(device));
+	FuDevice *parent = fu_device_get_parent(device);
 	g_autoptr(FuDeviceLocker) locker = NULL;
 
 	/* open parent device */
@@ -185,7 +188,7 @@ fu_vli_usbhub_pd_device_prepare_firmware(FuDevice *device,
 static GBytes *
 fu_vli_usbhub_pd_device_dump_firmware(FuDevice *device, FuProgress *progress, GError **error)
 {
-	FuVliUsbhubDevice *parent = FU_VLI_USBHUB_DEVICE(fu_device_get_parent(device));
+	FuDevice *parent = fu_device_get_parent(device);
 	FuVliUsbhubPdDevice *self = FU_VLI_USBHUB_PD_DEVICE(device);
 	g_autoptr(FuDeviceLocker) locker = NULL;
 
@@ -211,7 +214,7 @@ fu_vli_usbhub_pd_device_write_firmware(FuDevice *device,
 				       GError **error)
 {
 	FuVliUsbhubPdDevice *self = FU_VLI_USBHUB_PD_DEVICE(device);
-	FuVliUsbhubDevice *parent = FU_VLI_USBHUB_DEVICE(fu_device_get_parent(device));
+	FuDevice *parent = fu_device_get_parent(device);
 	gsize bufsz = 0;
 	const guint8 *buf;
 	g_autoptr(FuDeviceLocker) locker = NULL;
@@ -270,11 +273,9 @@ fu_vli_usbhub_pd_device_attach(FuDevice *device, FuProgress *progress, GError **
 static gboolean
 fu_vli_usbhub_pd_device_probe(FuDevice *device, GError **error)
 {
-	FuVliUsbhubDevice *parent = FU_VLI_USBHUB_DEVICE(fu_device_get_parent(device));
+	FuDevice *parent = fu_device_get_parent(device);
 	if (parent != NULL) {
-		fu_device_incorporate(device,
-				      FU_DEVICE(parent),
-				      FU_DEVICE_INCORPORATE_FLAG_PHYSICAL_ID);
+		fu_device_incorporate(device, parent, FU_DEVICE_INCORPORATE_FLAG_PHYSICAL_ID);
 	}
 	return TRUE;
 }
@@ -300,9 +301,10 @@ fu_vli_usbhub_pd_device_convert_version(FuDevice *device, guint64 version_raw)
 static void
 fu_vli_usbhub_pd_device_init(FuVliUsbhubPdDevice *self)
 {
-	fu_device_add_icon(FU_DEVICE(self), "usb-hub");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_USB_HUB);
 	fu_device_add_protocol(FU_DEVICE(self), "com.vli.usbhub");
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);
+	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UNSIGNED_PAYLOAD);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_CAN_VERIFY_IMAGE);
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_QUAD);
 	fu_device_set_install_duration(FU_DEVICE(self), 15); /* seconds */

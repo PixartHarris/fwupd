@@ -35,7 +35,7 @@ msgid "%s Battery Update"
 msgstr "Batterij-update voor %s"
 
 #. TRANSLATORS: the CPU microcode is firmware loaded onto the CPU
-#. * at system bootup
+#. * at system boot-up
 #, c-format
 msgid "%s CPU Microcode Update"
 msgstr "CPU-microcode-update voor %s"
@@ -650,10 +650,6 @@ msgid "FILENAME"
 msgstr "BESTANDSNAAM"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
-msgid "FILENAME DEVICE-ID"
-msgstr "BESTANDSNAAM APPARAAT-ID"
-
-#. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME [DEVICE-ID|GUID]"
 msgstr "BESTANDSNAAM [APPARAAT-ID|GUID]"
 
@@ -788,10 +784,6 @@ msgid "Gets details about a firmware file"
 msgstr "Verkrijgt details over een firmware-bestand"
 
 #. TRANSLATORS: command description
-msgid "Gets the list of updates for connected hardware"
-msgstr "Verkrijgt een lijst van updates voor verbonden hardware"
-
-#. TRANSLATORS: command description
 msgid "Gets the results from the last update"
 msgstr "Verkrijgt de resultaten van de laatste update"
 
@@ -808,7 +800,6 @@ msgid "Host Security Events"
 msgstr "Host-beveiligingsgebeurtenissen"
 
 #. TRANSLATORS: error message for unsupported feature
-#, c-format
 msgid "Host Security ID (HSI) is not supported"
 msgstr "Host-beveiligings-ID (HSI) wordt niet ondersteund"
 
@@ -1087,10 +1078,6 @@ msgstr "OK!"
 #. TRANSLATORS: the firmware old version
 msgid "Old version"
 msgstr "Oude versie"
-
-#. TRANSLATORS: command line option
-msgid "Output in JSON format"
-msgstr "Uitvoer in JSON-formaat"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "PATH"

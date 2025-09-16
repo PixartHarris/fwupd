@@ -144,6 +144,22 @@ typedef enum {
 	 * Since: 2.0.5
 	 **/
 	FU_CONTEXT_FLAG_FDE_SNAPD = 1u << 5,
+	/**
+	 * FU_CONTEXT_FLAG_IGNORE_EFIVARS_FREE_SPACE:
+	 *
+	 * Ignore the efivars free space requirement for db, dbx, KEK and PK updates.
+	 *
+	 * Since: 2.0.13
+	 **/
+	FU_CONTEXT_FLAG_IGNORE_EFIVARS_FREE_SPACE = 1u << 6,
+	/**
+	 * FU_CONTEXT_FLAG_NO_IDLE_SOURCES:
+	 *
+	 * Do not use idle or timeout sources for device cleanup or enumeration.
+	 *
+	 * Since: 2.0.14
+	 **/
+	FU_CONTEXT_FLAG_NO_IDLE_SOURCES = 1u << 7,
 
 	/**
 	 * FU_CONTEXT_FLAG_LOADED_UNKNOWN:
@@ -262,6 +278,9 @@ const gchar *
 fu_context_get_esp_location(FuContext *self);
 FuEfivars *
 fu_context_get_efivars(FuContext *self) G_GNUC_NON_NULL(1);
+gboolean
+fu_context_efivars_check_free_space(FuContext *self, gsize count, GError **error)
+    G_GNUC_NON_NULL(1);
 
 /**
  * FuContextEspFileFlags:

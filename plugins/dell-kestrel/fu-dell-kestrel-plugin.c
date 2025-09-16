@@ -52,10 +52,10 @@ fu_dell_kestrel_plugin_device_add(FuPlugin *plugin, FuDevice *device, GError **e
 	/* dock type according to ec */
 	dock_type = fu_dell_kestrel_ec_get_dock_type(FU_DELL_KESTREL_EC(ec_device));
 	if (dock_type == FU_DELL_DOCK_BASE_TYPE_UNKNOWN) {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_READ,
-			    "can't read base dock type from EC");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_READ,
+				    "can't read base dock type from EC");
 		return FALSE;
 	}
 
@@ -88,7 +88,11 @@ fu_dell_kestrel_plugin_device_add(FuPlugin *plugin, FuDevice *device, GError **e
 			return FALSE;
 
 		fu_device_add_child(ec_device, FU_DEVICE(rmm_device));
-		fu_dell_kestrel_rmm_fix_version(rmm_device);
+
+		if (!fu_dell_kestrel_rmm_fix_version(rmm_device, error)) {
+			g_prefix_error_literal(error, "failed to fix rmm version: ");
+			return FALSE;
+		}
 
 		return TRUE;
 	}
@@ -96,7 +100,7 @@ fu_dell_kestrel_plugin_device_add(FuPlugin *plugin, FuDevice *device, GError **e
 	/* RTS usb hub devices */
 	if (pid == DELL_KESTREL_USB_RTS0_G1_PID || pid == DELL_KESTREL_USB_RTS0_G2_PID ||
 	    pid == DELL_KESTREL_USB_RTS5_G2_PID) {
-		g_autoptr(FuDellKestrelRtsHub) hub_device = NULL;
+		g_autoptr(FuDellKestrelRtshub) hub_device = NULL;
 		g_autoptr(FuDeviceLocker) locker = NULL;
 
 		hub_device = fu_dell_kestrel_rtshub_new(FU_USB_DEVICE(device), dock_type);
@@ -184,10 +188,10 @@ fu_dell_kestrel_plugin_backend_device_added(FuPlugin *plugin,
 							 FWUPD_DELL_KESTREL_PLUGIN_CONFIG_UOD);
 		ec_dev = fu_dell_kestrel_ec_new(device, uod);
 		if (ec_dev == NULL) {
-			g_set_error(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_INTERNAL,
-				    "can't create EC V2 device");
+			g_set_error_literal(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_INTERNAL,
+					    "can't create EC V2 device");
 			return FALSE;
 		}
 
@@ -295,6 +299,7 @@ fu_dell_kestrel_plugin_device_registered(FuPlugin *plugin, FuDevice *device)
 		/* activation should already done when device is added */
 		fu_device_remove_flag(device, FWUPD_DEVICE_FLAG_NEEDS_ACTIVATION);
 		fu_device_add_private_flag(device, FU_DEVICE_PRIVATE_FLAG_EXPLICIT_ORDER);
+		fu_device_add_private_flag(device, FU_DEVICE_PRIVATE_FLAG_SKIPS_RESTART);
 		fu_plugin_cache_add(plugin, "usb4", device);
 	}
 
@@ -434,28 +439,10 @@ fu_dell_kestrel_plugin_backend_device_removed(FuPlugin *plugin, FuDevice *device
 	return TRUE;
 }
 
-static gboolean
-fu_dell_kestrel_plugin_prepare(FuPlugin *plugin,
-			       FuDevice *device,
-			       FuProgress *progress,
-			       FwupdInstallFlags flags,
-			       GError **error)
-{
-	/* usb4 device reboot is suppressed, let ec handle it in passive update */
-	if (fu_device_has_guid(device, DELL_KESTREL_T4_DEVID) ||
-	    fu_device_has_guid(device, DELL_KESTREL_T5_DEVID)) {
-		/* uod requires needs-activate from intel-usb4 plugin */
-		if (fu_plugin_get_config_value_boolean(plugin,
-						       FWUPD_DELL_KESTREL_PLUGIN_CONFIG_UOD))
-			fu_device_add_private_flag(device, FU_DEVICE_PRIVATE_FLAG_SKIPS_RESTART);
-	}
-
-	return TRUE;
-}
-
 static void
 fu_dell_kestrel_plugin_init(FuDellKestrelPlugin *self)
 {
+	fu_plugin_add_flag(FU_PLUGIN(self), FWUPD_PLUGIN_FLAG_MUTABLE_ENUMERATION);
 }
 
 static void
@@ -491,5 +478,4 @@ fu_dell_kestrel_plugin_class_init(FuDellKestrelPluginClass *klass)
 	plugin_class->composite_prepare = fu_dell_kestrel_plugin_composite_prepare;
 	plugin_class->composite_cleanup = fu_dell_kestrel_plugin_composite_cleanup;
 	plugin_class->modify_config = fu_dell_kestrel_plugin_modify_config;
-	plugin_class->prepare = fu_dell_kestrel_plugin_prepare;
 }

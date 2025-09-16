@@ -40,7 +40,7 @@ msgid "%s Battery Update"
 msgstr "%s Akku-Aktualisierung"
 
 #. TRANSLATORS: the CPU microcode is firmware loaded onto the CPU
-#. * at system bootup
+#. * at system boot-up
 #, c-format
 msgid "%s CPU Microcode Update"
 msgstr "%s CPU-Microcode-Aktualisierung"
@@ -688,6 +688,10 @@ msgid "Changed"
 msgstr "Geändert"
 
 #. TRANSLATORS: command description
+msgid "Check if any devices are pending a reboot to complete update"
+msgstr "Prüfen, ob für den Abschluss der Aktualisierung ein Neustart der Geräte aussteht"
+
+#. TRANSLATORS: command description
 msgid "Checks cryptographic hash matches firmware"
 msgstr "Überprüft, ob der kryptografische Hash mit der Firmware übereinstimmt"
 
@@ -1102,6 +1106,10 @@ msgstr "SMBIOS-Daten aus einer Datei ausgeben"
 msgid "Duration"
 msgstr "Dauer"
 
+#. TRANSLATORS: command argument: uppercase, spaces->dashes
+msgid "EMULATION-FILE [ARCHIVE-FILE]"
+msgstr "EMULATIONSDATEI [ARCHIVDATEI]"
+
 #. TRANSLATORS: longer description
 msgid "Each system should have tests to ensure firmware security."
 msgstr "Jedes System sollte Tests haben, um die Sicherheit der Firmware zu gewährleisten."
@@ -1224,8 +1232,8 @@ msgid "FILENAME CERTIFICATE PRIVATE-KEY"
 msgstr "DATEINAME ZERTIFIKAT PRIVATER-SCHLÜSSEL"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
-msgid "FILENAME DEVICE-ID"
-msgstr "DATEINAME GERÄTEKENNUNG"
+msgid "FILENAME DEVICE-ID [VERSION]"
+msgstr "DATEINAME GERÄTEKENNUNG [VERSION]"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME OFFSET DATA [FIRMWARE-TYPE]"
@@ -1526,8 +1534,8 @@ msgid "Gets the list of blocked firmware"
 msgstr "Holt die Liste der blockierten Firmware"
 
 #. TRANSLATORS: command description
-msgid "Gets the list of updates for connected hardware"
-msgstr "Ermittelt die Liste der Aktualisierungen für angeschlossene Hardware"
+msgid "Gets the list of updates for all specified devices, or all devices if unspecified"
+msgstr "Ruft die Liste der Aktualisierungen für alle angegebenen Geräte ab, oder alle Geräte, wenn nicht angegeben"
 
 #. TRANSLATORS: command description
 msgid "Gets the releases for a device"
@@ -1554,7 +1562,6 @@ msgid "Host Security Events"
 msgstr "Host-Sicherheitsereignisse"
 
 #. TRANSLATORS: error message for unsupported feature
-#, c-format
 msgid "Host Security ID (HSI) is not supported"
 msgstr "Host-Sicherheitskennung (HSI) wird nicht unterstützt"
 
@@ -2105,6 +2112,10 @@ msgstr "Keine Firmware gefunden"
 msgid "No hardware detected with firmware update capability"
 msgstr "Es wurde keine Hardware erkannt, deren Firmware aktualisiert werden kann"
 
+#. TRANSLATORS: no rebooting needed
+msgid "No reboot is necessary"
+msgstr "Es ist kein Neustart erforderlich"
+
 #. TRANSLATORS: no repositories to download from
 msgid "No releases available"
 msgstr "Keine Freigaben verfügbar"
@@ -2158,6 +2169,10 @@ msgid "Old version"
 msgstr "Alte Version"
 
 #. TRANSLATORS: command line option
+msgid "Only install onto emulated devices"
+msgstr "Nur auf emulierten Geräten installieren"
+
+#. TRANSLATORS: command line option
 msgid "Only show single PCR value"
 msgstr "Nur einzelnen PCR-Wert anzeigen"
 
@@ -2171,8 +2186,8 @@ msgid "Only version upgrades are allowed"
 msgstr "Nur Versionsaktualisierungen sind erlaubt"
 
 #. TRANSLATORS: command line option
-msgid "Output in JSON format"
-msgstr "Ausgabe im JSON-Format"
+msgid "Output in JSON format (disables all interactive prompts)"
+msgstr "Ausgabe im JSON-Format (deaktiviert alle interaktiven Eingabeaufforderungen)"
 
 #. TRANSLATORS: command line option
 msgid "Override the default ESP path"
@@ -2243,7 +2258,8 @@ msgstr "Bitte stellen Sie sicher, dass Sie den Wiederherstellungsschlüssel für
 msgid "Please enter a number from 0 to %u: "
 msgstr "Bitte geben Sie eine Zahl von 0 bis %u ein: "
 
-#. TRANSLATORS: the user isn't reading the question -- %1 is 'Y' and %2 is 'N'
+#. TRANSLATORS: the user isn't reading the question -- %1 is 'Y' and %2 is
+#. * 'N'
 #, c-format
 msgid "Please enter either %s or %s: "
 msgstr "Bitte geben Sie entweder %s oder %s ein: "
@@ -2251,6 +2267,10 @@ msgstr "Bitte geben Sie entweder %s oder %s ein: "
 #. TRANSLATORS: Failed to open plugin, hey Arch users
 msgid "Plugin dependencies missing"
 msgstr "Fehlende Plugin-Abhängigkeiten"
+
+#. TRANSLATORS: The plugin enumeration might change the device current mode
+msgid "Plugin enumeration may change device state"
+msgstr "Plugin-Aufzählung kann den Gerätestatus ändern"
 
 #. TRANSLATORS: The plugin is only for testing
 msgid "Plugin is only for testing"
@@ -2739,11 +2759,6 @@ msgstr "Erfolgreich deaktivierte Gegenstelle"
 msgid "Successfully disabled test devices"
 msgstr "Prüfgeräte erfolgreich deaktiviert"
 
-#. TRANSLATORS: success message -- where 'metadata' is information
-#. * about available firmware on the remote server
-msgid "Successfully downloaded new metadata: "
-msgstr "Neue Metadaten wurden erfolgreich heruntergeladen: "
-
 #. TRANSLATORS: success message
 msgid "Successfully enabled and refreshed remote"
 msgstr "Gegenstelle erfolgreich aktiviert und aufgefrischt"
@@ -2997,6 +3012,14 @@ msgstr "Das TPM PCR0 unterscheidet sich von der Rekonstruktion."
 msgid "The UEFI Platform Key is used to determine if device software comes from a trusted source."
 msgstr "Der UEFI-Plattformschlüssel wird verwendet, um festzustellen, ob die Gerätesoftware aus einer vertrauenswürdigen Quelle stammt."
 
+#. TRANSLATORS: HSI event title
+msgid "The UEFI certificate store is now up to date"
+msgstr "Der UEFI-Zertifikatspeicher ist jetzt auf dem neuesten Stand"
+
+#. TRANSLATORS: longer description
+msgid "The UEFI db contains the list of valid certificates that can be used to authorize what EFI binaries are allowed to run."
+msgstr "Die UEFI-DB enthält die Liste der gültigen Zertifikate, die zur Autorisierung der EFI-Binärdateien verwendet werden können."
+
 #. TRANSLATORS: longer description
 msgid "The UEFI system can set up memory attributes at boot which prevent common exploits from running."
 msgstr "Das UEFI-System kann beim Booten Speicherattribute einrichten, die die Ausführung gängiger Exploits verhindern."
@@ -3172,6 +3195,10 @@ msgstr "UEFI-Bootdienst-Variablen"
 msgid "UEFI capsule updates not available or enabled in firmware setup"
 msgstr "Aktualisierung der UEFI-Kapsel nicht verfügbar oder in der Firmware-Einrichtung aktiviert"
 
+#. TRANSLATORS: Title: is UEFI db up-to-date
+msgid "UEFI db"
+msgstr "UEFI-DB"
+
 #. TRANSLATORS: program name
 msgid "UEFI dbx Utility"
 msgstr "UEFI dbx-Dienstprogramm"
@@ -3325,13 +3352,6 @@ msgstr "Die gespeicherten Metadaten mit dem aktuellen Inhalt aktualisieren"
 #. TRANSLATORS: command description
 msgid "Updates all specified devices to latest firmware version, or all devices if unspecified"
 msgstr "Aktualisiert alle angegebenen Geräte auf die neueste Firmware-Version, oder alle Geräte, wenn nicht angegeben"
-
-#. TRANSLATORS: how many local devices can expect updates now
-#, c-format
-msgid "Updates have been published for %u local device"
-msgid_plural "Updates have been published for %u of %u local devices"
-msgstr[0] "Es wurden Aktualisierungen für %u lokales Gerät veröffentlicht"
-msgstr[1] "Es wurden Aktualisierungen für %u von %u der lokalen Geräte veröffentlicht"
 
 msgid "Updating"
 msgstr "Wird aktualisiert"

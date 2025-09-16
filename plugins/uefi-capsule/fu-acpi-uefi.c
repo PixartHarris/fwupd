@@ -50,7 +50,7 @@ fu_acpi_uefi_parse_insyde(FuAcpiUefi *self, GInputStream *stream, GError **error
 			    strlen(needle),
 			    &data_offset,
 			    error)) {
-		g_prefix_error(error, "$QUIRK not found");
+		g_prefix_error_literal(error, "$QUIRK not found");
 		return FALSE;
 	}
 
@@ -81,7 +81,7 @@ fu_acpi_uefi_parse(FuFirmware *firmware,
 
 	/* FuAcpiTable->parse */
 	if (!FU_FIRMWARE_CLASS(fu_acpi_uefi_parent_class)
-		 ->parse(FU_FIRMWARE(self), stream, FU_FIRMWARE_PARSE_FLAG_NONE, error))
+		 ->parse(FU_FIRMWARE(self), stream, flags, error))
 		return FALSE;
 
 	/* check signature and read flags */

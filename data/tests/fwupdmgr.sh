@@ -209,6 +209,14 @@ if [ -n "$CI_NETWORK" ]; then
     echo "Refreshing from the LVFS (requires network access)..."
     fwupdmgr --download-retries=5 refresh
     rc=$?; if [ $rc != 0 ]; then error $rc; fi
+
+    # check we can search for known tokens
+    fwupdmgr search CVE-2022-21894
+    rc=$?; if [ $rc != 0 ]; then error $rc; fi
+
+    # check we do not find a random search result
+    fwupdmgr search DOESNOTEXIST
+    rc=$?; if [ $rc != 3 ]; then error $rc; fi
 else
         echo "Skipping network tests due to CI_NETWORK not being set"
 fi
@@ -283,6 +291,17 @@ rc=$?; if [ $rc != $EXPECTED ]; then error $rc; fi
 echo "Run security tests (json)..."
 fwupdmgr security --json
 rc=$?; if [ $rc != $EXPECTED ]; then error $rc; fi
+
+# ---
+echo "Check reboot behavior"
+fwupdmgr quit
+fwupdtool modify-config test NeedsReboot true
+rc=$?; if [ $rc != 0 ]; then error $rc; fi
+fwupdmgr update $device -y
+rc=$?; if [ $rc != 0 ]; then error $rc; fi
+fwupdmgr check-reboot-needed $device --json
+rc=$?; if [ $rc != 0 ]; then error $rc; fi
+fwupdtool modify-config test NeedsReboot false
 
 # success!
 exit 0

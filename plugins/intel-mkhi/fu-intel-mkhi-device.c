@@ -53,7 +53,7 @@ fu_intel_mkhi_device_setup(FuDevice *device, GError **error)
 
 	/* connect */
 	if (!fu_mei_device_connect(FU_MEI_DEVICE(device), FU_HECI_DEVICE_UUID_MKHI, 0, error)) {
-		g_prefix_error(error, "failed to connect: ");
+		g_prefix_error_literal(error, "failed to connect: ");
 		return FALSE;
 	}
 
@@ -91,7 +91,7 @@ fu_intel_mkhi_device_init(FuIntelMkhiDevice *self)
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_MD_ONLY_CHECKSUM);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_MD_SET_FLAGS);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_INTERNAL);
-	fu_device_add_icon(FU_DEVICE(self), "computer");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_COMPUTER);
 	fu_device_register_private_flag(FU_DEVICE(self), FU_INTEL_MKHI_DEVICE_FLAG_LEAKED_KM);
 	g_signal_connect(FWUPD_DEVICE(self),
 			 "notify::private-flags",

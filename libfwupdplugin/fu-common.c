@@ -18,6 +18,48 @@
 #include "fu-string.h"
 
 /**
+ * fu_error_map_entry_to_gerror:
+ * @value: the value to look up
+ * @entries: the #FuErrorMapEntry map
+ * @n_entries: number of @entries
+ * @error: (nullable): optional return location for an error
+ *
+ * Sets the #GError from the integer value and the error map.
+ *
+ * Any entries with a error_code of `FWUPD_ERROR_LAST` will return success.
+ *
+ * Returns: boolean success
+ *
+ * Since: 2.0.13
+ **/
+gboolean
+fu_error_map_entry_to_gerror(guint value,
+			     const FuErrorMapEntry entries[],
+			     guint n_entries,
+			     GError **error)
+{
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	for (guint i = 0; i < n_entries; i++) {
+		const FuErrorMapEntry entry = entries[i];
+		if (entry.value != value)
+			continue;
+		if (entry.code == FWUPD_ERROR_LAST)
+			return TRUE;
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    entry.code,
+			    "%s [0x%x]",
+			    entry.message != NULL ? entry.message
+						  : fwupd_error_to_string(entry.value),
+			    entry.value);
+		return FALSE;
+	}
+	g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_INTERNAL, "generic failure [0x%x]", value);
+	return FALSE;
+}
+
+/**
  * fu_cpuid:
  * @leaf: the CPUID level, now called the 'leaf' by Intel
  * @eax: (out) (nullable): EAX register
@@ -232,43 +274,49 @@ fu_common_align_up(gsize value, guint8 alignment)
 gboolean
 fu_power_state_is_ac(FuPowerState power_state)
 {
-	if (power_state == FU_POWER_STATE_UNKNOWN || power_state == FU_POWER_STATE_AC ||
-	    power_state == FU_POWER_STATE_AC_CHARGING ||
-	    power_state == FU_POWER_STATE_AC_FULLY_CHARGED)
-		return TRUE;
-	return FALSE;
+	return power_state != FU_POWER_STATE_BATTERY;
 }
 
 /**
  * fu_error_convert:
+ * @entries: the #FuErrorConvertEntry map
+ * @n_entries: number of @entries
  * @perror: (nullable): A #GError, perhaps with domain #GIOError
  *
  * Convert the error to a #FwupdError, if required.
  *
- * Since: 2.0.0
+ * Since: 2.0.14
  **/
-void
-fu_error_convert(GError **perror)
+gboolean
+fu_error_convert(const FuErrorConvertEntry entries[], guint n_entries, GError **perror)
 {
 	GError *error = (perror != NULL) ? *perror : NULL;
 
 	/* sanity check */
 	if (error == NULL)
-		return;
+		return TRUE;
 
 	/* convert GIOError and GFileError */
 	fwupd_error_convert(perror);
 	if (error->domain == FWUPD_ERROR)
-		return;
+		return FALSE;
+	for (guint i = 0; i < n_entries; i++) {
+		if (g_error_matches(error, entries[i].domain, entries[i].code)) {
+			error->domain = FWUPD_ERROR;
+			error->code = entries[i].error;
+			return FALSE;
+		}
+	}
 
 #ifndef SUPPORTED_BUILD
 	/* fallback */
-	g_critical("GError %s:%i sending over D-Bus was not converted to FwupdError",
+	g_critical("GError %s:%i was not converted to FwupdError",
 		   g_quark_to_string(error->domain),
 		   error->code);
 #endif
 	error->domain = FWUPD_ERROR;
 	error->code = FWUPD_ERROR_INTERNAL;
+	return FALSE;
 }
 
 /**

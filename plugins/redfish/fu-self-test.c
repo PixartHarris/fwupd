@@ -159,7 +159,7 @@ fu_test_redfish_ipmi_func(void)
 	}
 
 	/* create device */
-	locker = fu_device_locker_new(device, &error);
+	locker = fu_device_locker_new(FU_DEVICE(device), &error);
 	if (g_error_matches(error, FWUPD_ERROR, FWUPD_ERROR_PERMISSION_DENIED)) {
 		g_test_skip("permission denied for access to IPMI hardware");
 		return;
@@ -378,7 +378,7 @@ fu_test_redfish_devices_func(gconstpointer user_data)
 	g_assert_cmpint(fu_device_get_version_format(dev), ==, FWUPD_VERSION_FORMAT_PAIR);
 	g_assert_cmpint(fu_device_get_version_build_date(dev), ==, 1552608000);
 	g_assert_true(fu_device_has_flag(dev, FWUPD_DEVICE_FLAG_UPDATABLE));
-	g_assert_true(fu_device_has_icon(dev, "network-wired"));
+	g_assert_true(fu_device_has_icon(dev, FU_DEVICE_ICON_NETWORK_WIRED));
 	g_assert_true(fu_device_has_protocol(dev, "org.dmtf.redfish"));
 	g_assert_true(fu_device_has_guid(dev, "fee82a67-6ce2-4625-9f44-237ad2402c28"));
 	g_assert_true(fu_device_has_guid(dev, "a6d3294e-37e5-50aa-ae2f-c0c457af16f3"));
@@ -485,6 +485,7 @@ fu_test_redfish_hpe_update_func(gconstpointer user_data)
 	dev = g_ptr_array_index(devices, 0);
 	blob_fw = g_bytes_new_static("hello", 5);
 	stream_fw = fu_firmware_new_from_bytes(blob_fw);
+	fu_firmware_set_filename(stream_fw, "test.fwpkg");
 	ret = fu_plugin_runner_write_firmware(self->hpe_plugin,
 					      dev,
 					      stream_fw,
@@ -524,6 +525,7 @@ fu_test_redfish_update_func(gconstpointer user_data)
 	dev = g_ptr_array_index(devices, 1);
 	blob_fw = g_bytes_new_static("hello", 5);
 	firmware = fu_firmware_new_from_bytes(blob_fw);
+	fu_firmware_set_filename(firmware, "firmware.exe");
 	ret = fu_plugin_runner_write_firmware(self->plugin,
 					      dev,
 					      firmware,
@@ -577,6 +579,7 @@ fu_test_redfish_smc_update_func(gconstpointer user_data)
 	dev = g_ptr_array_index(devices, 1);
 	blob_fw1 = g_bytes_new_static("hello", 5);
 	firmware1 = fu_firmware_new_from_bytes(blob_fw1);
+	fu_firmware_set_filename(firmware1, "firmware.bin");
 	ret = fu_plugin_runner_write_firmware(self->plugin,
 					      dev,
 					      firmware1,

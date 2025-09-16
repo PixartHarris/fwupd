@@ -1,10 +1,12 @@
-if host_machine.system() == 'linux'
+host_machine.system() == 'linux' or subdir_done()
+
 cargs = ['-DG_LOG_DOMAIN="FuPluginLogitechHidpp"']
 plugins += {meson.current_source_dir().split('/')[-1]: true}
 
 plugin_quirks += files('logitech-hidpp.quirk')
 plugin_builtin_logitech_hidpp = static_library('fu_plugin_logitech_hidpp',
   rustgen.process('fu-logitech-hidpp.rs'),
+  rustgen.process('fu-logitech-hidpp-rdfu.rs'),
   sources: [
     'fu-logitech-hidpp-plugin.c',
     'fu-logitech-hidpp-bootloader.c',
@@ -18,6 +20,7 @@ plugin_builtin_logitech_hidpp = static_library('fu_plugin_logitech_hidpp',
     'fu-logitech-hidpp-runtime-unifying.c',
     'fu-logitech-hidpp-runtime-bolt.c',
     'fu-logitech-hidpp-radio.c',
+    'fu-logitech-rdfu-firmware.c',
   ],
   include_directories: plugin_incdirs,
   link_with: plugin_libs,
@@ -58,6 +61,7 @@ if get_option('tests')
     ],
     install: true,
     install_rpath: libdir_pkg,
+    install_tag: 'tests',
     install_dir: installed_test_bindir,
     c_args: [
       cargs,
@@ -65,5 +69,4 @@ if get_option('tests')
     ],
   )
   test('logitech-hidpp-self-test', e, env: env)
-endif
 endif

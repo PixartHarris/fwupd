@@ -44,7 +44,7 @@ fu_powerd_plugin_create_suspend_file(GError **error)
 	inhibitsuspend_filename = g_build_filename(lockdir, "power_override", "fwupd.lock", NULL);
 	getpid_str = g_strdup_printf("%d", getpid());
 	if (!g_file_set_contents(inhibitsuspend_filename, getpid_str, -1, error)) {
-		g_prefix_error(error, "lock file unable to be created: ");
+		g_prefix_error_literal(error, "lock file unable to be created: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -88,38 +88,15 @@ fu_powerd_plugin_rescan(FuPlugin *plugin, GVariant *parameters)
 	/* plugged in */
 	if (power_type == FU_POWERD_EXTERNAL_POWER_AC ||
 	    power_type == FU_POWERD_EXTERNAL_POWER_USB) {
-		switch (current_state) {
-		case FU_POWERD_BATTERY_STATE_CHARGING:
-			fu_context_set_power_state(ctx, FU_POWER_STATE_AC_CHARGING);
-			break;
-		case FU_POWERD_BATTERY_STATE_FULLY_CHARGED:
-			fu_context_set_power_state(ctx, FU_POWER_STATE_AC_FULLY_CHARGED);
-			break;
-		default:
-			fu_context_set_power_state(ctx, FU_POWER_STATE_AC);
-			break;
-		}
+		fu_context_set_power_state(ctx, FU_POWER_STATE_AC);
 		return;
 	}
 
-	/* fallback */
-	switch (current_state) {
-	case FU_POWERD_BATTERY_STATE_CHARGING:
-		fu_context_set_power_state(ctx, FU_POWER_STATE_AC_CHARGING);
-		break;
-	case FU_POWERD_BATTERY_STATE_DISCHARGING:
-		fu_context_set_power_state(ctx, FU_POWER_STATE_BATTERY_DISCHARGING);
-		break;
-	case FU_POWERD_BATTERY_STATE_EMPTY:
-		fu_context_set_power_state(ctx, FU_POWER_STATE_BATTERY_EMPTY);
-		break;
-	case FU_POWERD_BATTERY_STATE_FULLY_CHARGED:
-		fu_context_set_power_state(ctx, FU_POWER_STATE_AC_FULLY_CHARGED);
-		break;
-	default:
-		fu_context_set_power_state(ctx, FU_POWER_STATE_UNKNOWN);
-		break;
-	}
+	if (current_state == FU_POWERD_BATTERY_STATE_FULLY_CHARGED ||
+	    current_state == FU_POWERD_BATTERY_STATE_CHARGING)
+		fu_context_set_power_state(ctx, FU_POWER_STATE_AC);
+	else
+		fu_context_set_power_state(ctx, FU_POWER_STATE_BATTERY);
 }
 
 static void
@@ -154,7 +131,7 @@ fu_powerd_plugin_startup(FuPlugin *plugin, FuProgress *progress, GError **error)
 						    error);
 
 	if (self->proxy == NULL) {
-		g_prefix_error(error, "failed to connect to powerd: ");
+		g_prefix_error_literal(error, "failed to connect to powerd: ");
 		return FALSE;
 	}
 	name_owner = g_dbus_proxy_get_name_owner(self->proxy);

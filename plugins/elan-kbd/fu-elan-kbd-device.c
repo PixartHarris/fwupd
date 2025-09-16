@@ -429,7 +429,7 @@ fu_elan_kbd_device_read_firmware(FuDevice *device, FuProgress *progress, GError 
 							  fu_progress_get_child(progress),
 							  error);
 	if (blob_bootloader == NULL) {
-		g_prefix_error(error, "failed to read ROM: ");
+		g_prefix_error_literal(error, "failed to read ROM: ");
 		return NULL;
 	}
 	img_bootloader = fu_firmware_new_from_bytes(blob_bootloader);
@@ -444,7 +444,7 @@ fu_elan_kbd_device_read_firmware(FuDevice *device, FuProgress *progress, GError 
 						   fu_progress_get_child(progress),
 						   error);
 	if (blob_app == NULL) {
-		g_prefix_error(error, "failed to read ROM: ");
+		g_prefix_error_literal(error, "failed to read ROM: ");
 		return NULL;
 	}
 	img_app = fu_firmware_new_from_bytes(blob_app);
@@ -456,7 +456,7 @@ fu_elan_kbd_device_read_firmware(FuDevice *device, FuProgress *progress, GError 
 	blob_option =
 	    fu_elan_kbd_device_cmd_read_option(self, fu_progress_get_child(progress), error);
 	if (blob_option == NULL) {
-		g_prefix_error(error, "failed to read ROM: ");
+		g_prefix_error_literal(error, "failed to read ROM: ");
 		return NULL;
 	}
 	img_option = fu_firmware_new_from_bytes(blob_option);
@@ -602,14 +602,14 @@ fu_elan_kbd_device_write_firmware(FuDevice *device,
 
 	/* unlock */
 	if (!fu_elan_kbd_device_cmd_unlock(self, error)) {
-		g_prefix_error(error, "failed to unlock: ");
+		g_prefix_error_literal(error, "failed to unlock: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
 
 	/* enter IAP */
 	if (!fu_elan_kbd_device_cmd_entry_iap(self, error)) {
-		g_prefix_error(error, "failed to entry IAP: ");
+		g_prefix_error_literal(error, "failed to entry IAP: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -623,14 +623,14 @@ fu_elan_kbd_device_write_firmware(FuDevice *device,
 					      blob,
 					      fu_progress_get_child(progress),
 					      error)) {
-		g_prefix_error(error, "failed to write ROM: ");
+		g_prefix_error_literal(error, "failed to write ROM: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
 
 	/* finish IAP */
 	if (!fu_elan_kbd_device_cmd_finished_iap(self, error)) {
-		g_prefix_error(error, "failed to finish IAP: ");
+		g_prefix_error_literal(error, "failed to finish IAP: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -642,7 +642,7 @@ fu_elan_kbd_device_write_firmware(FuDevice *device,
 						      fu_progress_get_child(progress),
 						      error);
 	if (blob_verify == NULL) {
-		g_prefix_error(error, "failed to read ROM: ");
+		g_prefix_error_literal(error, "failed to read ROM: ");
 		return FALSE;
 	}
 	if (!fu_bytes_compare(blob, blob_verify, error))
@@ -681,7 +681,7 @@ fu_elan_kbd_device_init(FuElanKbdDevice *self)
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UNSIGNED_PAYLOAD);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_IS_BOOTLOADER);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_CAN_VERIFY_IMAGE);
-	fu_device_add_icon(FU_DEVICE(self), "input-keyboard");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_INPUT_KEYBOARD);
 	fu_usb_device_add_interface(FU_USB_DEVICE(self), 0x01);
 	fu_usb_device_add_interface(FU_USB_DEVICE(self), 0x02);
 	fu_usb_device_add_interface(FU_USB_DEVICE(self), 0x03);

@@ -25,7 +25,6 @@
 #include "fu-dfu-common.h"
 #include "fu-dfu-device.h"
 #include "fu-dfu-sector.h"
-#include "fu-dfu-struct.h"
 #include "fu-dfu-target-private.h" /* waive-pre-commit */
 
 #define DFU_TARGET_MANIFEST_MAX_POLLING_TRIES 200
@@ -45,6 +44,7 @@ fu_dfu_target_init(FuDfuTarget *self)
 {
 	FuDfuTargetPrivate *priv = GET_PRIVATE(self);
 	priv->sectors = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
+	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_PARENT_NAME_PREFIX);
 }
 
 static void
@@ -110,7 +110,7 @@ fu_dfu_target_parse_sector(FuDfuTarget *self,
 		g_set_error(error,
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "Invalid number of sectors: %s",
+			    "invalid number of sectors: %s",
 			    dfuse_sector_id);
 		return FALSE;
 	}
@@ -120,7 +120,7 @@ fu_dfu_target_parse_sector(FuDfuTarget *self,
 		g_set_error(error,
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "Invalid sector ID: %s",
+			    "invalid sector ID: %s",
 			    dfuse_sector_id);
 		return FALSE;
 	}
@@ -131,7 +131,7 @@ fu_dfu_target_parse_sector(FuDfuTarget *self,
 		g_set_error(error,
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "Invalid sector size: %s",
+			    "invalid sector size: %s",
 			    dfuse_sector_id);
 		return FALSE;
 	}
@@ -160,7 +160,7 @@ fu_dfu_target_parse_sector(FuDfuTarget *self,
 		g_set_error(error,
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "Invalid sector multiplier: %s",
+			    "invalid sector multiplier: %s",
 			    tmp);
 		return FALSE;
 	}
@@ -177,23 +177,23 @@ fu_dfu_target_parse_sector(FuDfuTarget *self,
 		cap = FU_DFU_SECTOR_CAP_READABLE | FU_DFU_SECTOR_CAP_ERASABLE;
 		break;
 	case 'd':
-		cap = FU_DFU_SECTOR_CAP_WRITEABLE;
+		cap = FU_DFU_SECTOR_CAP_WRITABLE;
 		break;
 	case 'e':
-		cap = FU_DFU_SECTOR_CAP_READABLE | FU_DFU_SECTOR_CAP_WRITEABLE;
+		cap = FU_DFU_SECTOR_CAP_READABLE | FU_DFU_SECTOR_CAP_WRITABLE;
 		break;
 	case 'f':
-		cap = FU_DFU_SECTOR_CAP_ERASABLE | FU_DFU_SECTOR_CAP_WRITEABLE;
+		cap = FU_DFU_SECTOR_CAP_ERASABLE | FU_DFU_SECTOR_CAP_WRITABLE;
 		break;
 	case 'g':
 		cap = FU_DFU_SECTOR_CAP_READABLE | FU_DFU_SECTOR_CAP_ERASABLE |
-		      FU_DFU_SECTOR_CAP_WRITEABLE;
+		      FU_DFU_SECTOR_CAP_WRITABLE;
 		break;
 	default:
 		g_set_error(error,
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "Invalid sector type: %s",
+			    "invalid sector type: %s",
 			    tmp);
 		return FALSE;
 	}
@@ -244,7 +244,7 @@ fu_dfu_target_parse_sectors(FuDfuTarget *self, const gchar *alt_name, GError **e
 					   0x0, /* zone */
 					   0x0, /* number */
 					   FU_DFU_SECTOR_CAP_ERASABLE | FU_DFU_SECTOR_CAP_READABLE |
-					       FU_DFU_SECTOR_CAP_WRITEABLE);
+					       FU_DFU_SECTOR_CAP_WRITABLE);
 		g_ptr_array_add(priv->sectors, sector);
 	}
 
@@ -277,7 +277,7 @@ fu_dfu_target_parse_sectors(FuDfuTarget *self, const gchar *alt_name, GError **e
 				 G_MAXUINT32,
 				 FU_INTEGER_BASE_16,
 				 error)) {
-			g_prefix_error(error, "sector address invalid: ");
+			g_prefix_error_literal(error, "sector address invalid: ");
 			return FALSE;
 		}
 		addr = (guint32)addr_tmp;
@@ -300,7 +300,7 @@ fu_dfu_target_parse_sectors(FuDfuTarget *self, const gchar *alt_name, GError **e
 							(i - 1) / 2,
 							j,
 							error)) {
-				g_prefix_error(error, "Failed to parse: '%s': ", sectors[j]);
+				g_prefix_error(error, "failed to parse: '%s': ", sectors[j]);
 				return FALSE;
 			}
 		}
@@ -484,17 +484,17 @@ fu_dfu_target_check_status(FuDfuTarget *self, GError **error)
 	status = fu_dfu_device_get_status(device);
 	if (fu_dfu_device_get_version(device) == FU_DFU_FIRMARE_VERSION_DFUSE) {
 		if (status == FU_DFU_STATUS_ERR_VENDOR) {
-			g_set_error(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_NOT_SUPPORTED,
-				    "Read protection is active");
+			g_set_error_literal(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_NOT_SUPPORTED,
+					    "read protection is active");
 			return FALSE;
 		}
 		if (status == FU_DFU_STATUS_ERR_TARGET) {
-			g_set_error(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_NOT_SUPPORTED,
-				    "Address is wrong or unsupported");
+			g_set_error_literal(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_NOT_SUPPORTED,
+					    "address is wrong or unsupported");
 			return FALSE;
 		}
 	}
@@ -643,13 +643,12 @@ fu_dfu_target_setup(FuDfuTarget *self, GError **error)
 	/* add a dummy entry */
 	if (priv->sectors->len == 0) {
 		FuDfuSector *sector;
-		sector =
-		    fu_dfu_sector_new(0x0, /* addr */
-				      0x0, /* size */
-				      0x0, /* size_left */
-				      0x0, /* zone */
-				      0x0, /* number */
-				      FU_DFU_SECTOR_CAP_READABLE | FU_DFU_SECTOR_CAP_WRITEABLE);
+		sector = fu_dfu_sector_new(0x0, /* addr */
+					   0x0, /* size */
+					   0x0, /* size_left */
+					   0x0, /* zone */
+					   0x0, /* number */
+					   FU_DFU_SECTOR_CAP_READABLE | FU_DFU_SECTOR_CAP_WRITABLE);
 		g_debug("no UM0424 sector description in %s",
 			fu_device_get_logical_id(FU_DEVICE(self)));
 		g_ptr_array_add(priv->sectors, sector);
@@ -717,7 +716,7 @@ fu_dfu_target_download_chunk(FuDfuTarget *self,
 
 	/* find out if the write was successful, waiting for BUSY to clear */
 	if (!fu_dfu_target_check_status(self, error)) {
-		g_prefix_error(error, "cannot wait for busy: ");
+		g_prefix_error_literal(error, "cannot wait for busy: ");
 		return FALSE;
 	}
 
@@ -1101,7 +1100,7 @@ fu_dfu_target_download_element(FuDfuTarget *self,
 	FuDfuTargetClass *klass = FU_DFU_TARGET_GET_CLASS(self);
 
 	/* progress */
-	if (flags & DFU_TARGET_TRANSFER_FLAG_VERIFY &&
+	if (flags & FU_DFU_TARGET_TRANSFER_FLAG_VERIFY &&
 	    fu_device_has_private_flag(device, FU_DFU_DEVICE_FLAG_CAN_UPLOAD)) {
 		fu_progress_set_id(progress, G_STRLOC);
 		fu_progress_add_step(progress, FWUPD_STATUS_DEVICE_WRITE, 96, NULL);
@@ -1130,7 +1129,7 @@ fu_dfu_target_download_element(FuDfuTarget *self,
 	fu_progress_step_done(progress);
 
 	/* verify */
-	if (flags & DFU_TARGET_TRANSFER_FLAG_VERIFY &&
+	if (flags & FU_DFU_TARGET_TRANSFER_FLAG_VERIFY &&
 	    fu_device_has_private_flag(device, FU_DFU_DEVICE_FLAG_CAN_UPLOAD)) {
 		g_autoptr(GBytes) bytes = NULL;
 		g_autoptr(GBytes) bytes_tmp = NULL;
@@ -1165,7 +1164,7 @@ fu_dfu_target_download_element(FuDfuTarget *self,
  * fu_dfu_target_download:
  * @self: a #FuDfuTarget
  * @image: a #FuFirmware
- * @flags: DFU target flags, e.g. %DFU_TARGET_TRANSFER_FLAG_VERIFY
+ * @flags: DFU target flags, e.g. %FU_DFU_TARGET_TRANSFER_FLAG_VERIFY
  * @error: (nullable): optional return location for an error
  *
  * Downloads firmware from the host to the target, optionally verifying
@@ -1225,7 +1224,7 @@ fu_dfu_target_download(FuDfuTarget *self,
 		/* auto-detect missing firmware address -- this assumes
 		 * that the first target is the main program memory and that
 		 * there is only one element in the firmware file */
-		if (flags & DFU_TARGET_TRANSFER_FLAG_ADDR_HEURISTIC &&
+		if (flags & FU_DFU_TARGET_TRANSFER_FLAG_ADDR_HEURISTIC &&
 		    fu_chunk_get_address(chk) == 0x0 && chunks->len == 1 &&
 		    priv->sectors->len > 0) {
 			FuDfuSector *sector = g_ptr_array_index(priv->sectors, 0);

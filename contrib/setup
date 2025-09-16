@@ -25,7 +25,11 @@ rename_branch()
 
 setup_deps()
 {
-    read -p "Install build dependencies? (y/N) " question
+    if [ -z "$CI" ]; then
+        read -p "Install build dependencies? (y/N) " question
+    else
+        question=y
+    fi
     if [ "$question" = "y" ]; then
         python3 $HELPER install-dependencies $HELPER_ARGS -y
     fi
@@ -67,8 +71,10 @@ setup_vscode()
 
 setup_git()
 {
-    echo "Configuring git environment"
-    git config include.path ../.gitconfig
+    if [ -z "$CI" ]; then
+        echo "Configuring git environment"
+        git config include.path ../.gitconfig
+    fi
 }
 
 install_pip()
@@ -114,15 +120,21 @@ EOF
 
 setup_precommit()
 {
-    echo "Configuring pre-commit hooks"
-    install_pip pre-commit
-    pre-commit install
+    if [ -z "$CI" ]; then
+        echo "Configuring pre-commit hooks"
+        install_pip pre-commit
+        pre-commit install
+    fi
 }
 
 setup_prepush()
 {
-    echo ""
-    read -p "Run tests locally before pushing to remote branches? THIS WILL SLOW DOWN EVERY PUSH but reduce the risk of failing CI. (y/N) " question
+    if [ -z "$CI" ]; then
+        echo ""
+        read -p "Run tests locally before pushing to remote branches? THIS WILL SLOW DOWN EVERY PUSH but reduce the risk of failing CI. (y/N) " question
+    else
+        question=y
+    fi
     if [ "$question" = "y" ]; then
         pre-commit install -t pre-push
     else
@@ -206,7 +218,7 @@ detect_os "$@"
 #if interactive install build deps and prepare environment
 if [ -t 2 ]; then
     case $OS in
-        debian|ubuntu|arch|fedora|darwin)
+        debian|ubuntu|arch|fedora|darwin|freebsd)
             setup_deps
             ;;
     esac

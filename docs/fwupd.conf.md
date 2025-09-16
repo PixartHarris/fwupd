@@ -103,6 +103,11 @@ The `[fwupd]` section can contain the following parameters:
   child, parent or sibling.
   This is not recommended for production systems, although it may be useful for firmware development.
 
+**IgnoreEfivarsFreeSpace={{IgnoreEfivarsFreeSpace}}**
+
+  Ignore the efivars free space requirement for db, dbx, KEK and PK updates.
+  This may be required on Linux kernels older than 6.4, or where the hardware does not support UEFI `RT->QueryVariableInfo`.
+
 **OnlyTrusted={{OnlyTrusted}}**
 
   Only support installing firmware signed with a trusted key.
@@ -138,6 +143,12 @@ The `[fwupd]` section can contain the following parameters:
 
   Set the preferred location used for the EFI system partition (ESP) path.
   This is typically used if UDisks was not able to automatically identify the location for any reason.
+
+**RequireImmutableEnumeration={{RequireImmutableEnumeration}}**
+
+  Don't allow fwupd plugins to directly interact with devices during probe or setup stages.
+  The kernel should provide all device information in sysfs files or udev properties.
+  This will block some plugins from working.
 
 **Manufacturer=**
 

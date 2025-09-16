@@ -11,7 +11,6 @@
 #include <string.h>
 
 #include "fu-byte-array.h"
-#include "fu-bytes.h"
 #include "fu-common.h"
 #include "fu-crc.h"
 #include "fu-dfu-firmware-private.h"
@@ -323,10 +322,10 @@ fu_dfu_firmware_write(FuFirmware *firmware, GError **error)
 
 	/* can only contain one image */
 	if (images->len > 1) {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "DFU only supports writing one image");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_SUPPORTED,
+				    "DFU only supports writing one image");
 		return NULL;
 	}
 

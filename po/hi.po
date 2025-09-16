@@ -35,7 +35,7 @@ msgid "%s Battery Update"
 msgstr "%s बैटरी अद्यतन"
 
 #. TRANSLATORS: the CPU microcode is firmware loaded onto the CPU
-#. * at system bootup
+#. * at system boot-up
 #, c-format
 msgid "%s CPU Microcode Update"
 msgstr "%s CPU माइक्रोकोड अद्यतन"
@@ -1112,10 +1112,6 @@ msgid "FILENAME CERTIFICATE PRIVATE-KEY"
 msgstr "फाइलनाम प्रमाणपत्र निजी-कुंजी"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
-msgid "FILENAME DEVICE-ID"
-msgstr "फाइलनाम उपकरण-ID"
-
-#. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME OFFSET DATA [FIRMWARE-TYPE]"
 msgstr "फाइलनाम ऑफ़सेट डेटा [फर्मवेयर-प्रकार]"
 
@@ -1395,10 +1391,6 @@ msgid "Gets the list of blocked firmware"
 msgstr "अवरुद्ध फर्मवेयर की सूची प्राप्त करता है"
 
 #. TRANSLATORS: command description
-msgid "Gets the list of updates for connected hardware"
-msgstr "जुड़े हार्डवेयर के लिए अद्यतनों की सूची प्राप्त करता है"
-
-#. TRANSLATORS: command description
 msgid "Gets the releases for a device"
 msgstr "उपकरण के लिए रिलीज़ प्राप्त करता है"
 
@@ -1423,7 +1415,6 @@ msgid "Host Security Events"
 msgstr "होस्ट की सुरक्षा घटनाएं"
 
 #. TRANSLATORS: error message for unsupported feature
-#, c-format
 msgid "Host Security ID (HSI) is not supported"
 msgstr "होस्ट सुरक्षा ID (HSI) समर्थित नहीं है"
 
@@ -1989,10 +1980,6 @@ msgid "Only version upgrades are allowed"
 msgstr "केवल संस्करण उन्नयन की अनुमति है"
 
 #. TRANSLATORS: command line option
-msgid "Output in JSON format"
-msgstr "JSON प्रारूप में आउटपुट"
-
-#. TRANSLATORS: command line option
 msgid "Override the default ESP path"
 msgstr "तयशुदा ESP पथ अधिलेखित करें"
 
@@ -2489,11 +2476,6 @@ msgstr "सभी उपकरण सफलतापूर्वक सक्र
 #. TRANSLATORS: success message
 msgid "Successfully disabled remote"
 msgstr "रिमोट सफलतापूर्वक अक्षम किया गया"
-
-#. TRANSLATORS: success message -- where 'metadata' is information
-#. * about available firmware on the remote server
-msgid "Successfully downloaded new metadata: "
-msgstr "नया मेटाडेटा सफलतापूर्वक डाउनलोड किया गया: "
 
 #. TRANSLATORS: success message
 msgid "Successfully enabled and refreshed remote"

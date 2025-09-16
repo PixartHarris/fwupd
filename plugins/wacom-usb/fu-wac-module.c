@@ -53,8 +53,8 @@ fu_wac_module_refresh(FuWacModule *self, GError **error)
 					      sizeof(buf),
 					      FU_HID_DEVICE_FLAG_ALLOW_TRUNC,
 					      error)) {
-		g_prefix_error(error, "failed to refresh status: ");
-		fu_error_convert(error);
+		g_prefix_error_literal(error, "failed to refresh status: ");
+		fwupd_error_convert(error);
 		return FALSE;
 	}
 
@@ -152,7 +152,7 @@ fu_wac_module_set_feature(FuWacModule *self,
 				    0x0, /* src */
 				    len,
 				    error)) {
-			g_prefix_error(error, "Submodule blob larger than buffer: ");
+			g_prefix_error_literal(error, "Submodule blob larger than buffer: ");
 			return FALSE;
 		}
 	}
@@ -178,7 +178,7 @@ fu_wac_module_set_feature(FuWacModule *self,
 					      sizeof(buf),
 					      FU_HID_DEVICE_FLAG_ALLOW_TRUNC,
 					      error)) {
-		g_prefix_error(error, "failed to set module feature: ");
+		g_prefix_error_literal(error, "failed to set module feature: ");
 		return FALSE;
 	}
 
@@ -269,6 +269,7 @@ fu_wac_module_init(FuWacModule *self)
 	fu_device_add_protocol(FU_DEVICE(self), "com.wacom.usb");
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UNSIGNED_PAYLOAD);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_MD_SET_FLAGS);
+	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_PARENT_NAME_PREFIX);
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_BCD);
 	fu_device_set_remove_delay(FU_DEVICE(self), FU_DEVICE_REMOVE_DELAY_RE_ENUMERATE);
 }

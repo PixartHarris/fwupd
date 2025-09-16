@@ -110,7 +110,7 @@ fu_vli_usbhub_rtd21xx_device_i2c_read(FuVliUsbhubDevice *self,
 					    FU_VLI_DEVICE_TIMEOUT,
 					    NULL,
 					    error)) {
-		g_prefix_error(error, "failed to read I2C: ");
+		g_prefix_error_literal(error, "failed to read I2C: ");
 		return FALSE;
 	}
 	fu_dump_raw(G_LOG_DOMAIN, "I2cReadData", data, datasz);
@@ -176,7 +176,7 @@ fu_vli_usbhub_rtd21xx_device_ensure_version_unlocked(FuVliUsbhubRtd21xxDevice *s
 						    buf_req,
 						    sizeof(buf_req),
 						    error)) {
-		g_prefix_error(error, "failed to get version number: ");
+		g_prefix_error_literal(error, "failed to get version number: ");
 		return FALSE;
 	}
 
@@ -188,7 +188,7 @@ fu_vli_usbhub_rtd21xx_device_ensure_version_unlocked(FuVliUsbhubRtd21xxDevice *s
 						   buf_rep,
 						   sizeof(buf_rep),
 						   error)) {
-		g_prefix_error(error, "failed to get version number: ");
+		g_prefix_error_literal(error, "failed to get version number: ");
 		return FALSE;
 	}
 
@@ -224,7 +224,7 @@ fu_vli_usbhub_rtd21xx_device_detach_raw(FuVliUsbhubRtd21xxDevice *self, GError *
 	FuVliUsbhubDevice *parent = FU_VLI_USBHUB_DEVICE(fu_device_get_parent(FU_DEVICE(self)));
 	guint8 buf[] = {0x03};
 	if (!fu_vli_usbhub_rtd21xx_device_i2c_write(parent, 0x6A, 0x31, buf, sizeof(buf), error)) {
-		g_prefix_error(error, "failed to detach: ");
+		g_prefix_error_literal(error, "failed to detach: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -253,7 +253,7 @@ fu_vli_usbhub_rtd21xx_device_detach_cb(FuDevice *device, gpointer user_data, GEr
 static gboolean
 fu_vli_usbhub_rtd21xx_device_detach(FuDevice *device, FuProgress *progress, GError **error)
 {
-	FuVliUsbhubDevice *parent = FU_VLI_USBHUB_DEVICE(fu_device_get_parent(device));
+	FuDevice *parent = fu_device_get_parent(device);
 	g_autoptr(FuDeviceLocker) locker = NULL;
 
 	/* open device */
@@ -276,7 +276,7 @@ fu_vli_usbhub_rtd21xx_device_attach(FuDevice *device, FuProgress *progress, GErr
 	g_autoptr(FuDeviceLocker) locker = NULL;
 
 	/* open device */
-	locker = fu_device_locker_new(parent, error);
+	locker = fu_device_locker_new(FU_DEVICE(parent), error);
 	if (locker == NULL)
 		return FALSE;
 	if (!fu_vli_usbhub_rtd21xx_device_i2c_write(parent,
@@ -285,7 +285,7 @@ fu_vli_usbhub_rtd21xx_device_attach(FuDevice *device, FuProgress *progress, GErr
 						    buf,
 						    sizeof(buf),
 						    error)) {
-		g_prefix_error(error, "failed to attach: ");
+		g_prefix_error_literal(error, "failed to attach: ");
 		return FALSE;
 	}
 
@@ -319,7 +319,7 @@ fu_vli_usbhub_rtd21xx_device_write_firmware(FuDevice *device,
 	fu_progress_add_step(progress, FWUPD_STATUS_DEVICE_RESTART, 10, NULL);
 
 	/* open device */
-	locker = fu_device_locker_new(parent, error);
+	locker = fu_device_locker_new(FU_DEVICE(parent), error);
 	if (locker == NULL)
 		return FALSE;
 
@@ -337,7 +337,7 @@ fu_vli_usbhub_rtd21xx_device_write_firmware(FuDevice *device,
 						    write_buf,
 						    2,
 						    error)) {
-		g_prefix_error(error, "failed to enable ISP: ");
+		g_prefix_error_literal(error, "failed to enable ISP: ");
 		return FALSE;
 	}
 	if (!fu_vli_usbhub_rtd21xx_device_read_status(self, NULL, error))
@@ -351,7 +351,7 @@ fu_vli_usbhub_rtd21xx_device_write_firmware(FuDevice *device,
 						    write_buf,
 						    1,
 						    error)) {
-		g_prefix_error(error, "failed to get project ID address: ");
+		g_prefix_error_literal(error, "failed to get project ID address: ");
 		return FALSE;
 	}
 
@@ -363,7 +363,7 @@ fu_vli_usbhub_rtd21xx_device_write_firmware(FuDevice *device,
 						   read_buf,
 						   6,
 						   error)) {
-		g_prefix_error(error, "failed to read project ID: ");
+		g_prefix_error_literal(error, "failed to read project ID: ");
 		return FALSE;
 	}
 	if (read_buf[0] != ISP_STATUS_IDLE_SUCCESS) {
@@ -397,7 +397,7 @@ fu_vli_usbhub_rtd21xx_device_write_firmware(FuDevice *device,
 						    write_buf,
 						    project_id_count + 1,
 						    error)) {
-		g_prefix_error(error, "failed to send fw update start cmd: ");
+		g_prefix_error_literal(error, "failed to send fw update start cmd: ");
 		return FALSE;
 	}
 	if (!fu_vli_usbhub_rtd21xx_device_read_status(self, NULL, error))
@@ -412,7 +412,7 @@ fu_vli_usbhub_rtd21xx_device_write_firmware(FuDevice *device,
 						    write_buf,
 						    3,
 						    error)) {
-		g_prefix_error(error, "failed to send fw update start cmd: ");
+		g_prefix_error_literal(error, "failed to send fw update start cmd: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -463,7 +463,7 @@ fu_vli_usbhub_rtd21xx_device_write_firmware(FuDevice *device,
 						    write_buf,
 						    1,
 						    error)) {
-		g_prefix_error(error, "failed update finish cmd: ");
+		g_prefix_error_literal(error, "failed update finish cmd: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -478,7 +478,7 @@ fu_vli_usbhub_rtd21xx_device_write_firmware(FuDevice *device,
 						    write_buf,
 						    1,
 						    error)) {
-		g_prefix_error(error, "FwUpdate exit: ");
+		g_prefix_error_literal(error, "fwUpdate exit: ");
 		return FALSE;
 	}
 
@@ -494,7 +494,7 @@ fu_vli_usbhub_rtd21xx_device_write_firmware(FuDevice *device,
 static gboolean
 fu_vli_usbhub_rtd21xx_device_reload(FuDevice *device, GError **error)
 {
-	FuVliUsbhubDevice *parent = FU_VLI_USBHUB_DEVICE(fu_device_get_parent(device));
+	FuDevice *parent = fu_device_get_parent(device);
 	g_autoptr(FuDeviceLocker) locker = NULL;
 
 	/* open parent device */
@@ -537,7 +537,7 @@ fu_vli_usbhub_rtd21xx_device_set_progress(FuDevice *self, FuProgress *progress)
 static void
 fu_vli_usbhub_rtd21xx_device_init(FuVliUsbhubRtd21xxDevice *self)
 {
-	fu_device_add_icon(FU_DEVICE(self), "video-display");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_VIDEO_DISPLAY);
 	fu_device_add_protocol(FU_DEVICE(self), "com.vli.i2c");
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_DUAL_IMAGE);

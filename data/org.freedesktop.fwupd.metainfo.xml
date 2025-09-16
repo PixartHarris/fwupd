@@ -38,6 +38,277 @@
     <binary>fwupdtool</binary>
   </provides>
   <releases>
+    <release version="2.0.16" date="2025-09-12">
+      <description>
+        <p>
+          This release adds the following features:
+        </p>
+        <ul>
+          <li>Add a 'search' feature to fwupdtool and fwupdmgr</li>
+        </ul>
+        <p>This release fixes the following bugs:</p>
+        <ul>
+          <li>Fix missing release locations when loading from artifact</li>
+          <li>Fix remaining issues to make updates on FreeBSD work</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.0.15" date="2025-09-10">
+      <description>
+        <p>
+          This release adds the following features:
+        </p>
+        <ul>
+          <li>Allow child devices to use the parent name as a prefix</li>
+        </ul>
+        <p>This release fixes the following bugs:</p>
+        <ul>
+          <li>Add newer commands and options for Fish completion</li>
+          <li>Allow installing archives named as .CAB rather than .cab</li>
+          <li>Erase Firehose modem devices correctly</li>
+          <li>Fix Goodix enumeration issues</li>
+          <li>Fix sending firmware reports without --force</li>
+          <li>Fix the FreeBSD build</li>
+          <li>Fix version number of BnR MTD devices</li>
+          <li>Require additional requirements for the default PS5512 devboard</li>
+          <li>Require a full system shutdown for all Micron NVMe updates</li>
+          <li>Use a better name for Elan touchpad and Intel PCH SPI devices</li>
+        </ul>
+        <p>This release adds support for the following hardware:</p>
+        <ul>
+          <li>Foxconn SDX61 Modem</li>
+          <li>Jabra Evolve2 child devices</li>
+          <li>NVIDIA ConnectX-6, ConnectX-7 and ConnectX-8 NICs</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.0.14" date="2025-08-29">
+      <description>
+        <p>
+          This release adds the following features:
+        </p>
+        <ul>
+          <li>Add support for ignoring the network connectivity requirement</li>
+          <li>Allow building on RHEL-9 and RHEL-10</li>
+          <li>Allow plugins to know the firmware version during update</li>
+          <li>Allow UEFI capsule devices to opt-out of Capsule-on-Disk</li>
+          <li>Allow unsetting HwID plugin context flags</li>
+          <li>Allow upgrading from a zero "empty" UEFI dbx</li>
+        </ul>
+        <p>This release fixes the following bugs:</p>
+        <ul>
+          <li>Add an automatic firehose counterpart to the QCDM modem device</li>
+          <li>Disable signature time checks when verifying firmware</li>
+          <li>Do not add a vendor ID of UNKNOWN when the signature has no vendor</li>
+          <li>Do not discover ThunderBolt retimer devices when run in single-shot mode</li>
+          <li>Do not use deprecated libflashrom API</li>
+          <li>Enhance firmware metadata generation in firmware_packager</li>
+          <li>Ensure Lexar NVMe drives use a proper version number</li>
+          <li>Fix parsing and writing UF2 extension sections</li>
+          <li>Fix Synaptics RMI initialization for new devices</li>
+          <li>Fix updating DFOTA and MBIM modem devices</li>
+          <li>Move some vendor name fixups to the quirk file</li>
+          <li>Remove CapsuleOnDisk HwID match for Dell</li>
+          <li>Return a sensible error when using build-cabinet wrong</li>
+          <li>Set the firehose loader filename in a more permissive way</li>
+          <li>Update the mapping for TPM vendor names</li>
+          <li>Verify the checksum of the serialized data in tests</li>
+          <li>Work around a libmbim bug when detaching</li>
+        </ul>
+        <p>This release adds support for the following hardware:</p>
+        <ul>
+          <li>Egis MoC devices</li>
+          <li>Framework QMK devices</li>
+          <li>ILITEK touch controllers</li>
+          <li>SteelSeries Arctis Nova 3P</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.0.13" date="2025-07-21">
+      <description>
+        <p>
+          This release adds the following features:
+        </p>
+        <ul>
+          <li>Add a daemon config option to ignore efivars free space</li>
+          <li>Add support for glob-aware version comparison requirements</li>
+          <li>Allow targeting specific regions in FMAP when using flashrom</li>
+          <li>Detect static variables and magic numbers during code review</li>
+          <li>Remove the unused hailuck and rts54hid plugins</li>
+        </ul>
+        <p>This release fixes the following bugs:</p>
+        <ul>
+          <li>Align MTD erase up to the erasesize as necessary</li>
+          <li>Allow parsing IGSC OptionROM when using fwupdtool</li>
+          <li>Allow removing private flags from UEFI capsule devices in quirks</li>
+          <li>Do not copy the vendor for Intel reference ME firmware</li>
+          <li>Do not use an interactive console if stdout is redirected</li>
+          <li>Fix the UEFI self-test when the capsule splash is disabled</li>
+          <li>Get better device information when using PCI-backed MTD devices</li>
+          <li>Get the Intel GPU SKU and SVN when using BMG hardware</li>
+          <li>Make MBIM modem devices emulatable</li>
+          <li>Make sure fwupdtool.exe is available in the Windows PATH</li>
+          <li>Only show the 'Full Disk Encryption Detected' warning when required</li>
+          <li>Set all QCDM modem devices to raw mode when updating</li>
+          <li>Show all devices for fwupdtool get-devices --show-all --force</li>
+          <li>Show correct dbx version if non-Microsoft entries are present</li>
+          <li>Show KEK device attributes in fwupdmgr</li>
+          <li>Use an alternate GUID when the Intel GPU is in recovery mode</li>
+          <li>Use the kernel netlink hotplug socket when there is no Udev</li>
+          <li>Various small changes to speed up startup by 60% and lower RSS by 40%</li>
+        </ul>
+        <p>This release adds support for the following hardware:</p>
+        <ul>
+          <li>HP USB-C 100W G6 Dock</li>
+          <li>Logitech Bulk Controller pheripherals</li>
+          <li>More MediaTek scaler devices</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.0.12" date="2025-06-19">
+      <description>
+        <p>
+          This release adds the following features:
+        </p>
+        <ul>
+          <li>Add a config option for enforcing immutable device enumeration</li>
+          <li>Add device emulation support for Thunderbolt host controllers</li>
+          <li>Do the efivarfs free space checks for dbx, db, KEK and PK devices</li>
+          <li>Ensure the i2c_dev kernel driver is always loaded if a module</li>
+          <li>Parse the SBOM data from fwupdx64.efi if provided</li>
+          <li>Support loading multiple coSWID blobs from PE files</li>
+        </ul>
+        <p>This release fixes the following bugs:</p>
+        <ul>
+          <li>Added HP Elitedesk G6 mini to not get dbx-updates</li>
+          <li>Add two more uefi dbx checksum->version entries</li>
+          <li>Be more useful when building modem device Instance IDs</li>
+          <li>Convert asus-hid and legion-hid2 to hidraw to avoid possible input blips</li>
+          <li>Do not create radio for Logitech RDFU-capable devices</li>
+          <li>Fix a modem-manager regression where a PCI device had no vendor ID</li>
+          <li>Fix a regression when updating DFOTA modem devices</li>
+          <li>Fix self tests when building with -Defi_os_dir</li>
+          <li>Fix self tests when the builder does not support DistroVersion</li>
+          <li>Fix updating Thunderbolt host controllers with some version formats</li>
+          <li>Handle HECI unsupported status (0x0b) for Dell hardware</li>
+          <li>Make tar a dependency of the uefi-capsule tests</li>
+          <li>Mark the KEK and db updates as affecting FDE like BitLocker</li>
+          <li>Properly detect the Redfish reboot request for Dell servers</li>
+          <li>Send the proper artifact firmware filename to the Redfish BMC</li>
+          <li>Set the correct RMM device version for some Dell dock devices</li>
+          <li>Use inhibits so that the rts54hub device is marked as non-updatable</li>
+          <li>Use the virtual size to avoid padding when cutting PE sections</li>
+          <li>Wait for the Logitech Scribe device to replug after updating</li>
+        </ul>
+        <p>This release adds support for the following hardware:</p>
+        <ul>
+          <li>HP Portable USB-C Hub</li>
+          <li>More Foxconn 5G modem products</li>
+          <li>More Intel Arc Battlemage products</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.0.11" date="2025-06-04">
+      <description>
+        <p>
+          This release adds the following features:
+        </p>
+        <ul>
+          <li>Add a new check-reboot-needed command for scripts to use</li>
+          <li>Read the SELinux state in the report failure metadata</li>
+        </ul>
+        <p>This release fixes the following bugs:</p>
+        <ul>
+          <li>Add some notes in the README about security-relevant build flags</li>
+          <li>Add support for the Dell dock ownership command</li>
+          <li>Add the subsystem VIDPID when provided by ModemManager</li>
+          <li>Allow changing the rts54hub block size from a quirk entry</li>
+          <li>Allow Legion HID2 downgrades without --force, and clear config on upgrades</li>
+          <li>Allow specifying multiple DEVICE-IDs for the get-updates command</li>
+          <li>Cache the stream when parsing the processed cabinet to fix the report upload</li>
+          <li>Do not allow DBX updates on the AiStone X5KK4NAG</li>
+          <li>Do not use translated low-level error messages in the failure report</li>
+          <li>Fall back to the activation date if the X.509 cert has no suitable subject</li>
+          <li>Fix newer Synaptics VMM9 devices by adding a delay after disabling RC</li>
+          <li>Ignore some sanity checks when parsing PK, KEK and db certificates</li>
+          <li>Increase timeout requested by logitech RDFU devices</li>
+          <li>Never include systemd.machine_id in the failure report</li>
+          <li>Parse the correct VendorID from the ModemManager device ID</li>
+          <li>Process all pending event sources when waiting for replug</li>
+          <li>Use the UEFI PK report attributes for the other UEFI plugins</li>
+        </ul>
+        <p>This release adds support for the following hardware:</p>
+        <ul>
+          <li>Lenovo Thunderbolt 5 Smart Dock</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.0.10" date="2025-05-21">
+      <description>
+        <p>
+          This release adds the following features:
+        </p>
+        <ul>
+          <li>Include the AGESA version as the summary of the AMD secure processor device</li>
+          <li>Include the UEFI PK certificate key ID in the uploaded problem report</li>
+          <li>Provide a way for the client to restrict the GUID list to an emulated device</li>
+        </ul>
+        <p>This release fixes the following bugs:</p>
+        <ul>
+          <li>Do not allow dbx updates on the HP Elitebook 845 Gen10</li>
+          <li>Do not warn about BIOS bugs we can easily work around</li>
+          <li>Fix a regression in fwupdmgr emulation-save when recording some devices</li>
+          <li>Fix a regression preventing installation of KEKs</li>
+          <li>Fix a small memory leak when getting security attributes</li>
+          <li>Never write a UX capsule when using Capsule-On-Disk</li>
+          <li>Use the 'OnBattery' property from upower to tell if plugged in</li>
+        </ul>
+        <p>This release adds support for the following hardware:</p>
+        <ul>
+          <li>Lenovo Legion Touchpad</li>
+          <li>Logitech MX Mechanical</li>
+          <li>Poly Studio V72 and V12</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.0.9" date="2025-05-07">
+      <description>
+        <p>
+          This release adds the following features:
+        </p>
+        <ul>
+          <li>Add some documentation about updating the KEK and db</li>
+          <li>Allow installing multiple db certificate updates at the same time</li>
+          <li>Show what certificate signed the EFI authenticated variable</li>
+          <li>Use readline to look up inputs from user, and make it optional</li>
+        </ul>
+        <p>This release fixes the following bugs:</p>
+        <ul>
+          <li>Add several devices with broken firmware to the UEFI dbx blocklist</li>
+          <li>Constructing the authenticated URI properly when using FirmwareBaseURI</li>
+          <li>Do not enumerate non-updatable OptionROM devices</li>
+          <li>Do not export Redfish backup partitions as devices</li>
+          <li>Fix a crash when installing some Wacom firmware types</li>
+          <li>Fix a crash when parsing uevents that are not KEY=VALUE</li>
+          <li>Fix parsing the DFU descriptor when not using libusb</li>
+          <li>Fix PK and KEK enumeration failure on some systems</li>
+          <li>Fix SMBIOS parsing for ROM size >= 16MiB</li>
+          <li>Include a resolution for more of the HSI failures</li>
+          <li>Include more output when using fwupdtool get-devices --json</li>
+          <li>Never allow updating updatable-hidden devices with fwupdtool</li>
+          <li>Properly handle redfish location redirect when installing firmware</li>
+          <li>Recognize a very old dbx hash to allow upgrades</li>
+          <li>Require a reboot after updating Intel CVS devices</li>
+          <li>Rework the MEI code so that a device can use more than one interface</li>
+          <li>Rewrite the ModemManger plugin to be simpler and more supportable</li>
+          <li>Simplify parsing USB descriptors</li>
+        </ul>
+        <p>This release adds support for the following hardware:</p>
+        <ul>
+          <li>Intel Arc Battlemage GPUs</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.0.8" date="2025-04-09">
       <description>
         <p>
@@ -2305,7 +2576,7 @@
         <ul>
           <li>Allow compiling the daemon without polkit support</li>
           <li>Always look at all TPM eventlog supported algorithms</li>
-          <li>Change all instances of master/slave to initiator/target</li>
+          <li>Change all instances of m'ster/sl've to initiator/target</li>
           <li>Correctly order devices when using logical parents</li>
           <li>Do not dedupe NVMe or VLI PD devices</li>
           <li>Do not expose the VLI shared-SPI devices on the USB2 recovery device</li>
@@ -2515,7 +2786,7 @@
           <li>Invert default behavior to be safer for reboot and shutdown prompts</li>
           <li>Reload the Synaptics prometheus device version after update</li>
           <li>Use the correct unlocker when using GRWLock</li>
-          <li>Whitelist VIA USB hub PD and I²C devices</li>
+          <li>Allowlist VIA USB hub PD and I²C devices</li>
         </ul>
       </description>
     </release>
@@ -2834,7 +3105,7 @@
           <li>Fix a crash if AMT returns an empty response</li>
           <li>Fix a regression when doing GetReleases on unsupported hardware</li>
           <li>Fix the 8bitdo version number if the daemon locale is not C.UTF-8</li>
-          <li>Remove the Wacom DTH generation hardware from the whitelist</li>
+          <li>Remove the Wacom DTH generation hardware from the allowlist</li>
           <li>Sanitize the version if the version format has been specified</li>
         </ul>
       </description>

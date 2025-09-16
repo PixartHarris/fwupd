@@ -16,7 +16,6 @@
 #include "fu-efivars-private.h"
 #include "fu-mem.h"
 #include "fu-pefile-firmware.h"
-#include "fu-volume-private.h"
 
 G_DEFINE_TYPE(FuEfivars, fu_efivars, G_TYPE_OBJECT)
 
@@ -290,6 +289,32 @@ fu_efivars_space_used(FuEfivars *self, GError **error)
 		return G_MAXUINT64;
 	}
 	return efivars_class->space_used(self, error);
+}
+
+/**
+ * fu_efivars_space_free:
+ * @self: a #FuEfivars
+ * @error: (nullable): optional return location for an error
+ *
+ * Gets the free size available for new EFI variables, as reported from QueryVariableInfo.
+ *
+ * Returns: free space in bytes, or %G_MAXUINT64 on error
+ *
+ * Since: 2.0.12
+ **/
+guint64
+fu_efivars_space_free(FuEfivars *self, GError **error)
+{
+	FuEfivarsClass *efivars_class = FU_EFIVARS_GET_CLASS(self);
+
+	g_return_val_if_fail(FU_IS_EFIVARS(self), G_MAXUINT64);
+	g_return_val_if_fail(error == NULL || *error == NULL, G_MAXUINT64);
+
+	if (efivars_class->space_free == NULL) {
+		g_set_error_literal(error, FWUPD_ERROR, FWUPD_ERROR_NOT_SUPPORTED, "not supported");
+		return G_MAXUINT64;
+	}
+	return efivars_class->space_free(self, error);
 }
 
 /**

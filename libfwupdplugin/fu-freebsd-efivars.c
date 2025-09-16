@@ -15,7 +15,7 @@
 
 #include "fwupd-error.h"
 
-#include "fu-common.h"
+#include "fu-efivars.h"
 #include "fu-freebsd-efivars.h"
 
 struct _FuFreebsdEfivars {
@@ -28,10 +28,10 @@ static gboolean
 fu_freebsd_efivars_supported(FuEfivars *efivars, GError **error)
 {
 	if (efi_variables_supported() == 0) {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "kernel efivars support missing");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_SUPPORTED,
+				    "kernel efivars support missing");
 		return FALSE;
 	}
 	return TRUE;
@@ -96,16 +96,6 @@ fu_freebsd_efivars_exists_guid(const gchar *guid)
 }
 
 static gboolean
-fu_freebsd_efivars_exists(FuEfivars *efivars, const gchar *guid, const gchar *name)
-{
-	/* any name */
-	if (name == NULL)
-		return fu_freebsd_efivars_exists_guid(guid);
-
-	return fu_freebsd_efivars_get_data(efivars, guid, name, NULL, NULL, NULL, NULL);
-}
-
-static gboolean
 fu_freebsd_efivars_get_data(FuEfivars *efivars,
 			    const gchar *guid,
 			    const gchar *name,
@@ -117,6 +107,16 @@ fu_freebsd_efivars_get_data(FuEfivars *efivars,
 	efi_guid_t guidt;
 	efi_str_to_guid(guid, &guidt);
 	return (efi_get_variable(guidt, name, data, data_sz, attr) != 0);
+}
+
+static gboolean
+fu_freebsd_efivars_exists(FuEfivars *efivars, const gchar *guid, const gchar *name)
+{
+	/* any name */
+	if (name == NULL)
+		return fu_freebsd_efivars_exists_guid(guid);
+
+	return fu_freebsd_efivars_get_data(efivars, guid, name, NULL, NULL, NULL, NULL);
 }
 
 static GPtrArray *
@@ -137,11 +137,11 @@ fu_freebsd_efivars_get_names(FuEfivars *efivars, const gchar *guid, GError **err
 
 	/* nothing found */
 	if (names->len == 0) {
-		g_set_error_literal(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_NOT_FOUND,
-				    "no names for GUID %s",
-				    guid);
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_NOT_FOUND,
+			    "no names for GUID %s",
+			    guid);
 		return NULL;
 	}
 
@@ -159,10 +159,10 @@ fu_freebsd_efivars_space_used(FuEfivars *efivars, GError **error)
 	while (efi_get_next_variable_name(&guidt, &name)) {
 		size_t size = 0;
 		if (efi_get_variable_size(*guidt, name, &size) < 0) {
-			g_set_error(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_NOT_SUPPORTED,
-				    "failed to get efivars size");
+			g_set_error_literal(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_NOT_SUPPORTED,
+					    "failed to get efivars size");
 			return G_MAXUINT64;
 		}
 		total += size;
@@ -209,7 +209,6 @@ fu_freebsd_efivars_class_init(FuFreebsdEfivarsClass *klass)
 	efivars_class->supported = fu_freebsd_efivars_supported;
 	efivars_class->space_used = fu_freebsd_efivars_space_used;
 	efivars_class->exists = fu_freebsd_efivars_exists;
-	efivars_class->get_monitor = fu_freebsd_efivars_get_monitor;
 	efivars_class->get_data = fu_freebsd_efivars_get_data;
 	efivars_class->set_data = fu_freebsd_efivars_set_data;
 	efivars_class->delete = fu_freebsd_efivars_delete;

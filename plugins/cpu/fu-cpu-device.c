@@ -61,7 +61,7 @@ fu_cpu_device_convert_vendor(const gchar *vendor)
 	if (g_strcmp0(vendor, "GenuineIntel") == 0)
 		return "Intel";
 	if (g_strcmp0(vendor, "AuthenticAMD") == 0 || g_strcmp0(vendor, "AMDisbetter!") == 0)
-		return "Advanced Micro Devices, Inc.";
+		return "AMD";
 	if (g_strcmp0(vendor, "CentaurHauls") == 0)
 		return "IDT";
 	if (g_strcmp0(vendor, "CyrixInstead") == 0)
@@ -116,7 +116,7 @@ fu_cpu_device_init(FuCpuDevice *self)
 {
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_INTERNAL);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_HOST_CPU);
-	fu_device_add_icon(FU_DEVICE(self), "computer");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_COMPUTER);
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_HEX);
 	fu_device_set_physical_id(FU_DEVICE(self), "cpu:0");
 }
@@ -457,9 +457,8 @@ static void
 fu_cpu_device_add_security_attrs(FuDevice *device, FuSecurityAttrs *attrs)
 {
 #ifdef HAVE_UTSNAME_H
-	struct utsname name_tmp;
+	struct utsname name_tmp = {0};
 
-	memset(&name_tmp, 0, sizeof(struct utsname));
 	if (uname(&name_tmp) < 0) {
 		g_warning("failed to read CPU architecture");
 		return;

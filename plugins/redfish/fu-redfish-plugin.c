@@ -10,7 +10,6 @@
 #include "fu-ipmi-device.h"
 #endif
 
-#include "fu-ipmi-device.h"
 #include "fu-redfish-backend.h"
 #include "fu-redfish-common.h"
 #include "fu-redfish-device.h"
@@ -230,7 +229,7 @@ fu_redfish_plugin_discover_smbios_table(FuPlugin *plugin, GError **error)
 	if (smbios_data_fn != NULL) {
 		g_autoptr(FuRedfishSmbios) smbios = fu_redfish_smbios_new();
 		if (!fu_firmware_build_from_filename(FU_FIRMWARE(smbios), smbios_data_fn, error)) {
-			g_prefix_error(error, "failed to build SMBIOS entry type 42: ");
+			g_prefix_error_literal(error, "failed to build SMBIOS entry type 42: ");
 			return FALSE;
 		}
 		g_set_object(&self->smbios, smbios);
@@ -252,7 +251,7 @@ fu_redfish_plugin_discover_smbios_table(FuPlugin *plugin, GError **error)
 					     0x0,
 					     FU_FIRMWARE_PARSE_FLAG_NO_SEARCH,
 					     error)) {
-			g_prefix_error(error, "failed to parse SMBIOS entry type 42: ");
+			g_prefix_error_literal(error, "failed to parse SMBIOS entry type 42: ");
 			return FALSE;
 		}
 		if (fu_redfish_smbios_get_interface_type(smbios) ==
@@ -347,7 +346,7 @@ fu_redfish_plugin_ipmi_create_user(FuPlugin *plugin, GError **error)
 	g_autoptr(JsonBuilder) builder = json_builder_new();
 
 	/* create device */
-	locker = fu_device_locker_new(device, error);
+	locker = fu_device_locker_new(FU_DEVICE(device), error);
 	if (locker == NULL)
 		return FALSE;
 
@@ -620,7 +619,7 @@ fu_redfish_plugin_cleanup(FuPlugin *plugin,
 						     builder,
 						     FU_REDFISH_REQUEST_PERFORM_FLAG_NONE,
 						     error)) {
-			g_prefix_error(error, "failed to reset manager: ");
+			g_prefix_error_literal(error, "failed to reset manager: ");
 			return FALSE;
 		}
 	}
@@ -657,7 +656,7 @@ fu_redfish_plugin_cleanup(FuPlugin *plugin,
 				  FU_REDFISH_PLUGIN_CLEANUP_RETRIES_DELAY * 1000,
 				  self,
 				  error)) {
-		g_prefix_error(error, "manager failed to come back from setup: ");
+		g_prefix_error_literal(error, "manager failed to come back from setup: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -675,7 +674,7 @@ fu_redfish_plugin_cleanup(FuPlugin *plugin,
 				  FU_REDFISH_PLUGIN_CLEANUP_RETRIES_DELAY * 1000,
 				  self,
 				  error)) {
-		g_prefix_error(error, "manager failed to come back from coldplug: ");
+		g_prefix_error_literal(error, "manager failed to come back from coldplug: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);

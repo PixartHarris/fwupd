@@ -384,7 +384,7 @@ fu_mediatek_scaler_device_setup(FuDevice *device, GError **error)
 
 	/* verify the controller type */
 	if (!fu_mediatek_scaler_device_verify_controller_type(self, error)) {
-		g_prefix_error(error, "invalid controller type: ");
+		g_prefix_error_literal(error, "invalid controller type: ");
 		return FALSE;
 	}
 
@@ -458,9 +458,8 @@ fu_mediatek_scaler_device_prepare_update_cb(FuDevice *device, gpointer user_data
 		g_set_error(error,
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_INTERNAL,
-			    "device nak the incoming filesize, requested: %" G_GSIZE_FORMAT
-			    ", ack: %u",
-			    fw_sz,
+			    "device nak the incoming filesize, requested: 0x%x, ack: %u",
+			    (guint)fw_sz,
 			    acksz);
 		return FALSE;
 	}
@@ -477,7 +476,7 @@ fu_mediatek_scaler_device_prepare_update(FuDevice *device, gsize fw_sz, GError *
 				  10, /* ms */
 				  &fw_sz,
 				  error)) {
-		g_prefix_error(error, "failed to prepare update: ");
+		g_prefix_error_literal(error, "failed to prepare update: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -489,7 +488,7 @@ fu_mediatek_scaler_device_set_data(FuMediatekScalerDevice *self, FuChunk *chk, G
 	g_autoptr(FuChunkArray) chk_slices = NULL;
 	g_autoptr(GBytes) chk_bytes = fu_chunk_get_bytes(chk);
 
-	/* smaller slices to accodomate pch variants */
+	/* smaller slices to accommodate pch variants */
 	chk_slices = fu_chunk_array_new_from_bytes(chk_bytes,
 						   FU_CHUNK_ADDR_OFFSET_NONE,
 						   FU_CHUNK_PAGESZ_NONE,
@@ -506,7 +505,7 @@ fu_mediatek_scaler_device_set_data(FuMediatekScalerDevice *self, FuChunk *chk, G
 				    fu_chunk_get_data(chk_slice),
 				    (guint)fu_chunk_get_data_sz(chk_slice));
 		if (!fu_mediatek_scaler_device_ddc_write(self, st_req, error)) {
-			g_prefix_error(error, "failed to send firmware to device: ");
+			g_prefix_error_literal(error, "failed to send firmware to device: ");
 			return FALSE;
 		}
 		fu_device_sleep(FU_DEVICE(self), FU_MEDIATEK_SCALER_CHUNK_SENT_DELAY_MS);
@@ -545,7 +544,7 @@ fu_mediatek_scaler_device_check_sent_info(FuMediatekScalerDevice *self,
 	guint32 pktcnt = 0;
 
 	if (!fu_mediatek_scaler_device_get_staged_data(self, &chksum, &pktcnt, error)) {
-		g_prefix_error(error, "failed to get the staged data: ");
+		g_prefix_error_literal(error, "failed to get the staged data: ");
 		return FALSE;
 	}
 
@@ -595,7 +594,7 @@ fu_mediatek_scaler_device_commit_firmware(FuMediatekScalerDevice *self,
 		return FALSE;
 
 	if (!(fu_mediatek_scaler_device_run_isp(self, sum16, error))) {
-		g_prefix_error(error, "failed to commit firmware: ");
+		g_prefix_error_literal(error, "failed to commit firmware: ");
 		return FALSE;
 	}
 	return TRUE;
@@ -783,7 +782,7 @@ fu_mediatek_scaler_device_write_firmware_impl(FuMediatekScalerDevice *self,
 					  FU_MEDIATEK_SCALER_DDC_MSG_DELAY_MS,
 					  &helper_wchunk,
 					  error)) {
-			g_prefix_error(error, "writing chunk exceeded the maximum retries");
+			g_prefix_error_literal(error, "writing chunk exceeded the maximum retries");
 			return FALSE;
 		}
 
@@ -914,7 +913,7 @@ fu_mediatek_scaler_device_init(FuMediatekScalerDevice *self)
 	fu_device_set_vendor(FU_DEVICE(self), "Mediatek");
 	fu_device_add_protocol(FU_DEVICE(self), "com.mediatek.scaler");
 	fu_device_set_name(FU_DEVICE(self), "Display Controller");
-	fu_device_add_icon(FU_DEVICE(self), "video-display");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_VIDEO_DISPLAY);
 	fu_device_set_firmware_size_max(FU_DEVICE(self), FU_MEDIATEK_SCALER_FW_SIZE_MAX);
 	fu_device_register_private_flag(FU_DEVICE(self), FWUPD_MEDIATEK_SCALER_FLAG_BANK2_ONLY);
 }

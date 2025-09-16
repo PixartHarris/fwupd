@@ -1,3 +1,12 @@
+# Lenovo ThinkPad Thunderbolt 5 Smart Dock
+[USB\VID_17EF&PID_310D]
+Plugin = ccgx_dmc
+Summary = Dock Management Controller Device
+Name = ThinkPad Thunderbolt 5 Smart Dock
+CcgxDmcTriggerCode = 0x01
+InstallDuration = 1200
+RemoveDelay = 1200000
+
 # Lenovo ThinkPad Universal USB-C Dock
 [USB\VID_17EF&PID_30A9]
 Plugin = ccgx_dmc
@@ -22,7 +31,6 @@ InstallDuration = 60
 Plugin = ccgx_dmc
 Summary = Dock Management Controller Device
 ParentGuid = USB\VID_03F0&PID_0363
-Vendor = HP
 Name = USB-C Dock G5
 InstallDuration = 233
 RemoveDelay = 203000
@@ -32,7 +40,6 @@ RemoveDelay = 203000
 Plugin = ccgx_dmc
 Summary = Dock Management Controller Device
 ParentGuid = USB\VID_03F0&PID_096B
-Vendor = HP
 Name = USB-C/A Universal Dock G2
 InstallDuration = 180
 RemoveDelay = 162000
@@ -53,7 +60,6 @@ Name = Thunderbolt Dock G4 USB Hub
 Plugin = ccgx_dmc
 Summary = Dock Management Controller Device
 ParentGuid = USB\VID_03F0&PID_2488
-Vendor = HP
 Name = Thunderbolt Dock G4
 InstallDuration = 898
 RemoveDelay = 732000
@@ -90,7 +96,6 @@ RemoveDelay = 732000
 Plugin = ccgx_dmc
 Summary = Dock Management Controller Device
 ParentGuid = USB\VID_03F0&PID_0281
-Vendor = HP
 Name = HP Engage One Pro Aio System
 CcgxImageKind = dmc-composite
 InstallDuration = 180

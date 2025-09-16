@@ -16,7 +16,6 @@
 #include "fu-input-stream.h"
 #include "fu-mem.h"
 #include "fu-partial-input-stream.h"
-#include "fu-string.h"
 
 /**
  * FuFirmware:
@@ -56,76 +55,6 @@ G_DEFINE_TYPE_WITH_PRIVATE(FuFirmware, fu_firmware, G_TYPE_OBJECT)
 enum { PROP_0, PROP_PARENT, PROP_LAST };
 
 #define FU_FIRMWARE_IMAGE_DEPTH_MAX 50
-
-/**
- * fu_firmware_flag_to_string:
- * @flag: a #FuFirmwareFlags, e.g. %FU_FIRMWARE_FLAG_DEDUPE_ID
- *
- * Converts a #FuFirmwareFlags to a string.
- *
- * Returns: identifier string
- *
- * Since: 1.5.0
- **/
-const gchar *
-fu_firmware_flag_to_string(FuFirmwareFlags flag)
-{
-	if (flag == FU_FIRMWARE_FLAG_NONE)
-		return "none";
-	if (flag == FU_FIRMWARE_FLAG_DEDUPE_ID)
-		return "dedupe-id";
-	if (flag == FU_FIRMWARE_FLAG_DEDUPE_IDX)
-		return "dedupe-idx";
-	if (flag == FU_FIRMWARE_FLAG_HAS_CHECKSUM)
-		return "has-checksum";
-	if (flag == FU_FIRMWARE_FLAG_HAS_VID_PID)
-		return "has-vid-pid";
-	if (flag == FU_FIRMWARE_FLAG_DONE_PARSE)
-		return "done-parse";
-	if (flag == FU_FIRMWARE_FLAG_HAS_STORED_SIZE)
-		return "has-stored-size";
-	if (flag == FU_FIRMWARE_FLAG_ALWAYS_SEARCH)
-		return "always-search";
-	if (flag == FU_FIRMWARE_FLAG_NO_AUTO_DETECTION)
-		return "no-auto-detection";
-	if (flag == FU_FIRMWARE_FLAG_HAS_CHECK_COMPATIBLE)
-		return "has-check-compatible";
-	return NULL;
-}
-
-/**
- * fu_firmware_flag_from_string:
- * @flag: a string, e.g. `dedupe-id`
- *
- * Converts a string to a #FuFirmwareFlags.
- *
- * Returns: enumerated value
- *
- * Since: 1.5.0
- **/
-FuFirmwareFlags
-fu_firmware_flag_from_string(const gchar *flag)
-{
-	if (g_strcmp0(flag, "dedupe-id") == 0)
-		return FU_FIRMWARE_FLAG_DEDUPE_ID;
-	if (g_strcmp0(flag, "dedupe-idx") == 0)
-		return FU_FIRMWARE_FLAG_DEDUPE_IDX;
-	if (g_strcmp0(flag, "has-checksum") == 0)
-		return FU_FIRMWARE_FLAG_HAS_CHECKSUM;
-	if (g_strcmp0(flag, "has-vid-pid") == 0)
-		return FU_FIRMWARE_FLAG_HAS_VID_PID;
-	if (g_strcmp0(flag, "done-parse") == 0)
-		return FU_FIRMWARE_FLAG_DONE_PARSE;
-	if (g_strcmp0(flag, "has-stored-size") == 0)
-		return FU_FIRMWARE_FLAG_HAS_STORED_SIZE;
-	if (g_strcmp0(flag, "always-search") == 0)
-		return FU_FIRMWARE_FLAG_ALWAYS_SEARCH;
-	if (g_strcmp0(flag, "no-auto-detection") == 0)
-		return FU_FIRMWARE_FLAG_NO_AUTO_DETECTION;
-	if (g_strcmp0(flag, "has-check-compatible") == 0)
-		return FU_FIRMWARE_FLAG_HAS_CHECK_COMPATIBLE;
-	return FU_FIRMWARE_FLAG_NONE;
-}
 
 typedef struct {
 	gsize offset;
@@ -921,17 +850,26 @@ fu_firmware_get_checksum(FuFirmware *self, GChecksumType csum_kind, GError **err
 		}
 	}
 
+	/* write */
+	if (klass->write != NULL) {
+		blob = fu_firmware_write(self, error);
+		if (blob == NULL)
+			return NULL;
+		return g_compute_checksum_for_bytes(csum_kind, blob);
+	}
+
 	/* internal data */
 	if (priv->bytes != NULL)
 		return g_compute_checksum_for_bytes(csum_kind, priv->bytes);
 	if (priv->stream != NULL)
 		return fu_input_stream_compute_checksum(priv->stream, csum_kind, error);
 
-	/* write */
-	blob = fu_firmware_write(self, error);
-	if (blob == NULL)
-		return NULL;
-	return g_compute_checksum_for_bytes(csum_kind, blob);
+	/* nothing to do */
+	g_set_error_literal(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_NOT_FOUND,
+			    "no input data, as no FuFirmware->write, stream or bytes");
+	return NULL;
 }
 
 /**
@@ -1141,7 +1079,7 @@ fu_firmware_parse_stream(FuFirmware *self,
 	} else {
 		partial_stream = fu_partial_input_stream_new(stream, offset, priv->streamsz, error);
 		if (partial_stream == NULL) {
-			g_prefix_error(error, "failed to cut firmware: ");
+			g_prefix_error_literal(error, "failed to cut firmware: ");
 			return FALSE;
 		}
 	}
@@ -1476,7 +1414,7 @@ fu_firmware_build_from_xml(FuFirmware *self, const gchar *xml, GError **error)
 
 	/* parse XML */
 	if (!xb_builder_source_load_xml(source, xml, XB_BUILDER_SOURCE_FLAG_NONE, error)) {
-		g_prefix_error(error, "could not parse XML: ");
+		g_prefix_error_literal(error, "could not parse XML: ");
 		fwupd_error_convert(error);
 		return FALSE;
 	}
@@ -1546,7 +1484,7 @@ fu_firmware_parse_file(FuFirmware *self, GFile *file, FuFirmwareParseFlags flags
 
 	stream = g_file_read(file, NULL, error);
 	if (stream == NULL) {
-		fu_error_convert(error);
+		fwupd_error_convert(error);
 		return FALSE;
 	}
 	return fu_firmware_parse_stream(self, G_INPUT_STREAM(stream), 0, flags, error);
@@ -1792,15 +1730,18 @@ fu_firmware_add_image_full(FuFirmware *self, FuFirmware *img, GError **error)
 	}
 
 	/* dedupe */
-	for (guint i = 0; i < priv->images->len; i++) {
-		FuFirmware *img_tmp = g_ptr_array_index(priv->images, i);
-		if (priv->flags & FU_FIRMWARE_FLAG_DEDUPE_ID) {
+	if (priv->flags & FU_FIRMWARE_FLAG_DEDUPE_ID) {
+		for (guint i = 0; i < priv->images->len; i++) {
+			FuFirmware *img_tmp = g_ptr_array_index(priv->images, i);
 			if (g_strcmp0(fu_firmware_get_id(img_tmp), fu_firmware_get_id(img)) == 0) {
 				g_ptr_array_remove_index(priv->images, i);
 				break;
 			}
 		}
-		if (priv->flags & FU_FIRMWARE_FLAG_DEDUPE_IDX) {
+	}
+	if (priv->flags & FU_FIRMWARE_FLAG_DEDUPE_IDX) {
+		for (guint i = 0; i < priv->images->len; i++) {
+			FuFirmware *img_tmp = g_ptr_array_index(priv->images, i);
 			if (fu_firmware_get_idx(img_tmp) == fu_firmware_get_idx(img)) {
 				g_ptr_array_remove_index(priv->images, i);
 				break;
@@ -2031,6 +1972,8 @@ fu_firmware_get_image_by_id(FuFirmware *self, const gchar *id, GError **error)
 		for (guint i = 0; i < priv->images->len; i++) {
 			FuFirmware *img = g_ptr_array_index(priv->images, i);
 			for (guint j = 0; split[j] != NULL; j++) {
+				if (fu_firmware_get_id(img) == NULL)
+					continue;
 				if (g_pattern_match_simple(split[j], fu_firmware_get_id(img)))
 					return g_object_ref(img);
 			}
@@ -2295,19 +2238,8 @@ fu_firmware_export(FuFirmware *self, FuFirmwareExportFlags flags, XbBuilderNode 
 
 	/* subclassed type */
 	if (priv->flags != FU_FIRMWARE_FLAG_NONE) {
-		g_autoptr(GString) tmp = g_string_new("");
-		for (guint i = 0; i < 64; i++) {
-			guint64 flag = (guint64)1 << i;
-			if (flag == FU_FIRMWARE_FLAG_DONE_PARSE)
-				continue;
-			if ((priv->flags & flag) == 0)
-				continue;
-			g_string_append_printf(tmp, "%s|", fu_firmware_flag_to_string(flag));
-		}
-		if (tmp->len > 0) {
-			g_string_truncate(tmp, tmp->len - 1);
-			fu_xmlb_builder_insert_kv(bn, "flags", tmp->str);
-		}
+		g_autofree gchar *str = fu_firmware_flags_to_string(priv->flags);
+		fu_xmlb_builder_insert_kv(bn, "flags", str);
 	}
 	fu_xmlb_builder_insert_kv(bn, "id", priv->id);
 	fu_xmlb_builder_insert_kx(bn, "idx", priv->idx);
@@ -2327,9 +2259,7 @@ fu_firmware_export(FuFirmware *self, FuFirmwareExportFlags flags, XbBuilderNode 
 	if (priv->stream != NULL) {
 		g_autofree gchar *dataszstr = g_strdup_printf("0x%x", (guint)priv->streamsz);
 		g_autofree gchar *datastr = NULL;
-		if (priv->streamsz > 0x100) {
-			datastr = g_strdup("[GInputStream]");
-		} else {
+		if (priv->streamsz <= 0x100) {
 			g_autoptr(GByteArray) buf = fu_input_stream_read_byte_array(priv->stream,
 										    0x0,
 										    priv->streamsz,
@@ -2345,13 +2275,18 @@ fu_firmware_export(FuFirmware *self, FuFirmwareExportFlags flags, XbBuilderNode 
 				} else {
 					datastr = g_base64_encode(buf->data, buf->len);
 				}
-			} else {
-				datastr = g_strdup("[??GInputStream??]");
 			}
 		}
-		xb_builder_node_insert_text(bn, "data", datastr, "size", dataszstr, NULL);
+		xb_builder_node_insert_text(bn,
+					    "data",
+					    datastr,
+					    "type",
+					    "GInputStream",
+					    "size",
+					    dataszstr,
+					    NULL);
 	} else if (priv->bytes != NULL && g_bytes_get_size(priv->bytes) == 0) {
-		xb_builder_node_insert_text(bn, "data", NULL, NULL);
+		xb_builder_node_insert_text(bn, "data", NULL, "type", "GBytes", NULL);
 	} else if (priv->bytes != NULL) {
 		gsize bufsz = 0;
 		const guint8 *buf = g_bytes_get_data(priv->bytes, &bufsz);
@@ -2362,7 +2297,14 @@ fu_firmware_export(FuFirmware *self, FuFirmwareExportFlags flags, XbBuilderNode 
 		} else {
 			datastr = g_base64_encode(buf, bufsz);
 		}
-		xb_builder_node_insert_text(bn, "data", datastr, "size", dataszstr, NULL);
+		xb_builder_node_insert_text(bn,
+					    "data",
+					    datastr,
+					    "type",
+					    "GBytes",
+					    "size",
+					    dataszstr,
+					    NULL);
 	}
 
 	/* chunks */

@@ -10,7 +10,6 @@
 #include <string.h>
 
 #include "fwupd-bios-setting.h"
-#include "fwupd-client-private.h"
 #include "fwupd-client-sync.h"
 #include "fwupd-codec.h"
 #include "fwupd-common.h"
@@ -128,7 +127,7 @@ fwupd_enums_func(void)
 			break;
 		g_assert_cmpint(fwupd_remote_flag_from_string(tmp), ==, i);
 	}
-	for (guint64 i = 1; i <= FWUPD_INSTALL_FLAG_IGNORE_REQUIREMENTS; i *= 2) {
+	for (guint64 i = 1; i <= FWUPD_INSTALL_FLAG_ONLY_EMULATED; i *= 2) {
 		const gchar *tmp = fwupd_install_flags_to_string(i);
 		if (tmp == NULL)
 			continue;
@@ -264,7 +263,7 @@ fwupd_release_func(void)
 				    "  Tags:                 tag\n"
 				    "  License:              license\n"
 				    "  Size:                 1.2 kB\n"
-				    "  Created:              1970-01-01\n"
+				    "  Created:              1970-01-01 01:34:38\n"
 				    "  Uri:                  location\n"
 				    "  Homepage:             homepage\n"
 				    "  DetailsUrl:           details_url\n"
@@ -851,8 +850,8 @@ fwupd_device_func(void)
 	    "  VendorId:             USB:0x1234\n"
 	    "  VendorId:             PCI:0x5678\n"
 	    "  Icon:                 input-gaming,input-mouse\n"
-	    "  Created:              1970-01-01\n"
-	    "  Modified:             1970-01-02\n"
+	    "  Created:              1970-01-01 00:00:01\n"
+	    "  Modified:             1970-01-02 00:00:00\n"
 	    "  FwupdRelease:\n"
 	    "    AppstreamId:        org.dave.ColorHug.firmware\n"
 	    "    Description:        <p>Hi there!</p>\n"

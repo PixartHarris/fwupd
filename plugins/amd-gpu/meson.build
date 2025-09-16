@@ -1,4 +1,6 @@
-if host_machine.system() == 'linux' and libdrm_amdgpu.found()
+host_machine.system() == 'linux' or subdir_done()
+libdrm_amdgpu.found() or subdir_done()
+
 cargs = ['-DG_LOG_DOMAIN="FuPluginAmdGpu"']
 plugins += {meson.current_source_dir().split('/')[-1]: true}
 
@@ -19,9 +21,11 @@ plugin_builtins += static_library('fu_plugin_amd_gpu',
   c_args: cargs,
   dependencies: plugin_deps,
 )
-enumeration_data += files('tests/amd-apu-setup.json', 'tests/amd-dgpu-setup.json')
-device_tests += files('tests/amd-apu.json',
+enumeration_data += files('tests/amd-apu-rembrandt-setup.json',
+                          'tests/amd-apu-strix-setup.json',
+                          'tests/amd-dgpu-setup.json')
+device_tests += files('tests/amd-apu-rembrandt.json',
+                      'tests/amd-apu-strix.json',
                       'tests/amd-dgpu.json',
                       'tests/amd-dgpu-navi3x.json',
 )
-endif

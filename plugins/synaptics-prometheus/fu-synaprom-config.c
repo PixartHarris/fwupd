@@ -140,7 +140,7 @@ fu_synaprom_config_prepare_firmware(FuDevice *device,
 		return NULL;
 	st_hdr = fu_struct_synaprom_cfg_hdr_parse_stream(stream_hdr, 0x0, error);
 	if (st_hdr == NULL) {
-		g_prefix_error(error, "CFG metadata is invalid: ");
+		g_prefix_error_literal(error, "CFG metadata is invalid: ");
 		return NULL;
 	}
 	if (fu_struct_synaprom_cfg_hdr_get_product(st_hdr) != FU_SYNAPROM_PRODUCT_PROMETHEUS) {
@@ -214,11 +214,12 @@ fu_synaprom_config_init(FuSynapromConfig *self)
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_ONLY_VERSION_UPGRADE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_SIGNED_PAYLOAD);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_USE_PARENT_FOR_OPEN);
+	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_PARENT_NAME_PREFIX);
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_PLAIN);
 	fu_device_set_logical_id(FU_DEVICE(self), "cfg");
-	fu_device_set_name(FU_DEVICE(self), "Prometheus IOTA Config");
+	fu_device_set_name(FU_DEVICE(self), "IOTA Config");
 	fu_device_set_summary(FU_DEVICE(self), "Fingerprint reader config");
-	fu_device_add_icon(FU_DEVICE(self), "auth-fingerprint");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_AUTH_FINGERPRINT);
 }
 
 static void

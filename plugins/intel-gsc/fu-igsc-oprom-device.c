@@ -36,23 +36,36 @@ fu_igsc_oprom_device_probe(FuDevice *device, GError **error)
 	FuDevice *parent = fu_device_get_parent(device);
 	g_autofree gchar *name = NULL;
 
+	/* from the self tests */
+	if (parent == NULL) {
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_SUPPORTED,
+				    "no parent FuIgscDevice");
+		return FALSE;
+	}
+
 	/* set strings now we know the type */
 	if (self->payload_type == FU_IGSC_FWU_HECI_PAYLOAD_TYPE_OPROM_CODE) {
 		self->partition_version = FU_IGSC_FWU_HECI_PARTITION_VERSION_OPROM_CODE;
-		fu_device_add_instance_str(device, "PART", "OPROMCODE");
+		fu_device_add_instance_str(
+		    device,
+		    "PART",
+		    fu_device_has_private_flag(parent, FU_IGSC_DEVICE_FLAG_IS_WEDGED)
+			? "OPROMCODE_RECOVERY"
+			: "OPROMCODE");
 		fu_device_set_logical_id(FU_DEVICE(self), "oprom-code");
-		if (parent != NULL) {
-			name = g_strdup_printf("%s OptionROM Code", fu_device_get_name(parent));
-			fu_device_set_name(FU_DEVICE(self), name);
-		}
+		fu_device_set_name(FU_DEVICE(self), "OptionROM Code");
 	} else if (self->payload_type == FU_IGSC_FWU_HECI_PAYLOAD_TYPE_OPROM_DATA) {
 		self->partition_version = FU_IGSC_FWU_HECI_PARTITION_VERSION_OPROM_DATA;
-		fu_device_add_instance_str(device, "PART", "OPROMDATA");
+		fu_device_add_instance_str(
+		    device,
+		    "PART",
+		    fu_device_has_private_flag(parent, FU_IGSC_DEVICE_FLAG_IS_WEDGED)
+			? "OPROMDATA_RECOVERY"
+			: "OPROMDATA");
 		fu_device_set_logical_id(FU_DEVICE(self), "oprom-data");
-		if (parent != NULL) {
-			name = g_strdup_printf("%s OptionROM Data", fu_device_get_name(parent));
-			fu_device_set_name(FU_DEVICE(self), name);
-		}
+		fu_device_set_name(FU_DEVICE(self), "OptionROM Data");
 	}
 
 	/* add extra instance IDs */
@@ -73,9 +86,9 @@ fu_igsc_oprom_device_setup(FuDevice *device, GError **error)
 {
 	FuIgscOpromDevice *self = FU_IGSC_OPROM_DEVICE(device);
 	FuIgscDevice *igsc_parent = FU_IGSC_DEVICE(fu_device_get_parent(device));
-	guint8 buf[8] = {0x0};
+	guint8 buf[FU_STRUCT_IGSC_OPROM_VERSION_SIZE] = {0x0};
 	g_autofree gchar *version = NULL;
-	g_autoptr(GByteArray) st = NULL;
+	g_autoptr(FuStructIgscOpromVersion) st = NULL;
 
 	/* get version */
 	if (!fu_igsc_device_get_version_raw(igsc_parent,
@@ -83,18 +96,22 @@ fu_igsc_oprom_device_setup(FuDevice *device, GError **error)
 					    buf,
 					    sizeof(buf),
 					    error)) {
-		g_prefix_error(error, "failed to get oprom version: ");
+		g_prefix_error_literal(error, "failed to get oprom version: ");
 		return FALSE;
 	}
 	st = fu_struct_igsc_oprom_version_parse(buf, sizeof(buf), 0x0, error);
 	if (st == NULL)
 		return FALSE;
 	self->major_version = fu_struct_igsc_oprom_version_get_major(st);
-	version = g_strdup_printf("%u.%u.%u.%u",
-				  self->major_version,
-				  fu_struct_igsc_oprom_version_get_minor(st),
-				  fu_struct_igsc_oprom_version_get_hotfix(st),
-				  fu_struct_igsc_oprom_version_get_build(st));
+	if (fu_device_has_private_flag(FU_DEVICE(igsc_parent), FU_IGSC_DEVICE_FLAG_IS_WEDGED)) {
+		version = g_strdup("0.0");
+	} else {
+		version = g_strdup_printf("%u.%u.%u.%u",
+					  self->major_version,
+					  fu_struct_igsc_oprom_version_get_minor(st),
+					  fu_struct_igsc_oprom_version_get_hotfix(st),
+					  fu_struct_igsc_oprom_version_get_build(st));
+	}
 	fu_device_set_version(device, version);
 
 	/* success */
@@ -252,6 +269,7 @@ fu_igsc_oprom_device_init(FuIgscOpromDevice *self)
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_REQUIRE_AC);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_SIGNED_PAYLOAD);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_INTERNAL);
+	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_PARENT_NAME_PREFIX);
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_QUAD);
 	fu_device_add_protocol(FU_DEVICE(self), "com.intel.gsc");
 }

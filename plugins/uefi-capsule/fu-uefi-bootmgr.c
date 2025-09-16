@@ -165,11 +165,12 @@ fu_uefi_bootmgr_setup_bootnext_with_loadopt(FuEfivars *efivars,
 		if (!fu_bytes_compare(loadopt_blob, loadopt_blob_old, NULL)) {
 			g_debug("%s: updating existing boot entry", name);
 			if (!fu_efivars_set_boot_data(efivars, boot_next, loadopt_blob, error)) {
-				g_prefix_error(error, "could not set boot variable active: ");
+				g_prefix_error_literal(error,
+						       "could not set boot variable active: ");
 				return FALSE;
 			}
 		} else {
-			g_debug("%s: re-using existing boot entry", name);
+			g_debug("%s: reusing existing boot entry", name);
 		}
 		/* create a new one */
 	} else {
@@ -257,7 +258,7 @@ fu_uefi_bootmgr_shim_is_safe(FuEfivars *efivars, const gchar *source_shim, GErro
 				     0x0,
 				     FU_FIRMWARE_PARSE_FLAG_NONE,
 				     error)) {
-		g_prefix_error(error, "failed to load SbatLevelRT: ");
+		g_prefix_error_literal(error, "failed to load SbatLevelRT: ");
 		return FALSE;
 	}
 
@@ -295,11 +296,12 @@ fu_uefi_bootmgr_shim_is_safe(FuEfivars *efivars, const gchar *source_shim, GErro
 				    "(missing entry in current UEFI variable)",
 				    source_shim,
 				    entry_id);
-			} else {
-				g_prefix_error(&error_local,
-					       "while looking for entry in current sbatlevel: ");
-				g_propagate_error(error, g_steal_pointer(&error_local));
+				return FALSE;
 			}
+			g_propagate_prefixed_error(
+			    error,
+			    g_steal_pointer(&error_local),
+			    "while looking for entry in current sbatlevel: ");
 			return FALSE;
 		}
 
@@ -354,10 +356,6 @@ fu_uefi_bootmgr_bootnext(FuEfivars *efivars,
 	g_autofree gchar *esp_path = fu_volume_get_mount_point(esp);
 	g_autoptr(FuEfiDevicePathList) dp_buf = NULL;
 	g_autoptr(FuEfiLoadOption) loadopt = fu_efi_load_option_new();
-
-	/* skip for self tests */
-	if (g_getenv("FWUPD_UEFI_TEST") != NULL)
-		return TRUE;
 
 	/* if secure boot was turned on this might need to be installed separately */
 	source_app = fu_uefi_get_built_app_path(efivars, "fwupd", error);

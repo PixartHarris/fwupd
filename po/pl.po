@@ -36,7 +36,7 @@ msgid "%s Battery Update"
 msgstr "Aktualizacja akumulatora %s"
 
 #. TRANSLATORS: the CPU microcode is firmware loaded onto the CPU
-#. * at system bootup
+#. * at system boot-up
 #, c-format
 msgid "%s CPU Microcode Update"
 msgstr "Aktualizacja mikrokodu procesora %s"
@@ -309,6 +309,26 @@ msgstr[0] "%u urządzenie nie ma najlepszej znanej konfiguracji."
 msgstr[1] "%u urządzenia nie mają najlepszej znanej konfiguracji."
 msgstr[2] "%u urządzeń nie ma najlepszej znanej konfiguracji."
 msgstr[3] "%u urządzeń nie ma najlepszej znanej konfiguracji."
+
+#. TRANSLATORS: how many devices have published updates on
+#. something like the LVFS
+#, c-format
+msgid "%u device is supported in the enabled remotes (an update has been published)"
+msgid_plural "%u devices are supported in the enabled remotes (an update has been published)"
+msgstr[0] "%u urządzenie jest obsługiwane we włączonych repozytoriach (aktualizacja została opublikowana)"
+msgstr[1] "%u urządzenia są obsługiwanych we włączonych repozytoriach (aktualizacja została opublikowana)"
+msgstr[2] "%u urządzeń jest obsługiwanych we włączonych repozytoriach (aktualizacja została opublikowana)"
+msgstr[3] "%u urządzeń jest obsługiwanych we włączonych repozytoriach (aktualizacja została opublikowana)"
+
+#. TRANSLATORS: how many devices could be updated in theory if
+#. we had the firmware locally
+#, c-format
+msgid "%u device is updatable"
+msgid_plural "%u devices are updatable"
+msgstr[0] "%u urządzenie można aktualizować"
+msgstr[1] "%u urządzenia można aktualizować"
+msgstr[2] "%u urządzeń można aktualizować"
+msgstr[3] "%u urządzeń można aktualizować"
 
 #. TRANSLATORS: duration in minutes
 #, c-format
@@ -694,6 +714,10 @@ msgstr "Nie można zastosować, ponieważ aktualizacja bazy dbx została już za
 #. TRANSLATORS: this is when the daemon state changes
 msgid "Changed"
 msgstr "Zmieniono"
+
+#. TRANSLATORS: command description
+msgid "Check if any devices are pending a reboot to complete update"
+msgstr "Sprawdza, czy jakieś urządzenia oczekują na ponowne uruchomienie, aby dokończyć aktualizację"
 
 #. TRANSLATORS: command description
 msgid "Checks cryptographic hash matches firmware"
@@ -1102,6 +1126,10 @@ msgstr "Zrzuca dane SMBIOS z pliku"
 msgid "Duration"
 msgstr "Czas trwania"
 
+#. TRANSLATORS: command argument: uppercase, spaces->dashes
+msgid "EMULATION-FILE [ARCHIVE-FILE]"
+msgstr "PLIK-EMULACJI [PLIK-ARCHIWUM]"
+
 #. TRANSLATORS: command description
 msgid "Emulate a device using a JSON manifest"
 msgstr "Emuluje urządzenie za pomocą manifestu JSON"
@@ -1213,8 +1241,8 @@ msgid "FILENAME CERTIFICATE PRIVATE-KEY"
 msgstr "NAZWA-PLIKU CERTYFIKAT KLUCZ-PRYWATNY"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
-msgid "FILENAME DEVICE-ID"
-msgstr "NAZWA-PLIKU IDENTYFIKATOR-URZĄDZENIA"
+msgid "FILENAME DEVICE-ID [VERSION]"
+msgstr "NAZWA-PLIKU IDENTYFIKATOR-URZĄDZENIA [WERSJA]"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME OFFSET DATA [FIRMWARE-TYPE]"
@@ -1500,8 +1528,8 @@ msgid "Gets the list of blocked firmware"
 msgstr "Uzyskuje listę zablokowanego oprogramowania sprzętowego"
 
 #. TRANSLATORS: command description
-msgid "Gets the list of updates for connected hardware"
-msgstr "Uzyskuje listę aktualizacji dla podłączonego sprzętu"
+msgid "Gets the list of updates for all specified devices, or all devices if unspecified"
+msgstr "Uzyskuje listę aktualizacji dla wszystkich podanych urządzeń, lub wszystkich urządzeń, jeśli nie podano żadnych"
 
 #. TRANSLATORS: command description
 msgid "Gets the releases for a device"
@@ -1528,7 +1556,6 @@ msgid "Host Security Events"
 msgstr "Zdarzenia zabezpieczeń komputera"
 
 #. TRANSLATORS: error message for unsupported feature
-#, c-format
 msgid "Host Security ID (HSI) is not supported"
 msgstr "Identyfikator zabezpieczeń komputera (HSI) jest nieobsługiwany"
 
@@ -2034,6 +2061,10 @@ msgstr "Nowa wersja"
 msgid "No action specified!"
 msgstr "Nie podano działania."
 
+#. TRANSLATORS: no devices that can be upgraded with new firmware
+msgid "No devices are updatable"
+msgstr "Nie ma urządzeń, które można aktualizować"
+
 #. TRANSLATORS: message letting the user know no device downgrade available
 #. * %1 is the device name
 #, c-format
@@ -2051,6 +2082,10 @@ msgstr "Nie odnaleziono oprogramowania sprzętowego"
 #. TRANSLATORS: nothing attached that can be upgraded
 msgid "No hardware detected with firmware update capability"
 msgstr "Nie wykryto sprzętu z możliwością aktualizacji jego oprogramowania"
+
+#. TRANSLATORS: no rebooting needed
+msgid "No reboot is necessary"
+msgstr "Ponowne uruchomienie nie jest konieczne"
 
 #. TRANSLATORS: no repositories to download from
 msgid "No releases available"
@@ -2105,6 +2140,10 @@ msgid "Old version"
 msgstr "Poprzednia wersja"
 
 #. TRANSLATORS: command line option
+msgid "Only install onto emulated devices"
+msgstr "Instaluje tylko na emulowanych urządzeniach"
+
+#. TRANSLATORS: command line option
 msgid "Only show single PCR value"
 msgstr "Wyświetla tylko jedną wartość PCR"
 
@@ -2118,8 +2157,8 @@ msgid "Only version upgrades are allowed"
 msgstr "Dozwolone są tylko aktualizacje wersji"
 
 #. TRANSLATORS: command line option
-msgid "Output in JSON format"
-msgstr "Wyjście w formacie JSON"
+msgid "Output in JSON format (disables all interactive prompts)"
+msgstr "Wyjście w formacie JSON (wyłącza wszystkie interaktywne zapytania)"
 
 #. TRANSLATORS: command line option
 msgid "Override the default ESP path"
@@ -2186,7 +2225,8 @@ msgstr "Przed kontynuacją proszę się upewnić, że posiadany jest klucz odzys
 msgid "Please enter a number from 0 to %u: "
 msgstr "Proszę podać liczbę od 0 do %u: "
 
-#. TRANSLATORS: the user isn't reading the question -- %1 is 'Y' and %2 is 'N'
+#. TRANSLATORS: the user isn't reading the question -- %1 is 'Y' and %2 is
+#. * 'N'
 #, c-format
 msgid "Please enter either %s or %s: "
 msgstr "Proszę podać %s lub %s:"
@@ -2194,6 +2234,10 @@ msgstr "Proszę podać %s lub %s:"
 #. TRANSLATORS: Failed to open plugin, hey Arch users
 msgid "Plugin dependencies missing"
 msgstr "Brak zależności wtyczki"
+
+#. TRANSLATORS: The plugin enumeration might change the device current mode
+msgid "Plugin enumeration may change device state"
+msgstr "Wyliczenie wtyczek może zmienić stan urządzenia"
 
 #. TRANSLATORS: The plugin is only for testing
 msgid "Plugin is only for testing"
@@ -2676,8 +2720,8 @@ msgstr "Pomyślnie wyłączono urządzenia testowe"
 
 #. TRANSLATORS: success message -- where 'metadata' is information
 #. * about available firmware on the remote server
-msgid "Successfully downloaded new metadata: "
-msgstr "Pomyślnie pobrano nowe metadane: "
+msgid "Successfully downloaded new metadata:"
+msgstr "Pomyślnie pobrano nowe metadane:"
 
 #. TRANSLATORS: success message
 msgid "Successfully enabled and refreshed remote"
@@ -2896,6 +2940,10 @@ msgstr "LVFS to wolny serwis działający jako niezależny podmiot prawny niemaj
 msgid "The TPM PCR0 differs from reconstruction."
 msgstr "PCR0 TPM różni się od rekonstrukcji."
 
+#. TRANSLATORS: HSI event title
+msgid "The UEFI certificate store is now up to date"
+msgstr "Przechowalnia certyfikatów UEFI jest teraz aktualna"
+
 #. TRANSLATORS: the user is SOL for support...
 msgid "The daemon has loaded 3rd party code and is no longer supported by the upstream developers!"
 msgstr "Usługa wczytała kod firmy trzeciej i nie jest już wspierana przez jej programistów!"
@@ -3059,6 +3107,10 @@ msgstr "Zmienne usługi uruchamiania UEFI"
 msgid "UEFI capsule updates not available or enabled in firmware setup"
 msgstr "Aktualizacje kapsułowe UEFI są niedostępne lub wyłączone w konfiguracji oprogramowania sprzętowego"
 
+#. TRANSLATORS: Title: is UEFI db up-to-date
+msgid "UEFI db"
+msgstr "Baza danych UEFI"
+
 #. TRANSLATORS: program name
 msgid "UEFI dbx Utility"
 msgstr "Narzędzie bazy dbx dla UEFI"
@@ -3212,15 +3264,6 @@ msgstr "Aktualizuje przechowywane metadane obecną zawartością"
 #. TRANSLATORS: command description
 msgid "Updates all specified devices to latest firmware version, or all devices if unspecified"
 msgstr "Aktualizuje wszystkie podane urządzenia do najnowszej wersji oprogramowania sprzętowego, lub wszystkie urządzenia, jeśli nie podano żadnych"
-
-#. TRANSLATORS: how many local devices can expect updates now
-#, c-format
-msgid "Updates have been published for %u local device"
-msgid_plural "Updates have been published for %u of %u local devices"
-msgstr[0] "Aktualizacje zostały opublikowane dla %u lokalnego urządzenia"
-msgstr[1] "Aktualizacje zostały opublikowane dla %u z %u lokalnych urządzeń"
-msgstr[2] "Aktualizacje zostały opublikowane dla %u z %u lokalnych urządzeń"
-msgstr[3] "Aktualizacje zostały opublikowane dla %u z %u lokalnych urządzeń"
 
 msgid "Updating"
 msgstr "Aktualizowanie"

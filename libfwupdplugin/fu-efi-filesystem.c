@@ -7,7 +7,6 @@
 #include "config.h"
 
 #include "fu-byte-array.h"
-#include "fu-bytes.h"
 #include "fu-efi-file.h"
 #include "fu-efi-filesystem.h"
 #include "fu-input-stream.h"
@@ -59,7 +58,7 @@ fu_efi_filesystem_parse(FuFirmware *firmware,
 		}
 		stream_tmp = fu_partial_input_stream_new(stream, offset, streamsz - offset, error);
 		if (stream_tmp == NULL) {
-			g_prefix_error(error, "failed to cut EFI file: ");
+			g_prefix_error_literal(error, "failed to cut EFI file: ");
 			return FALSE;
 		}
 		if (!fu_firmware_parse_stream(img,

@@ -11,7 +11,6 @@
 #include "fu-byte-array.h"
 #include "fu-bytes.h"
 #include "fu-common.h"
-#include "fu-crc.h"
 #include "fu-dump.h"
 #include "fu-fdt-firmware.h"
 #include "fu-fdt-image.h"
@@ -159,6 +158,13 @@ fu_fdt_firmware_parse_dt_struct(FuFdtFirmware *self, GBytes *fw, GByteArray *str
 
 		/* read tag from aligned offset */
 		offset = fu_common_align_up(offset, FU_FIRMWARE_ALIGNMENT_4);
+		if (offset > G_MAXUINT32) {
+			g_set_error_literal(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_INVALID_DATA,
+					    "offset bigger than 4GB");
+			return FALSE;
+		}
 		if (!fu_memread_uint32_safe(buf, bufsz, offset, &token, G_BIG_ENDIAN, error))
 			return FALSE;
 		offset += sizeof(guint32);
@@ -391,10 +397,10 @@ fu_fdt_firmware_parse(FuFirmware *firmware,
 		if (dt_struct == NULL)
 			return FALSE;
 		if (dt_struct->len != fu_struct_fdt_get_size_dt_struct(st_hdr)) {
-			g_set_error(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_INVALID_DATA,
-				    "invalid firmware -- dt_struct invalid");
+			g_set_error_literal(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_INVALID_DATA,
+					    "invalid firmware -- dt_struct invalid");
 			return FALSE;
 		}
 		dt_struct_buf =

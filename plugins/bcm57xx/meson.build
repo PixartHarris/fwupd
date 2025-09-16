@@ -1,9 +1,13 @@
-if host_machine.system() == 'linux'
+host_machine.system() == 'linux' or subdir_done()
+
 cargs = ['-DG_LOG_DOMAIN="FuPluginBcm57xx"']
 plugins += {meson.current_source_dir().split('/')[-1]: true}
 
 plugin_quirks += files('bcm57xx.quirk')
 plugin_builtin_bcm57xx = static_library('fu_plugin_bcm57xx',
+  rustgen.process(
+    'fu-bcm57xx.rs',                # fuzzing
+  ),
   sources: [
     'fu-bcm57xx-plugin.c',
     'fu-bcm57xx-common.c',          # fuzzing
@@ -49,11 +53,11 @@ if get_option('tests')
     ],
     install: true,
     install_rpath: libdir_pkg,
+    install_tag: 'tests',
     install_dir: installed_test_bindir,
     c_args: [
       '-DSRCDIR="' + meson.current_source_dir() + '"',
     ],
   )
   test('bcm57xx-self-test', e, env: env)
-endif
 endif

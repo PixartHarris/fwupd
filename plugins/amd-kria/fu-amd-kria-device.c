@@ -18,7 +18,7 @@
 
 typedef struct {
 	FuVolume *esp;
-	FuDeviceLocker *esp_locker;
+	FuVolumeLocker *esp_locker;
 	gchar *eeprom_address;
 } FuAmdKriaDevicePrivate;
 
@@ -43,7 +43,7 @@ fu_amd_kria_device_prepare(FuDevice *device,
 	FuAmdKriaDevice *self = FU_AMD_KRIA_DEVICE(device);
 	FuAmdKriaDevicePrivate *priv = GET_PRIVATE(self);
 
-	priv->esp_locker = fu_volume_locker(priv->esp, error);
+	priv->esp_locker = fu_volume_locker_new(priv->esp, error);
 	if (priv->esp_locker == NULL)
 		return FALSE;
 
@@ -59,7 +59,7 @@ fu_amd_kria_device_cleanup(FuDevice *device,
 	FuAmdKriaDevice *self = FU_AMD_KRIA_DEVICE(device);
 	FuAmdKriaDevicePrivate *priv = GET_PRIVATE(self);
 
-	if (!fu_device_locker_close(priv->esp_locker, error))
+	if (!fu_volume_locker_close(priv->esp_locker, error))
 		return FALSE;
 	g_clear_object(&priv->esp_locker);
 
@@ -223,7 +223,7 @@ fu_amd_kria_device_init(FuAmdKriaDevice *self)
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_INTERNAL);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_REQUIRE_AC);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_NEEDS_REBOOT);
-	fu_device_add_icon(FU_DEVICE(self), "computer");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_COMPUTER);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_SIGNED_PAYLOAD);
 	fu_device_set_summary(FU_DEVICE(self), "AMD Kria device (Updated via capsule-on-disk)");
 	fu_device_add_protocol(FU_DEVICE(self), "org.uefi.capsule");

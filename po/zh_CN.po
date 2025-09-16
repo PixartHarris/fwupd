@@ -34,7 +34,7 @@ msgid "%s Battery Update"
 msgstr "%s 电池更新"
 
 #. TRANSLATORS: the CPU microcode is firmware loaded onto the CPU
-#. * at system bootup
+#. * at system boot-up
 #, c-format
 msgid "%s CPU Microcode Update"
 msgstr "%s CPU 微码更新"
@@ -744,10 +744,6 @@ msgid "FILENAME CERTIFICATE PRIVATE-KEY"
 msgstr "文件名称 证书 私钥"
 
 #. TRANSLATORS: command argument: uppercase, spaces->dashes
-msgid "FILENAME DEVICE-ID"
-msgstr "文件名 设备ID"
-
-#. TRANSLATORS: command argument: uppercase, spaces->dashes
 msgid "FILENAME [DEVICE-ID|GUID]"
 msgstr "文件名 [设备ID|GUID]"
 
@@ -924,10 +920,6 @@ msgstr "获取已批准固件的列表"
 #. TRANSLATORS: command description
 msgid "Gets the list of blocked firmware"
 msgstr "获取受阻固件的列表"
-
-#. TRANSLATORS: command description
-msgid "Gets the list of updates for connected hardware"
-msgstr "获取已连接硬件的可用更新列表"
 
 #. TRANSLATORS: command description
 msgid "Gets the releases for a device"
@@ -1251,10 +1243,6 @@ msgid "Only version upgrades are allowed"
 msgstr "只允许版本升级"
 
 #. TRANSLATORS: command line option
-msgid "Output in JSON format"
-msgstr "以 JSON 格式输出"
-
-#. TRANSLATORS: command line option
 msgid "Override the default ESP path"
 msgstr "覆盖默认的 ESP 路径"
 
@@ -1573,11 +1561,6 @@ msgstr "激活所有设备成功"
 #. TRANSLATORS: success message
 msgid "Successfully disabled remote"
 msgstr "禁用远程源成功"
-
-#. TRANSLATORS: success message -- where 'metadata' is information
-#. * about available firmware on the remote server
-msgid "Successfully downloaded new metadata: "
-msgstr "已成功下载新元数据："
 
 #. TRANSLATORS: success message
 msgid "Successfully enabled and refreshed remote"

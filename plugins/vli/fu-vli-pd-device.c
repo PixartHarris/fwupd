@@ -33,7 +33,7 @@ fu_vli_pd_device_read_regs(FuVliPdDevice *self,
 					    FU_USB_DIRECTION_DEVICE_TO_HOST,
 					    FU_USB_REQUEST_TYPE_VENDOR,
 					    FU_USB_RECIPIENT_DEVICE,
-					    0xe0,
+					    FU_VLI_PD_DEVICE_CMD_ACCESS_REGISTER,
 					    ((addr & 0xff) << 8) | 0x01,
 					    addr >> 8,
 					    buf,
@@ -64,7 +64,7 @@ fu_vli_pd_device_write_reg(FuVliPdDevice *self, guint16 addr, guint8 value, GErr
 					    FU_USB_DIRECTION_HOST_TO_DEVICE,
 					    FU_USB_REQUEST_TYPE_VENDOR,
 					    FU_USB_RECIPIENT_DEVICE,
-					    0xe0,
+					    FU_VLI_PD_DEVICE_CMD_ACCESS_REGISTER,
 					    ((addr & 0xff) << 8) | 0x02,
 					    addr >> 8,
 					    &value,
@@ -92,7 +92,7 @@ fu_vli_pd_device_spi_read_status(FuVliDevice *self, guint8 *status, GError **err
 					      FU_USB_DIRECTION_DEVICE_TO_HOST,
 					      FU_USB_REQUEST_TYPE_VENDOR,
 					      FU_USB_RECIPIENT_DEVICE,
-					      0xc5,
+					      FU_VLI_PD_DEVICE_SPI_CMD_READ_STATUS,
 					      spi_cmd,
 					      0x0000,
 					      status,
@@ -124,7 +124,7 @@ fu_vli_pd_device_spi_read_data(FuVliDevice *self,
 					      FU_USB_DIRECTION_DEVICE_TO_HOST,
 					      FU_USB_REQUEST_TYPE_VENDOR,
 					      FU_USB_RECIPIENT_DEVICE,
-					      0xc4,
+					      FU_VLI_PD_DEVICE_SPI_CMD_READ_DATA,
 					      value,
 					      index,
 					      buf,
@@ -150,7 +150,7 @@ fu_vli_pd_device_spi_write_status(FuVliDevice *self, guint8 status, GError **err
 					    FU_USB_DIRECTION_HOST_TO_DEVICE,
 					    FU_USB_REQUEST_TYPE_VENDOR,
 					    FU_USB_RECIPIENT_DEVICE,
-					    0xd8,
+					    FU_VLI_PD_DEVICE_SPI_CMD_WRITE_STATUS,
 					    value,
 					    0x0,
 					    NULL,
@@ -180,7 +180,7 @@ fu_vli_pd_device_spi_write_enable(FuVliDevice *self, GError **error)
 					    FU_USB_DIRECTION_HOST_TO_DEVICE,
 					    FU_USB_REQUEST_TYPE_VENDOR,
 					    FU_USB_RECIPIENT_DEVICE,
-					    0xd4,
+					    FU_VLI_PD_DEVICE_SPI_CMD_WRITE_ENABLE,
 					    spi_cmd,
 					    0x0000,
 					    NULL,
@@ -207,7 +207,7 @@ fu_vli_pd_device_spi_chip_erase(FuVliDevice *self, GError **error)
 					    FU_USB_DIRECTION_HOST_TO_DEVICE,
 					    FU_USB_REQUEST_TYPE_VENDOR,
 					    FU_USB_RECIPIENT_DEVICE,
-					    0xd1,
+					    FU_VLI_PD_DEVICE_SPI_CMD_CHIP_ERASE,
 					    spi_cmd,
 					    0x0000,
 					    NULL,
@@ -238,7 +238,7 @@ fu_vli_pd_device_spi_sector_erase(FuVliDevice *self, guint32 addr, GError **erro
 					      FU_USB_DIRECTION_HOST_TO_DEVICE,
 					      FU_USB_REQUEST_TYPE_VENDOR,
 					      FU_USB_RECIPIENT_DEVICE,
-					      0xd2,
+					      FU_VLI_PD_DEVICE_SPI_CMD_SECTOR_ERASE,
 					      value,
 					      index,
 					      NULL,
@@ -276,7 +276,7 @@ fu_vli_pd_device_spi_write_data(FuVliDevice *self,
 					    FU_USB_DIRECTION_HOST_TO_DEVICE,
 					    FU_USB_REQUEST_TYPE_VENDOR,
 					    FU_USB_RECIPIENT_DEVICE,
-					    0xdc,
+					    FU_VLI_PD_DEVICE_SPI_CMD_WRITE_DATA,
 					    value,
 					    index,
 					    buf_mut,
@@ -307,7 +307,7 @@ fu_vli_pd_device_parade_setup(FuVliPdDevice *self, GError **error)
 		return TRUE;
 	}
 	if (!fu_device_setup(dev, error)) {
-		g_prefix_error(error, "failed to set up parade device: ");
+		g_prefix_error_literal(error, "failed to set up parade device: ");
 		return FALSE;
 	}
 	fu_device_add_child(FU_DEVICE(self), dev);
@@ -332,7 +332,7 @@ fu_vli_pd_device_setup(FuDevice *device, GError **error)
 					    FU_USB_DIRECTION_DEVICE_TO_HOST,
 					    FU_USB_REQUEST_TYPE_VENDOR,
 					    FU_USB_RECIPIENT_DEVICE,
-					    0xe2,
+					    FU_VLI_PD_DEVICE_CMD_GET_FW_VERSION,
 					    0x0001,
 					    0x0000,
 					    verbuf,
@@ -341,7 +341,7 @@ fu_vli_pd_device_setup(FuDevice *device, GError **error)
 					    1000,
 					    NULL,
 					    error)) {
-		g_prefix_error(error, "failed to get version: ");
+		g_prefix_error_literal(error, "failed to get version: ");
 		return FALSE;
 	}
 	if (!fu_memread_uint32_safe(verbuf, sizeof(verbuf), 0x0, &version_raw, G_BIG_ENDIAN, error))
@@ -560,7 +560,7 @@ fu_vli_pd_device_write_dual_firmware(FuVliPdDevice *self,
 		return FALSE;
 	}
 	if (!fu_memread_uint16_safe(sbuf, sbufsz, sbufsz - 2, &crc_file, G_LITTLE_ENDIAN, error)) {
-		g_prefix_error(error, "failed to read file CRC: ");
+		g_prefix_error_literal(error, "failed to read file CRC: ");
 		return FALSE;
 	}
 	crc_actual = fu_crc16(FU_CRC_KIND_B16_USB, sbuf, sbufsz - 2);
@@ -658,7 +658,7 @@ fu_vli_pd_device_write_firmware(FuDevice *device,
 	if (!fu_vli_device_spi_erase_all(FU_VLI_DEVICE(self),
 					 fu_progress_get_child(progress),
 					 error)) {
-		g_prefix_error(error, "failed to erase all: ");
+		g_prefix_error_literal(error, "failed to erase all: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -731,6 +731,7 @@ fu_vli_pd_device_detach(FuDevice *device, FuProgress *progress, GError **error)
 						    NULL,
 						    &error_local)) {
 			if (g_error_matches(error_local, FWUPD_ERROR, FWUPD_ERROR_INTERNAL) ||
+			    g_error_matches(error_local, FWUPD_ERROR, FWUPD_ERROR_READ) ||
 			    g_error_matches(error_local, FWUPD_ERROR, FWUPD_ERROR_NOT_FOUND)) {
 				g_debug("ignoring %s", error_local->message);
 			} else {
@@ -896,7 +897,7 @@ fu_vli_pd_device_convert_version(FuDevice *device, guint64 version_raw)
 static void
 fu_vli_pd_device_init(FuVliPdDevice *self)
 {
-	fu_device_add_icon(FU_DEVICE(self), "usb-hub");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_USB_HUB);
 	fu_device_add_protocol(FU_DEVICE(self), "com.vli.pd");
 	fu_device_set_summary(FU_DEVICE(self), "USB power distribution device");
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);

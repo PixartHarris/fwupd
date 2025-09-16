@@ -151,10 +151,10 @@ fu_dell_dock_plugin_backend_device_added(FuPlugin *plugin,
 	/* determine dock type by ec */
 	dock_type = fu_dell_dock_ec_get_dock_type(ec_device);
 	if (dock_type == DOCK_BASE_TYPE_UNKNOWN) {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_READ,
-			    "can't read base dock type from EC");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_READ,
+				    "can't read base dock type from EC");
 		return FALSE;
 	}
 	fu_dell_dock_hub_add_instance(FU_DEVICE(hub), dock_type);
@@ -304,6 +304,7 @@ fu_dell_dock_plugin_composite_cleanup(FuPlugin *plugin, GPtrArray *devices, GErr
 static void
 fu_dell_dock_plugin_init(FuDellDockPlugin *self)
 {
+	fu_plugin_add_flag(FU_PLUGIN(self), FWUPD_PLUGIN_FLAG_MUTABLE_ENUMERATION);
 }
 
 static void

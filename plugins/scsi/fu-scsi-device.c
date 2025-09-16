@@ -98,7 +98,7 @@ fu_scsi_device_probe(FuDevice *device, GError **error)
 						      FU_UDEV_DEVICE_ATTR_READ_TIMEOUT_DEFAULT,
 						      error);
 			if (attr_ffu_timeout == NULL) {
-				g_prefix_error(error, "no ffu timeout specified: ");
+				g_prefix_error_literal(error, "no ffu timeout specified: ");
 				return FALSE;
 			}
 			if (!fu_strtoull(attr_ffu_timeout,
@@ -298,7 +298,7 @@ fu_scsi_device_setup(FuDevice *device, GError **error)
 					     sizeof(buf),
 					     SG_DXFER_FROM_DEV,
 					     error)) {
-		g_prefix_error(error, "SG_IO INQUIRY_CMD data error: ");
+		g_prefix_error_literal(error, "SG_IO INQUIRY_CMD data error: ");
 		return FALSE;
 	}
 
@@ -447,7 +447,7 @@ fu_scsi_device_set_progress(FuDevice *self, FuProgress *progress)
 static void
 fu_scsi_device_init(FuScsiDevice *self)
 {
-	fu_device_add_icon(FU_DEVICE(self), "drive-harddisk");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_DRIVE_HARDDISK);
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_PLAIN);
 	fu_device_set_summary(FU_DEVICE(self), "SCSI device");
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_ADD_INSTANCE_ID_REV);

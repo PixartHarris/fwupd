@@ -8,43 +8,18 @@
 #include "config.h"
 
 #include "fu-igsc-aux-firmware.h"
-#include "fu-igsc-heci.h"
-#include "fu-igsc-struct.h"
+#include "fu-igsc-common.h"
 
 struct _FuIgscAuxFirmware {
 	FuIfwiFptFirmware parent_instance;
 	guint32 oem_version;
 	guint16 major_version;
 	guint16 major_vcn;
-	GPtrArray *device_infos; /* of igsc_fwdata_device_info */
-	gboolean has_manifest_ext;
+	guint32 data_arb_svn;
+	GPtrArray *device_infos; /* of FuIgscFwdataDeviceInfo4 */
 };
 
 G_DEFINE_TYPE(FuIgscAuxFirmware, fu_igsc_aux_firmware, FU_TYPE_IFWI_FPT_FIRMWARE)
-
-#define MFT_EXT_TYPE_DEVICE_IDS	   37
-#define MFT_EXT_TYPE_FWDATA_UPDATE 29
-
-struct mft_fwdata_update_ext {
-	guint32 extension_type;
-	guint32 extension_length;
-	guint32 oem_manuf_data_version;
-	guint16 major_vcn;
-	guint16 flags;
-};
-
-struct igsc_fwdata_device_info {
-	guint16 vendor_id;
-	guint16 device_id;
-	guint16 subsys_vendor_id;
-	guint16 subsys_device_id;
-};
-
-struct igsc_fwdata_version {
-	guint32 oem_manuf_data_version;
-	guint16 major_version;
-	guint16 major_vcn;
-};
 
 static void
 fu_igsc_aux_firmware_export(FuFirmware *firmware, FuFirmwareExportFlags flags, XbBuilderNode *bn)
@@ -53,8 +28,8 @@ fu_igsc_aux_firmware_export(FuFirmware *firmware, FuFirmwareExportFlags flags, X
 	fu_xmlb_builder_insert_kx(bn, "oem_version", self->oem_version);
 	fu_xmlb_builder_insert_kx(bn, "major_version", self->major_version);
 	fu_xmlb_builder_insert_kx(bn, "major_vcn", self->major_vcn);
-	fu_xmlb_builder_insert_kx(bn, "device_infos", self->device_infos->len);
-	fu_xmlb_builder_insert_kb(bn, "has_manifest_ext", self->has_manifest_ext);
+	fu_xmlb_builder_insert_kx(bn, "data_arb_svn", self->data_arb_svn);
+	fu_igsc_fwdata_device_info_export(self->device_infos, bn);
 }
 
 gboolean
@@ -68,10 +43,11 @@ fu_igsc_aux_firmware_match_device(FuIgscAuxFirmware *self,
 	g_return_val_if_fail(FU_IS_IGSC_AUX_FIRMWARE(self), FALSE);
 
 	for (guint i = 0; i < self->device_infos->len; i++) {
-		struct igsc_fwdata_device_info *info = g_ptr_array_index(self->device_infos, i);
-		if (info->vendor_id == vendor_id && info->device_id == device_id &&
-		    info->subsys_vendor_id == subsys_vendor_id &&
-		    info->subsys_device_id == subsys_device_id)
+		FuIgscFwdataDeviceInfo4 *info = g_ptr_array_index(self->device_infos, i);
+		if (fu_igsc_fwdata_device_info4_get_vendor_id(info) == vendor_id &&
+		    fu_igsc_fwdata_device_info4_get_device_id(info) == device_id &&
+		    fu_igsc_fwdata_device_info4_get_subsys_vendor_id(info) == subsys_vendor_id &&
+		    fu_igsc_fwdata_device_info4_get_subsys_device_id(info) == subsys_device_id)
 			return TRUE;
 	}
 
@@ -109,81 +85,25 @@ fu_igsc_aux_firmware_get_major_vcn(FuIgscAuxFirmware *self)
 }
 
 static gboolean
-fu_igsc_aux_firmware_parse_version(FuIgscAuxFirmware *self, GError **error)
+fu_igsc_aux_firmware_parse_info(FuIgscAuxFirmware *self, GError **error)
 {
-	gsize bufsz = 0;
-	const guint8 *buf;
-	struct igsc_fwdata_version version = {0x0};
-	g_autoptr(GBytes) fw_info = NULL;
+	g_autoptr(FuStructIgscFwdataVersion) st = NULL;
+	g_autoptr(GInputStream) stream = NULL;
 
-	fw_info = fu_firmware_get_image_by_idx_bytes(FU_FIRMWARE(self),
-						     FU_IFWI_FPT_FIRMWARE_IDX_SDTA,
+	stream = fu_firmware_get_image_by_idx_stream(FU_FIRMWARE(self),
+						     FU_IFWI_FPT_FIRMWARE_IDX_INFO,
 						     error);
-	if (fw_info == NULL)
+	if (stream == NULL)
 		return FALSE;
-	buf = g_bytes_get_data(fw_info, &bufsz);
-
-	if (!fu_memcpy_safe((guint8 *)&version,
-			    sizeof(version),
-			    0x0, /* dst */
-			    buf,
-			    bufsz,
-			    FU_STRUCT_IGSC_FWU_HECI_IMAGE_METADATA_SIZE, /* src */
-			    sizeof(version),
-			    error)) {
-		g_prefix_error(error, "no version: ");
+	st = fu_struct_igsc_fwdata_version_parse_stream(stream,
+							FU_STRUCT_IGSC_FWU_HECI_IMAGE_METADATA_SIZE,
+							error);
+	if (st == NULL)
 		return FALSE;
-	}
-	self->oem_version = version.oem_manuf_data_version;
-	self->major_vcn = version.major_vcn;
-	self->major_version = version.major_version;
-	return TRUE;
-}
-
-static gboolean
-fu_igsc_aux_firmware_parse_extension(FuIgscAuxFirmware *self, FuFirmware *fw, GError **error)
-{
-	const guint8 *buf;
-	gsize bufsz = 0;
-	g_autoptr(GBytes) blob = NULL;
-
-	/* get data */
-	blob = fu_firmware_get_bytes(fw, error);
-	if (blob == NULL)
-		return FALSE;
-	buf = g_bytes_get_data(blob, &bufsz);
-
-	if (fu_firmware_get_idx(fw) == MFT_EXT_TYPE_DEVICE_IDS) {
-		for (gsize offset = 0; offset < bufsz;
-		     offset += sizeof(struct igsc_fwdata_device_info)) {
-			struct igsc_fwdata_device_info device_info = {0x0};
-			if (!fu_memcpy_safe((guint8 *)&device_info,
-					    sizeof(device_info),
-					    0x0, /* dst */
-					    buf,
-					    bufsz,
-					    offset, /* src */
-					    sizeof(device_info),
-					    error)) {
-				g_prefix_error(error, "no ext header: ");
-				return FALSE;
-			}
-			g_ptr_array_add(self->device_infos,
-					fu_memdup_safe((const guint8 *)&device_info,
-						       sizeof(device_info),
-						       NULL));
-		}
-	} else if (fu_firmware_get_idx(fw) == MFT_EXT_TYPE_FWDATA_UPDATE) {
-		if (bufsz != sizeof(struct mft_fwdata_update_ext)) {
-			g_set_error(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_INVALID_DATA,
-				    "signed data update manifest ext was 0x%x bytes",
-				    (guint)bufsz);
-			return FALSE;
-		}
-		self->has_manifest_ext = TRUE;
-	}
+	self->oem_version = fu_struct_igsc_fwdata_version_get_oem_manuf_data_version(st);
+	self->major_vcn = fu_struct_igsc_fwdata_version_get_major_vcn(st);
+	self->major_version = fu_struct_igsc_fwdata_version_get_major_version(st);
+	self->data_arb_svn = fu_struct_igsc_fwdata_version_get_data_arb_svn(st);
 
 	/* success */
 	return TRUE;
@@ -196,9 +116,10 @@ fu_igsc_aux_firmware_parse(FuFirmware *firmware,
 			   GError **error)
 {
 	FuIgscAuxFirmware *self = FU_IGSC_AUX_FIRMWARE(firmware);
+	gboolean has_manifest_ext = FALSE;
 	g_autoptr(FuFirmware) fw_cpd = fu_ifwi_cpd_firmware_new();
 	g_autoptr(FuFirmware) fw_manifest = NULL;
-	g_autoptr(GBytes) blob_dataimg = NULL;
+	g_autoptr(GInputStream) stream_dataimg = NULL;
 	g_autoptr(GPtrArray) imgs = NULL;
 
 	/* FuIfwiFptFirmware->parse */
@@ -207,13 +128,13 @@ fu_igsc_aux_firmware_parse(FuFirmware *firmware,
 		return FALSE;
 
 	/* parse data section */
-	blob_dataimg =
-	    fu_firmware_get_image_by_idx_bytes(firmware, FU_IFWI_FPT_FIRMWARE_IDX_SDTA, error);
-	if (blob_dataimg == NULL)
+	stream_dataimg =
+	    fu_firmware_get_image_by_idx_stream(firmware, FU_IFWI_FPT_FIRMWARE_IDX_SDTA, error);
+	if (stream_dataimg == NULL)
 		return FALSE;
 
 	/* parse as CPD */
-	if (!fu_firmware_parse_bytes(fw_cpd, blob_dataimg, 0x0, flags, error))
+	if (!fu_firmware_parse_stream(fw_cpd, stream_dataimg, 0x0, flags, error))
 		return FALSE;
 
 	/* get manifest */
@@ -226,10 +147,12 @@ fu_igsc_aux_firmware_parse(FuFirmware *firmware,
 	imgs = fu_firmware_get_images(fw_manifest);
 	for (guint i = 0; i < imgs->len; i++) {
 		FuFirmware *img = g_ptr_array_index(imgs, i);
-		if (!fu_igsc_aux_firmware_parse_extension(self, img, error))
+		if (!fu_igsc_fwdata_device_info_parse(self->device_infos, img, error))
 			return FALSE;
+		if (fu_firmware_get_idx(img) == FU_IGSC_FWU_EXT_TYPE_FWDATA_UPDATE)
+			has_manifest_ext = TRUE;
 	}
-	if (!self->has_manifest_ext || self->device_infos->len == 0) {
+	if (!has_manifest_ext || self->device_infos->len == 0) {
 		g_set_error_literal(error,
 				    FWUPD_ERROR,
 				    FWUPD_ERROR_INVALID_DATA,
@@ -238,8 +161,10 @@ fu_igsc_aux_firmware_parse(FuFirmware *firmware,
 	}
 
 	/* parse the info block */
-	if (!fu_igsc_aux_firmware_parse_version(self, error))
+	if (!fu_igsc_aux_firmware_parse_info(self, error)) {
+		g_prefix_error_literal(error, "failed to parse info block: ");
 		return FALSE;
+	}
 
 	/* success */
 	return TRUE;
@@ -288,7 +213,8 @@ fu_igsc_aux_firmware_build(FuFirmware *firmware, XbNode *n, GError **error)
 static void
 fu_igsc_aux_firmware_init(FuIgscAuxFirmware *self)
 {
-	self->device_infos = g_ptr_array_new_with_free_func(g_free);
+	self->device_infos =
+	    g_ptr_array_new_with_free_func((GDestroyNotify)fu_igsc_fwdata_device_info4_unref);
 }
 
 static void

@@ -87,18 +87,21 @@ fu_uefi_capsule_backend_device_new(FuUefiCapsuleBackend *self,
 #endif
 
 static gboolean
-fu_uefi_capsule_backend_freebsd_setup(FuBackend *backend, FuBackendSetupFlags flags, GError **error)
+fu_uefi_capsule_backend_freebsd_setup(FuBackend *backend,
+				    FuBackendSetupFlags flags,
+				    FuProgress *progress,
+				    GError **error)
 {
 	g_autofree gchar *efi_ver = fu_kenv_get_string("efi-version", error);
 	if (efi_ver == NULL) {
-		g_prefix_error(error, "System does not support UEFI mode, no efi-version kenv: ");
+		g_prefix_error_literal(error, "does not support UEFI, no efi-version kenv: ");
 		return FALSE;
 	}
 	if (fu_version_compare(efi_ver, "2.0.0.0", FWUPD_VERSION_FORMAT_QUAD) < 0) {
 		g_set_error(error,
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "System does not support UEFI mode, got efi-version of %s",
+			    "does not support UEFI, got efi-version of %s",
 			    efi_ver);
 		return FALSE;
 	}
@@ -106,7 +109,7 @@ fu_uefi_capsule_backend_freebsd_setup(FuBackend *backend, FuBackendSetupFlags fl
 }
 
 static gboolean
-fu_uefi_capsule_backend_freebsd_coldplug(FuBackend *backend, GError **error)
+fu_uefi_capsule_backend_freebsd_coldplug(FuBackend *backend, FuProgress *progress, GError **error)
 {
 #ifdef HAVE_FREEBSD_ESRT
 	FuUefiCapsuleBackend *self = FU_UEFI_CAPSULE_BACKEND(backend);
@@ -175,11 +178,6 @@ fu_uefi_capsule_backend_freebsd_coldplug(FuBackend *backend, GError **error)
 			    "ESRT access API is missing from the kernel");
 	return FALSE;
 #endif
-}
-
-void
-fu_uefi_capsule_backend_freebsd_set_device_gtype(FuBackend *backend, GType device_gtype)
-{
 }
 
 static void

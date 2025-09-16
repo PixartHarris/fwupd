@@ -1,4 +1,6 @@
-if hsi and (host_cpu == 'x86' or host_cpu == 'x86_64')
+hsi or subdir_done()
+host_cpu in ['x86', 'x86_64'] or subdir_done()
+
 cargs = ['-DG_LOG_DOMAIN="FuPluginPciPsp"']
 plugins += {meson.current_source_dir().split('/')[-1]: true}
 
@@ -14,4 +16,9 @@ plugin_builtins += static_library('fu_plugin_pci_psp',
   dependencies: plugin_deps,
 )
 umockdev_tests += files('pci_psp_test.py')
-endif
+device_tests += files(
+  'tests/pci-psp-strix-enumerate.json',
+)
+enumeration_data += files(
+  'tests/pci-psp-strix.json',
+)

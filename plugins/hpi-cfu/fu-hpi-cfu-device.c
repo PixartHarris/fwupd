@@ -454,7 +454,7 @@ fu_hpi_cfu_device_handler_start_entire_transaction(FuHpiCfuDevice *self,
 {
 	if (!fu_hpi_cfu_device_start_entire_transaction(self, error)) {
 		self->state = FU_HPI_CFU_STATE_ERROR;
-		g_prefix_error(error, "start_entire_transaction: ");
+		g_prefix_error_literal(error, "start_entire_transaction: ");
 		return FALSE;
 	}
 	self->state = FU_HPI_CFU_STATE_START_ENTIRE_TRANSACTION_ACCEPTED;
@@ -469,7 +469,7 @@ fu_hpi_cfu_device_handler_start_entire_transaction_accepted(FuHpiCfuDevice *self
 {
 	if (!fu_hpi_cfu_device_start_entire_transaction_accepted(self, error)) {
 		self->state = FU_HPI_CFU_STATE_ERROR;
-		g_prefix_error(error, "start_entire_transaction_accept: ");
+		g_prefix_error_literal(error, "start_entire_transaction_accept: ");
 		return FALSE;
 	}
 
@@ -486,7 +486,7 @@ fu_hpi_cfu_device_handler_send_start_offer_list(FuHpiCfuDevice *self,
 {
 	if (!fu_hpi_cfu_device_send_start_offer_list(self, error)) {
 		self->state = FU_HPI_CFU_STATE_ERROR;
-		g_prefix_error(error, "start_offer_list: ");
+		g_prefix_error_literal(error, "start_offer_list: ");
 		return FALSE;
 	}
 	self->state = FU_HPI_CFU_STATE_START_OFFER_LIST_ACCEPTED;
@@ -505,7 +505,7 @@ fu_hpi_cfu_device_handler_send_start_offer_list_accepted(FuHpiCfuDevice *self,
 
 	if (!fu_hpi_cfu_device_send_offer_list_accepted(self, &status, error)) {
 		self->state = FU_HPI_CFU_STATE_UPDATE_STOP;
-		g_prefix_error(error, "start_offer_list_accept: ");
+		g_prefix_error_literal(error, "start_offer_list_accept: ");
 		return FALSE;
 	}
 
@@ -526,7 +526,7 @@ fu_hpi_cfu_device_handler_send_offer_update_command(FuHpiCfuDevice *self,
 {
 	if (!fu_hpi_cfu_device_send_offer_update_command(self, options->fw_offer, error)) {
 		self->state = FU_HPI_CFU_STATE_ERROR;
-		g_prefix_error(error, "send_offer_update_command: ");
+		g_prefix_error_literal(error, "send_offer_update_command: ");
 		return FALSE;
 	}
 	self->state = FU_HPI_CFU_STATE_UPDATE_OFFER_ACCEPTED;
@@ -544,7 +544,7 @@ fu_hpi_cfu_device_handler_send_offer_accepted(FuHpiCfuDevice *self,
 
 	if (!fu_hpi_cfu_device_firmware_update_offer_accepted(self, &reply, &reason, error)) {
 		self->state = FU_HPI_CFU_STATE_ERROR;
-		g_prefix_error(error, "send_offer_accepted: ");
+		g_prefix_error_literal(error, "send_offer_accepted: ");
 		return FALSE;
 	}
 	if (reply == FU_HPI_CFU_FIRMWARE_UPDATE_OFFER_ACCEPT) {
@@ -714,10 +714,10 @@ fu_hpi_cfu_device_send_append_untransmitted(FuHpiCfuDevice *self,
 								  untransmitted_data->len,
 								  fill_from_position,
 								  error)) {
-				g_set_error(error,
-					    FWUPD_ERROR,
-					    FWUPD_ERROR_INVALID_DATA,
-					    "to set untransmitted_data");
+				g_set_error_literal(error,
+						    FWUPD_ERROR,
+						    FWUPD_ERROR_INVALID_DATA,
+						    "to set untransmitted_data");
 				return FALSE;
 			}
 		}
@@ -753,13 +753,90 @@ fu_hpi_cfu_device_send_append_untransmitted(FuHpiCfuDevice *self,
 							  payload_header_length,
 							  fill_from_position,
 							  error)) {
-			g_prefix_error(error, "failed to set untransmitted_data: ");
+			g_prefix_error_literal(error, "failed to set untransmitted_data: ");
 			return FALSE;
 		}
 	}
 
 	/* success */
 	return TRUE;
+}
+
+static void
+fu_hpi_cfu_device_handler_set_status_report_25(FuHpiCfuDevice *self,
+					       guint8 status,
+					       gboolean lastpacket)
+{
+	switch (status) {
+	case FU_HPI_CFU_FIRMWARE_UPDATE_OFFER_SKIP:
+	case FU_HPI_CFU_FIRMWARE_UPDATE_OFFER_REJECT:
+	case FU_HPI_CFU_FIRMWARE_UPDATE_OFFER_COMMAND_READY:
+	case FU_HPI_CFU_FIRMWARE_UPDATE_OFFER_CMD_NOT_SUPPORTED:
+		g_warning("check_update_content: reason: %s",
+			  fu_hpi_cfu_firmware_update_offer_to_string(status));
+		self->state = FU_HPI_CFU_STATE_UPDATE_MORE_OFFERS;
+		break;
+
+	case FU_HPI_CFU_FIRMWARE_UPDATE_OFFER_ACCEPT:
+		g_debug("check_update_content: reason: %s",
+			fu_hpi_cfu_firmware_update_offer_to_string(status));
+		if (lastpacket) {
+			g_debug("check_update_content: reason: %s for last_packet_sent",
+				fu_hpi_cfu_firmware_update_offer_to_string(status));
+			self->state = FU_HPI_CFU_STATE_UPDATE_SUCCESS;
+		} else
+			self->state = FU_HPI_CFU_STATE_UPDATE_CONTENT;
+		break;
+
+	case FU_HPI_CFU_FIRMWARE_UPDATE_OFFER_BUSY:
+		g_warning("check_update_content: reason:%s",
+			  fu_hpi_cfu_firmware_update_offer_to_string(status));
+		self->state = FU_HPI_CFU_STATE_NOTIFY_ON_READY;
+		break;
+
+	default:
+		g_warning("check_update_content: FU_HPI_CFU_STATE_ERROR");
+		self->state = FU_HPI_CFU_STATE_ERROR;
+		break;
+	}
+}
+
+static void
+fu_hpi_cfu_device_handler_set_status_report_22(FuHpiCfuDevice *self,
+					       guint8 status,
+					       gboolean lastpacket)
+{
+	switch (status) {
+	case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_PREPARE:
+	case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_WRITE:
+	case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_COMPLETE:
+	case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_VERIFY:
+	case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_CRC:
+	case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_SIGNATURE:
+	case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_VERSION:
+	case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_SWAP_PENDING:
+	case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_INVALID_ADDR:
+	case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_NO_OFFER:
+	case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_INVALID:
+		self->state = FU_HPI_CFU_STATE_ERROR;
+		g_warning("check_update_content: reason:%s",
+			  fu_cfu_content_status_to_string(status));
+		g_debug("check_update_content: %s",
+			fu_hpi_cfu_firmware_update_status_to_string(status));
+		break;
+
+	case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_SUCCESS:
+		g_debug("check_update_content: SUCCESS");
+		if (lastpacket) {
+			self->state = FU_HPI_CFU_STATE_UPDATE_SUCCESS;
+		} else
+			self->state = FU_HPI_CFU_STATE_UPDATE_CONTENT;
+		break;
+	default:
+		g_warning("check_update_content: status none");
+		self->state = FU_HPI_CFU_STATE_ERROR;
+		break;
+	}
 }
 
 static gboolean
@@ -850,73 +927,11 @@ fu_hpi_cfu_device_handler_check_update_content(FuHpiCfuDevice *self,
 		self->state = FU_HPI_CFU_STATE_UPDATE_CONTENT;
 
 	if (report_id == 0x25) {
-		g_debug("check_update_content: report_id:%d", report_id == FIRMWARE_REPORT_ID);
-		switch (status) {
-		case FU_HPI_CFU_FIRMWARE_UPDATE_OFFER_SKIP:
-		case FU_HPI_CFU_FIRMWARE_UPDATE_OFFER_REJECT:
-		case FU_HPI_CFU_FIRMWARE_UPDATE_OFFER_COMMAND_READY:
-		case FU_HPI_CFU_FIRMWARE_UPDATE_OFFER_CMD_NOT_SUPPORTED:
-			g_warning("check_update_content: reason: %s",
-				  fu_hpi_cfu_firmware_update_offer_to_string(status));
-			self->state = FU_HPI_CFU_STATE_UPDATE_MORE_OFFERS;
-			break;
-
-		case FU_HPI_CFU_FIRMWARE_UPDATE_OFFER_ACCEPT:
-			g_debug("check_update_content: reason: %s",
-				fu_hpi_cfu_firmware_update_offer_to_string(status));
-			if (lastpacket) {
-				g_debug("check_update_content: reason: %s for last_packet_sent",
-					fu_hpi_cfu_firmware_update_offer_to_string(status));
-				self->state = FU_HPI_CFU_STATE_UPDATE_SUCCESS;
-			} else
-				self->state = FU_HPI_CFU_STATE_UPDATE_CONTENT;
-			break;
-
-		case FU_HPI_CFU_FIRMWARE_UPDATE_OFFER_BUSY:
-			g_warning("check_update_content: reason:%s",
-				  fu_hpi_cfu_firmware_update_offer_to_string(status));
-			self->state = FU_HPI_CFU_STATE_NOTIFY_ON_READY;
-			break;
-
-		default:
-			g_warning("check_update_content: FU_HPI_CFU_STATE_ERROR");
-			self->state = FU_HPI_CFU_STATE_ERROR;
-			break;
-		}
+		g_debug("check_update_content: report_id:0x%x", report_id);
+		fu_hpi_cfu_device_handler_set_status_report_25(self, status, lastpacket);
 	} else if (report_id == 0x22) {
-		g_debug("check_update_content: report_id:0x22");
-		switch (status) {
-		case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_PREPARE:
-		case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_WRITE:
-		case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_COMPLETE:
-		case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_VERIFY:
-		case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_CRC:
-		case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_SIGNATURE:
-		case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_VERSION:
-		case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_SWAP_PENDING:
-		case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_INVALID_ADDR:
-		case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_NO_OFFER:
-		case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_ERROR_INVALID:
-			self->state = FU_HPI_CFU_STATE_ERROR;
-			g_warning("check_update_content: reason:%s",
-				  fu_cfu_content_status_to_string(status));
-			g_debug("check_update_content: %s",
-				fu_hpi_cfu_firmware_update_status_to_string(status));
-			break;
-
-		case FU_HPI_CFU_FIRMWARE_UPDATE_STATUS_SUCCESS:
-			g_debug("check_update_content: SUCCESS");
-			if (lastpacket) {
-				self->state = FU_HPI_CFU_STATE_UPDATE_SUCCESS;
-			} else
-				self->state = FU_HPI_CFU_STATE_UPDATE_CONTENT;
-			break;
-
-		default:
-			g_warning("check_update_content: status none.");
-			self->state = FU_HPI_CFU_STATE_ERROR;
-			break;
-		}
+		g_debug("check_update_content: report_id:0x%x", report_id);
+		fu_hpi_cfu_device_handler_set_status_report_22(self, status, lastpacket);
 	}
 
 	/* success */
@@ -946,10 +961,10 @@ fu_hpi_cfu_device_handler_send_payload_chunk(FuHpiCfuDevice *self,
 							  payload_buf,
 							  read_index,
 							  error)) {
-			g_set_error(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_INVALID_DATA,
-				    "to get payload header");
+			g_set_error_literal(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_INVALID_DATA,
+					    "to get payload header");
 			return FALSE;
 		}
 
@@ -961,10 +976,10 @@ fu_hpi_cfu_device_handler_send_payload_chunk(FuHpiCfuDevice *self,
 							payload_header_length,
 							read_index,
 							error)) {
-			g_set_error(error,
-				    FWUPD_ERROR,
-				    FWUPD_ERROR_INVALID_DATA,
-				    "to get payload data");
+			g_set_error_literal(error,
+					    FWUPD_ERROR,
+					    FWUPD_ERROR_INVALID_DATA,
+					    "to get payload data");
 			return FALSE;
 		}
 
@@ -1006,10 +1021,10 @@ fu_hpi_cfu_device_handler_send_payload_chunk(FuHpiCfuDevice *self,
 									  payload_header_length,
 									  fill_from_position,
 									  error)) {
-					g_set_error(error,
-						    FWUPD_ERROR,
-						    FWUPD_ERROR_INVALID_DATA,
-						    "to set untransmitted_data");
+					g_set_error_literal(error,
+							    FWUPD_ERROR,
+							    FWUPD_ERROR_INVALID_DATA,
+							    "to set untransmitted_data");
 					return FALSE;
 				}
 			} else {
@@ -1070,7 +1085,7 @@ fu_hpi_cfu_device_handler_send_payload(FuHpiCfuDevice *self,
 
 	chunks = fu_firmware_get_chunks(options->fw_payload, error);
 	if (chunks == NULL) {
-		g_prefix_error(error, "null chunks");
+		g_prefix_error_literal(error, "null chunks");
 		return FALSE;
 	}
 	for (guint32 i = 0; i < chunks->len; i++) {
@@ -1080,7 +1095,7 @@ fu_hpi_cfu_device_handler_send_payload(FuHpiCfuDevice *self,
 								  progress,
 								  options,
 								  error)) {
-			g_prefix_error(error, "send_payload: ");
+			g_prefix_error_literal(error, "send_payload: ");
 			return FALSE;
 		}
 	}
@@ -1137,7 +1152,7 @@ fu_hpi_cfu_device_handler_send_end_offer_list(FuHpiCfuDevice *self,
 {
 	if (!fu_hpi_cfu_device_send_end_offer_list(self, error)) {
 		self->state = FU_HPI_CFU_STATE_ERROR;
-		g_prefix_error(error, "send_end_offer_list: ");
+		g_prefix_error_literal(error, "send_end_offer_list: ");
 		return FALSE;
 	}
 	self->state = FU_HPI_CFU_STATE_END_OFFER_LIST_ACCEPTED;
@@ -1151,7 +1166,7 @@ fu_hpi_cfu_device_handler_end_offer_list_accepted(FuHpiCfuDevice *self,
 						  GError **error)
 {
 	if (!fu_hpi_cfu_device_end_offer_list_accepted(self, error)) {
-		g_prefix_error(error, "end_offer_list_accept: ");
+		g_prefix_error_literal(error, "end_offer_list_accept: ");
 		return FALSE;
 	}
 	self->state = FU_HPI_CFU_STATE_VERIFY_CHECK_SWAP_PENDING_BY_SENDING_OFFER_LIST_AGAIN;
@@ -1208,7 +1223,7 @@ fu_hpi_cfu_device_handler_swap_pending_send_offer_list_again(FuHpiCfuDevice *sel
 {
 	if (!fu_hpi_cfu_device_send_start_offer_list(self, error)) {
 		self->state = FU_HPI_CFU_STATE_UPDATE_VERIFY_ERROR;
-		g_prefix_error(error, "swap_pending_send_offer_list_again: ");
+		g_prefix_error_literal(error, "swap_pending_send_offer_list_again: ");
 		return FALSE;
 	}
 
@@ -1227,7 +1242,7 @@ fu_hpi_cfu_device_handler_swap_pending_offer_list_accepted(FuHpiCfuDevice *self,
 
 	if (!fu_hpi_cfu_device_send_offer_list_accepted(self, &status, error)) {
 		self->state = FU_HPI_CFU_STATE_ERROR;
-		g_prefix_error(error, "swap_pending_offer_list_accept: ");
+		g_prefix_error_literal(error, "swap_pending_offer_list_accept: ");
 		return FALSE;
 	}
 
@@ -1247,7 +1262,7 @@ fu_hpi_cfu_device_handler_swap_pending_send_offer_again(FuHpiCfuDevice *self,
 {
 	if (!fu_hpi_cfu_device_send_offer_update_command(self, options->fw_offer, error)) {
 		self->state = FU_HPI_CFU_STATE_ERROR;
-		g_prefix_error(error, "swap_pending_send_offer_again: ");
+		g_prefix_error_literal(error, "swap_pending_send_offer_again: ");
 		return FALSE;
 	}
 	self->state = FU_HPI_CFU_STATE_VERIFY_CHECK_SWAP_PENDING_OFFER_ACCEPTED;
@@ -1265,7 +1280,7 @@ fu_hpi_cfu_device_handler_swap_pending_send_offer_list_accepted(FuHpiCfuDevice *
 
 	/* reply status must be SWAP_PENDING */
 	if (!fu_hpi_cfu_device_firmware_update_offer_accepted(self, &reply, &reason, error)) {
-		g_prefix_error(error, "swap_pending_send_offer_accept: ");
+		g_prefix_error_literal(error, "swap_pending_send_offer_accept: ");
 		return FALSE;
 	}
 
@@ -1313,7 +1328,7 @@ fu_hpi_cfu_device_handler_swap_pending_send_end_offer_list(FuHpiCfuDevice *self,
 							   GError **error)
 {
 	if (!fu_hpi_cfu_device_send_end_offer_list(self, error)) {
-		g_prefix_error(error, "swap_pending_send_end_offer_list: ");
+		g_prefix_error_literal(error, "swap_pending_send_end_offer_list: ");
 		return FALSE;
 	}
 
@@ -1330,7 +1345,7 @@ fu_hpi_cfu_device_handler_swap_pending_end_offer_list_accepted(FuHpiCfuDevice *s
 							       GError **error)
 {
 	if (!fu_hpi_cfu_device_end_offer_list_accepted(self, error)) {
-		g_prefix_error(error, "swap_pending_end_offer_list_accept: ");
+		g_prefix_error_literal(error, "swap_pending_end_offer_list_accept: ");
 		return FALSE;
 	}
 
@@ -1431,7 +1446,7 @@ fu_hpi_cfu_device_setup(FuDevice *device, GError **error)
 					    FU_HPI_CFU_DEVICE_TIMEOUT,
 					    NULL,
 					    error)) {
-		g_prefix_error(error, "failed to do device setup");
+		g_prefix_error_literal(error, "failed to do device setup: ");
 		return FALSE;
 	}
 	fu_dump_raw(G_LOG_DOMAIN, "VersionResponse", buf, actual_length);
@@ -1517,7 +1532,7 @@ fu_hpi_cfu_device_write_firmware(FuDevice *device,
 							 progress,
 							 hpi_cfu_states[self->state].options,
 							 error)) {
-			g_prefix_error(error, "state: ");
+			g_prefix_error_literal(error, "state: ");
 			return FALSE;
 		}
 	}

@@ -513,14 +513,14 @@ fu_bcm57xx_recovery_device_dump_firmware(FuDevice *device, FuProgress *progress,
 	/* read from hardware */
 	fu_progress_set_status(progress, FWUPD_STATUS_DEVICE_READ);
 	locker = fu_device_locker_new_full(
-	    self,
+	    device,
 	    (FuDeviceLockerFunc)fu_bcm57xx_recovery_device_nvram_acquire_lock,
 	    (FuDeviceLockerFunc)fu_bcm57xx_recovery_device_nvram_release_lock,
 	    error);
 	if (locker == NULL)
 		return NULL;
 	locker2 =
-	    fu_device_locker_new_full(self,
+	    fu_device_locker_new_full(device,
 				      (FuDeviceLockerFunc)fu_bcm57xx_recovery_device_nvram_enable,
 				      (FuDeviceLockerFunc)fu_bcm57xx_recovery_device_nvram_disable,
 				      error);
@@ -550,7 +550,7 @@ fu_bcm57xx_recovery_device_prepare_firmware(FuDevice *device,
 
 	/* check is a NVRAM backup */
 	if (!fu_firmware_parse_stream(firmware_tmp, stream, 0x0, flags, error)) {
-		g_prefix_error(error, "failed to parse new firmware: ");
+		g_prefix_error_literal(error, "failed to parse new firmware: ");
 		return NULL;
 	}
 	if (!fu_bcm57xx_firmware_is_backup(FU_BCM57XX_FIRMWARE(firmware_tmp))) {
@@ -610,14 +610,14 @@ fu_bcm57xx_recovery_device_write_firmware(FuDevice *device,
 
 	/* hit hardware */
 	locker = fu_device_locker_new_full(
-	    self,
+	    FU_DEVICE(self),
 	    (FuDeviceLockerFunc)fu_bcm57xx_recovery_device_nvram_acquire_lock,
 	    (FuDeviceLockerFunc)fu_bcm57xx_recovery_device_nvram_release_lock,
 	    error);
 	if (locker == NULL)
 		return FALSE;
 	locker2 = fu_device_locker_new_full(
-	    self,
+	    FU_DEVICE(self),
 	    (FuDeviceLockerFunc)fu_bcm57xx_recovery_device_nvram_enable_write,
 	    (FuDeviceLockerFunc)fu_bcm57xx_recovery_device_nvram_disable,
 	    error);
@@ -663,14 +663,14 @@ fu_bcm57xx_recovery_device_setup(FuDevice *device, GError **error)
 	fu_progress_add_step(progress, FWUPD_STATUS_DEVICE_BUSY, 10, "version");
 
 	locker = fu_device_locker_new_full(
-	    self,
+	    FU_DEVICE(self),
 	    (FuDeviceLockerFunc)fu_bcm57xx_recovery_device_nvram_acquire_lock,
 	    (FuDeviceLockerFunc)fu_bcm57xx_recovery_device_nvram_release_lock,
 	    error);
 	if (locker == NULL)
 		return FALSE;
 	locker2 =
-	    fu_device_locker_new_full(self,
+	    fu_device_locker_new_full(FU_DEVICE(self),
 				      (FuDeviceLockerFunc)fu_bcm57xx_recovery_device_nvram_enable,
 				      (FuDeviceLockerFunc)fu_bcm57xx_recovery_device_nvram_disable,
 				      error);
@@ -793,7 +793,7 @@ fu_bcm57xx_recovery_device_open(FuDevice *device, GError **error)
 				    FWUPD_ERROR_NOT_SUPPORTED,
 				    "could not mmap %s: %s",
 				    fn,
-				    g_strerror(errno));
+				    fwupd_strerror(errno));
 			return FALSE;
 		}
 	}
@@ -863,7 +863,7 @@ fu_bcm57xx_recovery_device_init(FuBcm57xxRecoveryDevice *self)
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_BACKUP_BEFORE_INSTALL);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UNSIGNED_PAYLOAD);
 	fu_device_add_protocol(FU_DEVICE(self), "com.broadcom.bcm57xx");
-	fu_device_add_icon(FU_DEVICE(self), "network-wired");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_NETWORK_WIRED);
 	fu_device_set_logical_id(FU_DEVICE(self), "recovery");
 
 	/* other values are set from a quirk */

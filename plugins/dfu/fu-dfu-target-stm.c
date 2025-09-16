@@ -52,7 +52,7 @@ fu_dfu_target_stm_mass_erase(FuDfuTarget *target, FuProgress *progress, GError *
 	/* format buffer */
 	fu_byte_array_append_uint8(buf, DFU_STM_CMD_ERASE);
 	if (!fu_dfu_target_download_chunk(target, 0, buf, 35000, progress, error)) {
-		g_prefix_error(error, "cannot mass-erase: ");
+		g_prefix_error_literal(error, "cannot mass-erase: ");
 		return FALSE;
 	}
 
@@ -284,7 +284,7 @@ fu_dfu_target_stm_download_element1(FuDfuTarget *target,
 					    (guint)address + offset_dev);
 				return FALSE;
 			}
-			if (!fu_dfu_sector_has_cap(sector, FU_DFU_SECTOR_CAP_WRITEABLE)) {
+			if (!fu_dfu_sector_has_cap(sector, FU_DFU_SECTOR_CAP_WRITABLE)) {
 				g_set_error(error,
 					    FWUPD_ERROR,
 					    FWUPD_ERROR_NOT_SUPPORTED,

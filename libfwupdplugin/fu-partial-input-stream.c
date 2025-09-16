@@ -9,7 +9,6 @@
 #include "config.h"
 
 #include "fwupd-codec.h"
-#include "fwupd-common-private.h"
 
 #include "fu-input-stream.h"
 #include "fu-partial-input-stream-private.h"
@@ -169,7 +168,7 @@ fu_partial_input_stream_new(GInputStream *stream, gsize offset, gsize size, GErr
 
 	/* sanity check */
 	if (!fu_input_stream_size(stream, &base_sz, error)) {
-		g_prefix_error(error, "failed to get size: ");
+		g_prefix_error_literal(error, "failed to get size: ");
 		return NULL;
 	}
 	if (size == G_MAXSIZE) {

@@ -11,7 +11,6 @@
 #include <zlib.h>
 
 #include "fu-byte-array.h"
-#include "fu-bytes.h"
 #include "fu-cab-firmware-private.h"
 #include "fu-cab-image.h"
 #include "fu-cab-struct.h"
@@ -241,7 +240,7 @@ fu_cab_firmware_parse_data(FuCabFirmware *self,
 	partial_stream =
 	    fu_partial_input_stream_new(helper->stream, *offset + hdr_sz, blob_comp, error);
 	if (partial_stream == NULL) {
-		g_prefix_error(error, "failed to cut cabinet checksum: ");
+		g_prefix_error_literal(error, "failed to cut cabinet checksum: ");
 		return FALSE;
 	}
 	if ((helper->parse_flags & FU_FIRMWARE_PARSE_FLAG_IGNORE_CHECKSUM) == 0) {
@@ -488,7 +487,7 @@ fu_cab_firmware_parse_file(FuCabFirmware *self,
 					     fu_struct_cab_file_get_usize(st),
 					     error);
 	if (stream == NULL) {
-		g_prefix_error(error, "failed to cut cabinet image: ");
+		g_prefix_error_literal(error, "failed to cut cabinet image: ");
 		return FALSE;
 	}
 	if (!fu_firmware_parse_stream(FU_FIRMWARE(img), stream, 0x0, helper->parse_flags, error))

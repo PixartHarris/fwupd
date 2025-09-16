@@ -15,7 +15,7 @@
 #include "fu-coswid-firmware.h"
 #include "fu-csv-firmware.h"
 #include "fu-input-stream.h"
-#include "fu-mem.h"
+#include "fu-linear-firmware.h"
 #include "fu-partial-input-stream.h"
 #include "fu-pefile-firmware.h"
 #include "fu-pefile-struct.h"
@@ -112,7 +112,7 @@ fu_pefile_firmware_parse_section(FuFirmware *firmware,
 
 	st = fu_struct_pe_coff_section_parse_stream(stream, hdr_offset, error);
 	if (st == NULL) {
-		g_prefix_error(error, "failed to read section: ");
+		g_prefix_error_literal(error, "failed to read section: ");
 		return FALSE;
 	}
 	sect_id_tmp = fu_struct_pe_coff_section_get_name(st);
@@ -153,7 +153,7 @@ fu_pefile_firmware_parse_section(FuFirmware *firmware,
 
 	/* create new firmware */
 	if (g_strcmp0(sect_id, ".sbom") == 0) {
-		img = fu_coswid_firmware_new();
+		img = fu_linear_firmware_new(FU_TYPE_COSWID_FIRMWARE);
 	} else if (g_strcmp0(sect_id, ".sbat") == 0 || g_strcmp0(sect_id, ".sbata") == 0 ||
 		   g_strcmp0(sect_id, ".sbatl") == 0) {
 		img = fu_csv_firmware_new();
@@ -173,18 +173,24 @@ fu_pefile_firmware_parse_section(FuFirmware *firmware,
 	fu_firmware_set_idx(img, idx);
 
 	/* add data */
-	if (fu_struct_pe_coff_section_get_size_of_raw_data(st) > 0) {
+	if (fu_struct_pe_coff_section_get_virtual_size(st) > 0) {
 		guint32 sect_offset = fu_struct_pe_coff_section_get_pointer_to_raw_data(st);
+		guint32 sect_size = fu_struct_pe_coff_section_get_virtual_size(st);
 		g_autoptr(GInputStream) img_stream = NULL;
 
+		/* use the raw data size if the section is compressed */
+		if (fu_struct_pe_coff_section_get_virtual_size(st) >
+		    fu_struct_pe_coff_section_get_size_of_raw_data(st)) {
+			g_debug("virtual size 0x%x bigger than raw data, truncating to 0x%x",
+				sect_size,
+				fu_struct_pe_coff_section_get_size_of_raw_data(st));
+			sect_size = fu_struct_pe_coff_section_get_size_of_raw_data(st);
+		}
+
 		fu_firmware_set_offset(img, sect_offset);
-		img_stream =
-		    fu_partial_input_stream_new(stream,
-						sect_offset,
-						fu_struct_pe_coff_section_get_size_of_raw_data(st),
-						error);
+		img_stream = fu_partial_input_stream_new(stream, sect_offset, sect_size, error);
 		if (img_stream == NULL) {
-			g_prefix_error(error, "failed to cut raw PE data: ");
+			g_prefix_error_literal(error, "failed to cut raw PE data: ");
 			return FALSE;
 		}
 		if (!fu_firmware_parse_stream(img, img_stream, 0x0, flags, error)) {
@@ -228,13 +234,13 @@ fu_pefile_firmware_parse(FuFirmware *firmware,
 	/* parse the DOS header to get the COFF header */
 	st_doshdr = fu_struct_pe_dos_header_parse_stream(stream, offset, error);
 	if (st_doshdr == NULL) {
-		g_prefix_error(error, "failed to read DOS header: ");
+		g_prefix_error_literal(error, "failed to read DOS header: ");
 		return FALSE;
 	}
 	offset += fu_struct_pe_dos_header_get_lfanew(st_doshdr);
 	st_coff = fu_struct_pe_coff_file_header_parse_stream(stream, offset, error);
 	if (st_coff == NULL) {
-		g_prefix_error(error, "failed to read COFF header: ");
+		g_prefix_error_literal(error, "failed to read COFF header: ");
 		return FALSE;
 	}
 	offset += st_coff->len;
@@ -270,7 +276,7 @@ fu_pefile_firmware_parse(FuFirmware *firmware,
 		g_autoptr(FuStructPeCoffOptionalHeader64) st_opt =
 		    fu_struct_pe_coff_optional_header64_parse_stream(stream, offset, error);
 		if (st_opt == NULL) {
-			g_prefix_error(error, "failed to read optional header: ");
+			g_prefix_error_literal(error, "failed to read optional header: ");
 			return FALSE;
 		}
 
@@ -347,7 +353,7 @@ fu_pefile_firmware_parse(FuFirmware *firmware,
 			(guint)r->size);
 		partial_stream = fu_partial_input_stream_new(stream, r->offset, r->size, error);
 		if (partial_stream == NULL) {
-			g_prefix_error(error, "failed to cut Authenticode region: ");
+			g_prefix_error_literal(error, "failed to cut Authenticode region: ");
 			return FALSE;
 		}
 		fu_composite_input_stream_add_partial_stream(

@@ -270,7 +270,7 @@ fu_emmc_device_read_extcsd(FuEmmcDevice *self, guint8 *buf, gsize bufsz, GError 
 			      FU_EMMC_DEVICE_IOCTL_TIMEOUT,
 			      FU_IOCTL_FLAG_NONE,
 			      error)) {
-		g_prefix_error(error, "failed to MMC_IOC_CMD: ");
+		g_prefix_error_literal(error, "failed to MMC_IOC_CMD: ");
 		return FALSE;
 	}
 
@@ -366,7 +366,7 @@ fu_emmc_device_write_firmware(FuDevice *device,
 	guint32 sector_size;
 	gboolean check_sect_done = FALSE;
 	gsize multi_cmdsz;
-	guint8 ext_csd[512];
+	guint8 ext_csd[512] = {0};
 	guint failure_cnt = 0;
 	g_autofree struct mmc_ioc_multi_cmd *multi_cmd = NULL;
 	g_autoptr(GInputStream) stream = NULL;
@@ -457,7 +457,7 @@ fu_emmc_device_write_firmware(FuDevice *device,
 					      FU_IOCTL_FLAG_NONE,
 					      error)) {
 				g_autoptr(GError) error_local = NULL;
-				g_prefix_error(error, "multi-cmd failed: ");
+				g_prefix_error_literal(error, "multi-cmd failed: ");
 				/* multi-cmd ioctl failed before exiting from ffu mode */
 				if (!fu_ioctl_execute(ioctl,
 						      MMC_IOC_CMD,
@@ -547,7 +547,7 @@ fu_emmc_device_write_firmware(FuDevice *device,
 				      error)) {
 			g_autoptr(GError) error_local = NULL;
 			/* In case multi-cmd ioctl failed before exiting from ffu mode */
-			g_prefix_error(error, "multi-cmd failed setting install mode: ");
+			g_prefix_error_literal(error, "multi-cmd failed setting install mode: ");
 			if (!fu_ioctl_execute(ioctl,
 					      MMC_IOC_CMD,
 					      (guint8 *)&multi_cmd->cmds[2],
@@ -613,7 +613,7 @@ static void
 fu_emmc_device_init(FuEmmcDevice *self)
 {
 	fu_device_add_protocol(FU_DEVICE(self), "org.jedec.mmc");
-	fu_device_add_icon(FU_DEVICE(self), "media-memory");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_MEMORY);
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_MD_SET_SIGNED);
 	fu_udev_device_add_open_flag(FU_UDEV_DEVICE(self), FU_IO_CHANNEL_OPEN_FLAG_READ);
 	fu_udev_device_add_open_flag(FU_UDEV_DEVICE(self), FU_IO_CHANNEL_OPEN_FLAG_WRITE);

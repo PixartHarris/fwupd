@@ -10,7 +10,6 @@
 
 #include "fu-context.h"
 #include "fu-device-event.h"
-#include "fu-device-locker.h"
 #include "fu-device-struct.h"
 #include "fu-firmware.h"
 #include "fu-progress.h"
@@ -90,7 +89,6 @@ struct _FuDeviceClass {
 	void (*set_progress)(FuDevice *self, FuProgress *progress);
 	void (*invalidate)(FuDevice *self);
 	gchar *(*convert_version)(FuDevice *self, guint64 version_raw);
-	void (*register_flags)(FuDevice *self);
 	void (*add_json)(FuDevice *self, JsonBuilder *builder, FwupdCodecFlags flags);
 	gboolean (*from_json)(FuDevice *self,
 			      JsonObject *json_object,
@@ -839,6 +837,276 @@ fu_device_new(FuContext *ctx);
  * Since: 2.0.7
  */
 #define FU_DEVICE_PRIVATE_FLAG_INSTALL_LOOP_RESTART "install-loop-restart"
+/**
+ * FU_DEVICE_PRIVATE_FLAG_MD_SET_REQUIRED_FREE:
+ *
+ * Set the device required free size from the metadata if available.
+ *
+ * Since: 2.0.12
+ */
+#define FU_DEVICE_PRIVATE_FLAG_MD_SET_REQUIRED_FREE "md-set-required-free"
+/**
+ * FU_DEVICE_PRIVATE_FLAG_PARENT_NAME_PREFIX:
+ *
+ * Use the parent device as the name prefix.
+ *
+ * Since: 2.0.15
+ */
+#define FU_DEVICE_PRIVATE_FLAG_PARENT_NAME_PREFIX "parent-name-prefix"
+
+/* standard icons */
+
+/**
+ * FU_DEVICE_ICON_COMPUTER:
+ *
+ * A generic icon of a computer.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_COMPUTER "computer"
+
+/**
+ * FU_DEVICE_ICON_GPU:
+ *
+ * A generic icon of a gpu.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_GPU "gpu"
+
+/**
+ * FU_DEVICE_ICON_AC_ADAPTER:
+ *
+ * A generic icon of an AC adapter.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_AC_ADAPTER "ac-adapter"
+
+/**
+ * FU_DEVICE_ICON_DOCK:
+ *
+ * A generic icon of a dock.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_DOCK "dock"
+
+/**
+ * FU_DEVICE_ICON_DOCK_USB:
+ *
+ * An icon of a dock attached via USB.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_DOCK_USB "dock-usb"
+
+/**
+ * FU_DEVICE_ICON_USB_HUB:
+ *
+ * An icon of a hub of USB devices.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_USB_HUB "usb-hub"
+
+/**
+ * FU_DEVICE_ICON_THUNDERBOLT:
+ *
+ * A generic icon of a thunderbolt device.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_THUNDERBOLT "thunderbolt"
+
+/**
+ * FU_DEVICE_ICON_MEMORY:
+ *
+ * A generic icon of a memory card.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_MEMORY "media-memory"
+
+/**
+ * FU_DEVICE_ICON_MODEM:
+ *
+ * An icon of a modem.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_MODEM "modem"
+
+/**
+ * FU_DEVICE_ICON_NETWORK_WIRED:
+ *
+ * A generic icon of a wired connection.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_NETWORK_WIRED "network-wired"
+
+/**
+ * FU_DEVICE_ICON_NETWORK_WIRELESS:
+ *
+ * A generic icon of a wireless connection.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_NETWORK_WIRELESS "network-wireless"
+
+/**
+ * FU_DEVICE_ICON_DRIVE_HARDDISK:
+ *
+ * A generic icon of a hard disk drive.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_DRIVE_HARDDISK "drive-harddisk"
+
+/**
+ * FU_DEVICE_ICON_DRIVE_SSD:
+ *
+ * A generic icon of a hard disk drive.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_DRIVE_SSD "drive-harddisk-solidstate"
+
+/**
+ * FU_DEVICE_ICON_DRIVE_MULTIDISK:
+ *
+ * A generic icon of a multidisk drive.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_DRIVE_MULTIDISK "drive-multidisk"
+
+/**
+ * FU_DEVICE_ICON_AUDIO_CARD:
+ *
+ * An icon of an audio card.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_AUDIO_CARD "audio-card"
+
+/**
+ * FU_DEVICE_ICON_VIDEO_DISPLAY:
+ *
+ * A generic icon of a display.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_VIDEO_DISPLAY "video-display"
+
+/**
+ * FU_DEVICE_ICON_INPUT_TOUCHPAD:
+ *
+ * A generic icon of a touchpad.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_INPUT_TOUCHPAD "input-touchpad"
+
+/**
+ * FU_DEVICE_ICON_INPUT_KEYBOARD:
+ *
+ * A generic icon of a keyboard.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_INPUT_KEYBOARD "input-keyboard"
+
+/**
+ * FU_DEVICE_ICON_INPUT_MOUSE:
+ *
+ * A generic icon of a mouse.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_INPUT_MOUSE "input-mouse"
+
+/**
+ * FU_DEVICE_ICON_INPUT_DIALPAD:
+ *
+ * A generic icon of a dialpad.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_INPUT_DIALPAD "input-dialpad"
+
+/**
+ * FU_DEVICE_ICON_INPUT_GAMING:
+ *
+ * A generic icon of a gaming controller.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_INPUT_GAMING "input-gaming"
+
+/**
+ * FU_DEVICE_ICON_INPUT_TABLET:
+ *
+ * A generic icon of a drawing tablet.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_INPUT_TABLET "input-tablet"
+
+/**
+ * FU_DEVICE_ICON_AUTH_FINGERPRINT:
+ *
+ * A generic icon of a fingerprint reader.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_AUTH_FINGERPRINT "auth-fingerprint"
+
+/**
+ * FU_DEVICE_ICON_USB_RECEIVER:
+ *
+ * A generic icon of an USB receiver.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_USB_RECEIVER "usb-receiver"
+
+/**
+ * FU_DEVICE_ICON_PDA:
+ *
+ * A generic icon of a PDA.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_PDA "pda"
+
+/**
+ * FU_DEVICE_ICON_WEB_CAMERA:
+ *
+ * A generic icon of a web camera.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_WEB_CAMERA "camera-web"
+
+/**
+ * FU_DEVICE_ICON_VIDEO_CAMERA:
+ *
+ * A generic icon of a video camera.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_VIDEO_CAMERA "camera-video"
+
+/**
+ * FU_DEVICE_ICON_APPLICATION_CERTIFICATE:
+ *
+ * A generic icon of a certificate.
+ *
+ * Since: 2.0.10
+ */
+#define FU_DEVICE_ICON_APPLICATION_CERTIFICATE "application-certificate"
 
 /* accessors */
 gchar *
@@ -854,11 +1122,12 @@ fu_device_has_guid(FuDevice *self, const gchar *guid) G_GNUC_NON_NULL(1);
 void
 fu_device_add_instance_id(FuDevice *self, const gchar *instance_id) G_GNUC_NON_NULL(1, 2);
 gboolean
-fu_device_has_instance_id(FuDevice *self, const gchar *instance_id, FuDeviceInstanceFlag flags)
+fu_device_has_instance_id(FuDevice *self, const gchar *instance_id, FuDeviceInstanceFlags flags)
     G_GNUC_NON_NULL(1, 2);
 void
-fu_device_add_instance_id_full(FuDevice *self, const gchar *instance_id, FuDeviceInstanceFlag flags)
-    G_GNUC_NON_NULL(1, 2);
+fu_device_add_instance_id_full(FuDevice *self,
+			       const gchar *instance_id,
+			       FuDeviceInstanceFlags flags) G_GNUC_NON_NULL(1, 2);
 FuDevice *
 fu_device_get_root(FuDevice *self) G_GNUC_NON_NULL(1);
 FuDevice *
@@ -974,6 +1243,10 @@ guint64
 fu_device_get_firmware_size_min(FuDevice *self) G_GNUC_NON_NULL(1);
 guint64
 fu_device_get_firmware_size_max(FuDevice *self) G_GNUC_NON_NULL(1);
+guint64
+fu_device_get_required_free(FuDevice *self) G_GNUC_NON_NULL(1);
+void
+fu_device_set_required_free(FuDevice *self, guint64 required_free) G_GNUC_NON_NULL(1);
 guint
 fu_device_get_battery_level(FuDevice *self) G_GNUC_NON_NULL(1);
 void
@@ -1040,6 +1313,7 @@ fu_device_prepare_firmware(FuDevice *self,
 FuFirmware *
 fu_device_read_firmware(FuDevice *self,
 			FuProgress *progress,
+			FuFirmwareParseFlags flags,
 			GError **error) G_GNUC_WARN_UNUSED_RESULT G_GNUC_NON_NULL(1, 2);
 GBytes *
 fu_device_dump_firmware(FuDevice *self,
@@ -1152,14 +1426,27 @@ fu_device_set_contents_bytes(FuDevice *self,
 			     GBytes *blob,
 			     FuProgress *progress,
 			     GError **error) G_GNUC_NON_NULL(1, 2, 3);
+gchar *
+fu_device_get_contents(FuDevice *self,
+		       const gchar *filename,
+		       gsize count,
+		       FuProgress *progress,
+		       GError **error) G_GNUC_WARN_UNUSED_RESULT G_GNUC_NON_NULL(1, 2);
 GBytes *
 fu_device_get_contents_bytes(FuDevice *self,
 			     const gchar *filename,
+			     gsize count,
 			     FuProgress *progress,
 			     GError **error) G_GNUC_WARN_UNUSED_RESULT G_GNUC_NON_NULL(1, 2);
 gboolean
 fu_device_query_file_exists(FuDevice *self, const gchar *filename, gboolean *exists, GError **error)
     G_GNUC_NON_NULL(1, 2, 3);
+const gchar *
+fu_device_get_smbios_string(FuDevice *self,
+			    guint8 type,
+			    guint8 length,
+			    guint8 offset,
+			    GError **error) G_GNUC_WARN_UNUSED_RESULT G_GNUC_NON_NULL(1);
 void
 fu_device_add_possible_plugin(FuDevice *self, const gchar *plugin) G_GNUC_NON_NULL(1, 2);
 
@@ -1183,11 +1470,16 @@ fu_device_add_instance_u16(FuDevice *self, const gchar *key, guint16 value) G_GN
 void
 fu_device_add_instance_u32(FuDevice *self, const gchar *key, guint32 value) G_GNUC_NON_NULL(1, 2);
 gboolean
+fu_device_build_instance_id_strv(FuDevice *self,
+				 const gchar *subsystem,
+				 gchar **keys,
+				 GError **error) G_GNUC_NON_NULL(1, 2);
+gboolean
 fu_device_build_instance_id(FuDevice *self, GError **error, const gchar *subsystem, ...)
     G_GNUC_NULL_TERMINATED G_GNUC_NON_NULL(1, 3);
 gboolean
 fu_device_build_instance_id_full(FuDevice *self,
-				 FuDeviceInstanceFlag flags,
+				 FuDeviceInstanceFlags flags,
 				 GError **error,
 				 const gchar *subsystem,
 				 ...) G_GNUC_NULL_TERMINATED G_GNUC_NON_NULL(1, 4);
@@ -1195,10 +1487,12 @@ void
 fu_device_build_vendor_id(FuDevice *self, const gchar *prefix, const gchar *value);
 void
 fu_device_build_vendor_id_u16(FuDevice *self, const gchar *prefix, guint16 value);
-FuDeviceLocker *
-fu_device_poll_locker_new(FuDevice *self, GError **error) G_GNUC_NON_NULL(1);
 
 FuDeviceEvent *
 fu_device_save_event(FuDevice *self, const gchar *id);
 FuDeviceEvent *
 fu_device_load_event(FuDevice *self, const gchar *id, GError **error);
+void
+fu_device_add_event(FuDevice *self, FuDeviceEvent *event);
+GPtrArray *
+fu_device_get_events(FuDevice *self);

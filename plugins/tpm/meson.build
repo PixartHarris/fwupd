@@ -1,6 +1,8 @@
+hsi or subdir_done()
 tpm2tss_tpm = dependency('tss2-esys', version: '>= 2.0', required: false)
+tpm2tss_tpm.found() or subdir_done()
+host_machine.system() == 'linux' or subdir_done()
 
-if hsi and tpm2tss_tpm.found() and host_machine.system() == 'linux'
 cargs = ['-DG_LOG_DOMAIN="FuPluginTpm"']
 plugins += {meson.current_source_dir().split('/')[-1]: true}
 
@@ -53,6 +55,7 @@ if get_option('tests')
     ],
     install: true,
     install_rpath: libdir_pkg,
+    install_tag: 'tests',
     install_dir: installed_test_bindir,
     c_args: [
       cargs,
@@ -98,5 +101,3 @@ executable(
     plugin_builtin_tpm,
   ],
 )
-
-endif

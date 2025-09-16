@@ -15,42 +15,11 @@
 
 #include "fu-cabinet.h"
 #include "fu-engine-config.h"
+#include "fu-engine-struct.h"
 #include "fu-release.h"
 
 #define FU_TYPE_ENGINE (fu_engine_get_type())
 G_DECLARE_FINAL_TYPE(FuEngine, fu_engine, FU, ENGINE, GObject)
-
-/**
- * FuEngineLoadFlags:
- * @FU_ENGINE_LOAD_FLAG_NONE:		No flags set
- * @FU_ENGINE_LOAD_FLAG_READONLY:	Ignore readonly filesystem errors
- * @FU_ENGINE_LOAD_FLAG_COLDPLUG:	Enumerate devices
- * @FU_ENGINE_LOAD_FLAG_REMOTES:	Enumerate remotes
- * @FU_ENGINE_LOAD_FLAG_HWINFO:		Load details about the hardware
- * @FU_ENGINE_LOAD_FLAG_NO_CACHE:	Do not save persistent xmlb silos
- * @FU_ENGINE_LOAD_FLAG_NO_IDLE_SOURCES:Do not load idle sources
- * @FU_ENGINE_LOAD_FLAG_BUILTIN_PLUGINS:	Load built-in plugins
- * @FU_ENGINE_LOAD_FLAG_ENSURE_CLIENT_CERT:	Ensure the client certificate exists
- * @FU_ENGINE_LOAD_FLAG_EXTERNAL_PLUGINS:	Load external dload'ed plugins such as flashrom
- * @FU_ENGINE_LOAD_FLAG_DEVICE_HOTPLUG:		Set up device hotplug
- *
- * The flags to use when loading the engine.
- **/
-typedef enum {
-	FU_ENGINE_LOAD_FLAG_NONE = 0,
-	FU_ENGINE_LOAD_FLAG_READONLY = 1 << 0,
-	FU_ENGINE_LOAD_FLAG_COLDPLUG = 1 << 1,
-	FU_ENGINE_LOAD_FLAG_REMOTES = 1 << 2,
-	FU_ENGINE_LOAD_FLAG_HWINFO = 1 << 3,
-	FU_ENGINE_LOAD_FLAG_NO_CACHE = 1 << 4,
-	FU_ENGINE_LOAD_FLAG_NO_IDLE_SOURCES = 1 << 5,
-	FU_ENGINE_LOAD_FLAG_BUILTIN_PLUGINS = 1 << 6,
-	FU_ENGINE_LOAD_FLAG_ENSURE_CLIENT_CERT = 1 << 7,
-	FU_ENGINE_LOAD_FLAG_EXTERNAL_PLUGINS = 1 << 8,
-	FU_ENGINE_LOAD_FLAG_DEVICE_HOTPLUG = 1 << 9,
-	/*< private >*/
-	FU_ENGINE_LOAD_FLAG_LAST
-} FuEngineLoadFlags;
 
 FuEngine *
 fu_engine_new(FuContext *ctx) G_GNUC_NON_NULL(1);
@@ -112,6 +81,8 @@ fu_engine_get_releases(FuEngine *self,
 		       FuEngineRequest *request,
 		       const gchar *device_id,
 		       GError **error) G_GNUC_NON_NULL(1, 2, 3);
+GPtrArray *
+fu_engine_search(FuEngine *self, const gchar *token, GError **error) G_GNUC_NON_NULL(1, 2);
 GPtrArray *
 fu_engine_get_downgrades(FuEngine *self,
 			 FuEngineRequest *request,
@@ -188,14 +159,13 @@ fu_engine_composite_cleanup(FuEngine *self, GPtrArray *devices, GError **error)
 gboolean
 fu_engine_install_release(FuEngine *self,
 			  FuRelease *release,
-			  GInputStream *stream,
 			  FuProgress *progress,
 			  FwupdInstallFlags flags,
-			  GError **error) G_GNUC_NON_NULL(1, 2, 3, 4);
+			  GError **error) G_GNUC_NON_NULL(1, 2, 3);
 gboolean
 fu_engine_install_blob(FuEngine *self,
 		       FuDevice *device,
-		       GInputStream *stream_fw,
+		       FuRelease *release,
 		       FuProgress *progress,
 		       FwupdInstallFlags flags,
 		       FwupdFeatureFlags feature_flags,
@@ -289,3 +259,5 @@ fu_engine_fix_host_security_attr(FuEngine *self, const gchar *appstream_id, GErr
 gboolean
 fu_engine_undo_host_security_attr(FuEngine *self, const gchar *appstream_id, GError **error)
     G_GNUC_NON_NULL(1, 2);
+gboolean
+fu_engine_plugin_allows_enumeration(FuEngine *self, FuPlugin *plugin) G_GNUC_NON_NULL(1, 2);

@@ -9,8 +9,8 @@
 #include <linux/nvme_ioctl.h>
 #include <sys/ioctl.h>
 
-#include "fu-nvme-common.h"
 #include "fu-nvme-device.h"
+#include "fu-nvme-struct.h"
 
 #define FU_NVME_ID_CTRL_SIZE 0x1000
 
@@ -125,11 +125,11 @@ fu_nvme_device_submit_admin_passthru(FuNvmeDevice *self,
 	/* check the error code */
 	err = rc & 0x3ff;
 	switch (err) {
-	case NVME_SC_SUCCESS:
+	case FU_NVME_STATUS_SUCCESS:
 	/* devices are always added with _NEEDS_REBOOT, so ignore */
-	case NVME_SC_FW_NEEDS_CONV_RESET:
-	case NVME_SC_FW_NEEDS_SUBSYS_RESET:
-	case NVME_SC_FW_NEEDS_RESET:
+	case FU_NVME_STATUS_FW_NEEDS_CONV_RESET:
+	case FU_NVME_STATUS_FW_NEEDS_SUBSYS_RESET:
+	case FU_NVME_STATUS_FW_NEEDS_RESET:
 		return TRUE;
 	default:
 		break;
@@ -327,10 +327,6 @@ fu_nvme_device_probe(FuDevice *device, GError **error)
 	if (!fu_nvme_device_pci_probe(self, error))
 		return FALSE;
 
-	/* fix up vendor name so we can remove it from the product name */
-	if (g_strcmp0(fu_device_get_vendor(FU_DEVICE(device)), "Samsung Electronics Co Ltd") == 0)
-		fu_device_set_vendor(FU_DEVICE(device), "Samsung");
-
 	/* look at the PCI depth to work out if in an external enclosure */
 	self->pci_depth = fu_udev_device_get_subsystem_depth(FU_UDEV_DEVICE(device), "pci");
 	if (self->pci_depth <= 2) {
@@ -446,7 +442,7 @@ fu_nvme_device_write_firmware(FuDevice *device,
 				      commit_action,
 				      0x00, /* boot partition identifier */
 				      error)) {
-		g_prefix_error(error, "failed to commit to auto slot: ");
+		g_prefix_error_literal(error, "failed to commit to auto slot: ");
 		return FALSE;
 	}
 	fu_progress_step_done(progress);
@@ -495,7 +491,7 @@ fu_nvme_device_init(FuNvmeDevice *self)
 	fu_device_add_private_flag(FU_DEVICE(self), FU_DEVICE_PRIVATE_FLAG_RETRY_OPEN);
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_PLAIN);
 	fu_device_set_summary(FU_DEVICE(self), "NVM Express solid state drive");
-	fu_device_add_icon(FU_DEVICE(self), "drive-harddisk");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_DRIVE_HARDDISK);
 	fu_device_add_protocol(FU_DEVICE(self), "org.nvmexpress");
 	fu_udev_device_add_open_flag(FU_UDEV_DEVICE(self), FU_IO_CHANNEL_OPEN_FLAG_READ);
 	fu_device_register_private_flag(FU_DEVICE(self), FU_NVME_DEVICE_FLAG_FORCE_ALIGN);

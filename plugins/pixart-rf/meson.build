@@ -1,4 +1,5 @@
-if cc.has_header('linux/hidraw.h', required: false)
+cc.has_header('linux/hidraw.h', required: false) or subdir_done()
+
 cargs = ['-DG_LOG_DOMAIN="FuPluginPixartRf"']
 plugins += {meson.current_source_dir().split('/')[-1]: true}
 
@@ -48,11 +49,11 @@ if get_option('tests')
     ],
     install: true,
     install_rpath: libdir_pkg,
+    install_tag: 'tests',
     install_dir: installed_test_bindir,
     c_args: [
       '-DSRCDIR="' + meson.current_source_dir() + '"',
     ],
   )
   test('pxi-self-test', e, env: env)
-endif
 endif

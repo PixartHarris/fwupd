@@ -12,6 +12,7 @@
 #include "fu-bcm57xx-firmware.h"
 #include "fu-bcm57xx-stage1-image.h"
 #include "fu-bcm57xx-stage2-image.h"
+#include "fu-bcm57xx-struct.h"
 
 struct _FuBcm57xxFirmware {
 	FuFirmware parent_instance;
@@ -55,7 +56,7 @@ fu_bcm57xx_firmware_parse_header(FuBcm57xxFirmware *self, GInputStream *stream, 
 
 	/* get address */
 	return fu_input_stream_read_u32(stream,
-					BCM_NVRAM_HEADER_PHYS_ADDR,
+					FU_STRUCT_BCM57XX_NVRAM_HEADER_OFFSET_PHYS_ADDR,
 					&self->phys_addr,
 					G_BIG_ENDIAN,
 					error);
@@ -67,31 +68,21 @@ fu_bcm57xx_firmware_parse_info(FuBcm57xxFirmware *self,
 			       FuFirmwareParseFlags flags,
 			       GError **error)
 {
-	guint32 mac_addr0 = 0;
+	guint32 mac_addr0;
 	g_autoptr(FuFirmware) img = fu_firmware_new();
+	g_autoptr(FuStructBcm57xxNvramInfo) st = NULL;
+
+	st = fu_struct_bcm57xx_nvram_info_parse_stream(stream, 0x0, error);
+	if (st == NULL)
+		return NULL;
 
 	/* if the MAC is set non-zero this is an actual backup rather than a container */
-	if (!fu_input_stream_read_u32(stream,
-				      BCM_NVRAM_INFO_MAC_ADDR0,
-				      &mac_addr0,
-				      G_BIG_ENDIAN,
-				      error))
-		return NULL;
+	mac_addr0 = fu_struct_bcm57xx_nvram_info_get_mac_addr(st, 0);
 	self->is_backup = mac_addr0 != 0x0 && mac_addr0 != 0xffffffff;
 
 	/* read vendor + model */
-	if (!fu_input_stream_read_u16(stream,
-				      BCM_NVRAM_INFO_VENDOR,
-				      &self->vendor,
-				      G_BIG_ENDIAN,
-				      error))
-		return NULL;
-	if (!fu_input_stream_read_u16(stream,
-				      BCM_NVRAM_INFO_DEVICE,
-				      &self->model,
-				      G_BIG_ENDIAN,
-				      error))
-		return NULL;
+	self->vendor = fu_struct_bcm57xx_nvram_info_get_vendor(st);
+	self->model = fu_struct_bcm57xx_nvram_info_get_device(st);
 
 	/* success */
 	if (!fu_firmware_parse_stream(img, stream, 0x0, flags, error))
@@ -111,23 +102,18 @@ fu_bcm57xx_firmware_parse_stage1(FuBcm57xxFirmware *self,
 	guint32 stage1_wrds = 0;
 	guint32 stage1_sz;
 	guint32 stage1_off = 0;
+	g_autoptr(FuStructBcm57xxNvramHeader) st = NULL;
 	g_autoptr(FuFirmware) img = fu_bcm57xx_stage1_image_new();
 	g_autoptr(GInputStream) stream_tmp = NULL;
 
 	if (!fu_input_stream_size(stream, &streamsz, error))
 		return NULL;
-	if (!fu_input_stream_read_u32(stream,
-				      BCM_NVRAM_HEADER_BASE + BCM_NVRAM_HEADER_SIZE_WRDS,
-				      &stage1_wrds,
-				      G_BIG_ENDIAN,
-				      error))
+	st = fu_struct_bcm57xx_nvram_header_parse_stream(stream, BCM_NVRAM_HEADER_BASE, error);
+	if (st == NULL)
 		return NULL;
-	if (!fu_input_stream_read_u32(stream,
-				      BCM_NVRAM_HEADER_BASE + BCM_NVRAM_HEADER_OFFSET,
-				      &stage1_off,
-				      G_BIG_ENDIAN,
-				      error))
-		return NULL;
+	stage1_wrds = fu_struct_bcm57xx_nvram_header_get_size_wrds(st);
+	stage1_off = fu_struct_bcm57xx_nvram_header_get_offset(st);
+
 	stage1_sz = (stage1_wrds * sizeof(guint32));
 	if (stage1_off != BCM_NVRAM_STAGE1_BASE) {
 		g_set_error(error,
@@ -232,29 +218,18 @@ fu_bcm57xx_firmware_parse_dict(FuBcm57xxFirmware *self,
 	guint32 dict_info = 0x0;
 	guint32 dict_off = 0x0;
 	guint32 dict_sz;
-	guint32 base = BCM_NVRAM_DIRECTORY_BASE + (idx * BCM_NVRAM_DIRECTORY_SZ);
+	guint32 base = BCM_NVRAM_DIRECTORY_BASE + (idx * FU_STRUCT_BCM57XX_NVRAM_DIRECTORY_SIZE);
 	g_autoptr(FuFirmware) img = fu_bcm57xx_dict_image_new();
+	g_autoptr(FuStructBcm57xxNvramDirectory) st = NULL;
 	g_autoptr(GInputStream) stream_tmp = NULL;
 
 	/* header */
-	if (!fu_input_stream_read_u32(stream,
-				      base + BCM_NVRAM_DIRECTORY_ADDR,
-				      &dict_addr,
-				      G_BIG_ENDIAN,
-				      error))
+	st = fu_struct_bcm57xx_nvram_directory_parse_stream(stream, base, error);
+	if (st == NULL)
 		return FALSE;
-	if (!fu_input_stream_read_u32(stream,
-				      base + BCM_NVRAM_DIRECTORY_SIZE_WRDS,
-				      &dict_info,
-				      G_BIG_ENDIAN,
-				      error))
-		return FALSE;
-	if (!fu_input_stream_read_u32(stream,
-				      base + BCM_NVRAM_DIRECTORY_OFFSET,
-				      &dict_off,
-				      G_BIG_ENDIAN,
-				      error))
-		return FALSE;
+	dict_addr = fu_struct_bcm57xx_nvram_directory_get_addr(st);
+	dict_info = fu_struct_bcm57xx_nvram_directory_get_size_wrds(st);
+	dict_off = fu_struct_bcm57xx_nvram_directory_get_offset(st);
 
 	/* no dict stored */
 	if (dict_addr == 0 && dict_info == 0 && dict_off == 0)
@@ -313,7 +288,7 @@ fu_bcm57xx_firmware_validate(FuFirmware *firmware,
 	guint32 magic = 0;
 
 	if (!fu_input_stream_read_u32(stream, 0x0, &magic, G_BIG_ENDIAN, error)) {
-		g_prefix_error(error, "failed to read magic: ");
+		g_prefix_error_literal(error, "failed to read magic: ");
 		return FALSE;
 	}
 	if (magic != BCM_APE_HEADER_MAGIC && magic != BCM_STAGE1_HEADER_MAGIC_BROADCOM &&
@@ -393,23 +368,27 @@ fu_bcm57xx_firmware_parse(FuFirmware *firmware,
 		return FALSE;
 
 	/* NVRAM header */
-	stream_header =
-	    fu_partial_input_stream_new(stream, BCM_NVRAM_HEADER_BASE, BCM_NVRAM_HEADER_SZ, error);
+	stream_header = fu_partial_input_stream_new(stream,
+						    BCM_NVRAM_HEADER_BASE,
+						    FU_STRUCT_BCM57XX_NVRAM_HEADER_SIZE,
+						    error);
 	if (stream_header == NULL)
 		return FALSE;
 	if (!fu_bcm57xx_firmware_parse_header(self, stream_header, error)) {
-		g_prefix_error(error, "failed to parse header: ");
+		g_prefix_error_literal(error, "failed to parse header: ");
 		return FALSE;
 	}
 
 	/* info */
-	stream_info =
-	    fu_partial_input_stream_new(stream, BCM_NVRAM_INFO_BASE, BCM_NVRAM_INFO_SZ, error);
+	stream_info = fu_partial_input_stream_new(stream,
+						  BCM_NVRAM_INFO_BASE,
+						  FU_STRUCT_BCM57XX_NVRAM_INFO_SIZE,
+						  error);
 	if (stream_info == NULL)
 		return FALSE;
 	img_info = fu_bcm57xx_firmware_parse_info(self, stream_info, flags, error);
 	if (img_info == NULL) {
-		g_prefix_error(error, "failed to parse info: ");
+		g_prefix_error_literal(error, "failed to parse info: ");
 		return FALSE;
 	}
 	fu_firmware_set_offset(img_info, BCM_NVRAM_INFO_BASE);
@@ -421,7 +400,7 @@ fu_bcm57xx_firmware_parse(FuFirmware *firmware,
 	if (stream_vpd == NULL)
 		return FALSE;
 	if (!fu_firmware_parse_stream(img_vpd, stream_vpd, 0x0, flags, error)) {
-		g_prefix_error(error, "failed to parse VPD: ");
+		g_prefix_error_literal(error, "failed to parse VPD: ");
 		return FALSE;
 	}
 	fu_firmware_set_id(img_vpd, "vpd");
@@ -434,7 +413,7 @@ fu_bcm57xx_firmware_parse(FuFirmware *firmware,
 	if (stream_info2 == NULL)
 		return FALSE;
 	if (!fu_firmware_parse_stream(img_info2, stream_info2, 0x0, flags, error)) {
-		g_prefix_error(error, "failed to parse info2: ");
+		g_prefix_error_literal(error, "failed to parse info2: ");
 		return FALSE;
 	}
 	fu_firmware_set_id(img_info2, "info2");
@@ -444,7 +423,7 @@ fu_bcm57xx_firmware_parse(FuFirmware *firmware,
 	/* stage1 */
 	img_stage1 = fu_bcm57xx_firmware_parse_stage1(self, stream, &stage1_sz, flags, error);
 	if (img_stage1 == NULL) {
-		g_prefix_error(error, "failed to parse stage1: ");
+		g_prefix_error_literal(error, "failed to parse stage1: ");
 		return FALSE;
 	}
 	fu_firmware_add_image(firmware, img_stage1);
@@ -452,7 +431,7 @@ fu_bcm57xx_firmware_parse(FuFirmware *firmware,
 	/* stage2 */
 	img_stage2 = fu_bcm57xx_firmware_parse_stage2(self, stream, stage1_sz, flags, error);
 	if (img_stage2 == NULL) {
-		g_prefix_error(error, "failed to parse stage2: ");
+		g_prefix_error_literal(error, "failed to parse stage2: ");
 		return FALSE;
 	}
 	fu_firmware_add_image(firmware, img_stage2);
@@ -585,12 +564,10 @@ fu_bcm57xx_firmware_write(FuFirmware *firmware, GError **error)
 		if (blob_info == NULL)
 			return NULL;
 	} else {
-		g_autoptr(GByteArray) tmp = g_byte_array_sized_new(BCM_NVRAM_INFO_SZ);
-		for (gsize i = 0; i < BCM_NVRAM_INFO_SZ; i++)
-			fu_byte_array_append_uint8(tmp, 0x0);
-		fu_memwrite_uint16(tmp->data + BCM_NVRAM_INFO_VENDOR, self->vendor, G_BIG_ENDIAN);
-		fu_memwrite_uint16(tmp->data + BCM_NVRAM_INFO_DEVICE, self->model, G_BIG_ENDIAN);
-		blob_info = g_bytes_new(tmp->data, tmp->len);
+		g_autoptr(FuStructBcm57xxNvramInfo) st = fu_struct_bcm57xx_nvram_info_new();
+		fu_struct_bcm57xx_nvram_info_set_device(st, self->model);
+		fu_struct_bcm57xx_nvram_info_set_vendor(st, self->vendor);
+		blob_info = g_bytes_new(st->data, st->len);
 	}
 	fu_byte_array_append_bytes(buf, blob_info);
 

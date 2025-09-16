@@ -108,8 +108,28 @@ gsize
 fu_common_align_up(gsize value, guint8 alignment);
 gboolean
 fu_power_state_is_ac(FuPowerState power_state);
-void
-fu_error_convert(GError **perror);
+
+typedef struct {
+	guint value;
+	FwupdError code;
+	const gchar *message;
+} FuErrorMapEntry;
+
+gboolean
+fu_error_map_entry_to_gerror(guint value,
+			     const FuErrorMapEntry entries[],
+			     guint n_entries,
+			     GError **error) G_GNUC_NON_NULL(2);
+
+typedef struct {
+	GQuark domain;
+	gint code;
+	FwupdError error;
+} FuErrorConvertEntry;
+
+gboolean
+fu_error_convert(const FuErrorConvertEntry entries[], guint n_entries, GError **perror)
+    G_GNUC_NON_NULL(1);
 
 void
 fu_xmlb_builder_insert_kv(XbBuilderNode *bn, const gchar *key, const gchar *value)

@@ -15,7 +15,6 @@
 #include "fu-bluez-device.h"
 #include "fu-dump.h"
 #include "fu-firmware-common.h"
-#include "fu-string.h"
 
 #define DEFAULT_PROXY_TIMEOUT 5000
 
@@ -115,7 +114,7 @@ fu_bluez_device_ensure_uuid_helper_proxy(FuBluezDeviceUuidHelper *uuid_helper, G
 							   NULL,
 							   error);
 	if (uuid_helper->proxy == NULL) {
-		g_prefix_error(error, "Failed to create GDBusProxy for uuid_helper: ");
+		g_prefix_error_literal(error, "Failed to create GDBusProxy for uuid_helper: ");
 		return FALSE;
 	}
 	g_dbus_proxy_set_default_timeout(uuid_helper->proxy, DEFAULT_PROXY_TIMEOUT);
@@ -280,7 +279,7 @@ fu_bluez_device_get_ble_property(const gchar *obj_path,
 		g_set_error(error,
 			    FWUPD_ERROR,
 			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "property %s not found in %s: ",
+			    "property %s not found in %s",
 			    prop_name,
 			    obj_path);
 		return NULL;
@@ -514,7 +513,8 @@ fu_bluez_device_ensure_gatt_interfaces(FuBluezDevice *self, GError **error)
 				obj_path,
 				"org.bluez.GattCharacteristic1",
 				error)) {
-				g_prefix_error(error, "failed to add characteristic uuid: ");
+				g_prefix_error_literal(error,
+						       "failed to add characteristic UUID: ");
 				return FALSE;
 			}
 			valid += 1;
@@ -525,7 +525,7 @@ fu_bluez_device_ensure_gatt_interfaces(FuBluezDevice *self, GError **error)
 									  obj_path,
 									  "org.bluez.GattService1",
 									  error)) {
-				g_prefix_error(error, "failed to add service uuid: ");
+				g_prefix_error_literal(error, "failed to add service UUID: ");
 				return FALSE;
 			}
 			valid += 1;
@@ -538,7 +538,7 @@ fu_bluez_device_ensure_gatt_interfaces(FuBluezDevice *self, GError **error)
 								    obj_path,
 								    "org.bluez.Battery1",
 								    error)) {
-				g_prefix_error(error, "failed to add battery: ");
+				g_prefix_error_literal(error, "failed to add battery: ");
 				return FALSE;
 			}
 		}
@@ -690,7 +690,7 @@ fu_bluez_device_read(FuBluezDevice *self, const gchar *uuid, GError **error)
 				     NULL,
 				     error);
 	if (val == NULL) {
-		g_prefix_error(error, "Failed to read GattCharacteristic1: ");
+		g_prefix_error_literal(error, "Failed to read GattCharacteristic1: ");
 		return NULL;
 	}
 	g_variant_get(val, "(ay)", &iter);
@@ -792,7 +792,7 @@ fu_bluez_device_write(FuBluezDevice *self, const gchar *uuid, GByteArray *buf, G
 				     NULL,
 				     error);
 	if (ret == NULL) {
-		g_prefix_error(error, "Failed to write GattCharacteristic1: ");
+		g_prefix_error_literal(error, "Failed to write GattCharacteristic1: ");
 		return FALSE;
 	}
 
@@ -836,7 +836,7 @@ fu_bluez_device_notify_start(FuBluezDevice *self, const gchar *uuid, GError **er
 					NULL,
 					error);
 	if (retval == NULL) {
-		g_prefix_error(error, "Failed to enable notifications: ");
+		g_prefix_error_literal(error, "Failed to enable notifications: ");
 		return FALSE;
 	}
 
@@ -879,7 +879,7 @@ fu_bluez_device_notify_stop(FuBluezDevice *self, const gchar *uuid, GError **err
 					NULL,
 					error);
 	if (retval == NULL) {
-		g_prefix_error(error, "Failed to enable notifications: ");
+		g_prefix_error_literal(error, "Failed to enable notifications: ");
 		return FALSE;
 	}
 

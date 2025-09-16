@@ -52,10 +52,10 @@ fu_pxi_receiver_device_prepare_firmware(FuDevice *device,
 			return NULL;
 	} else if (fu_device_has_private_flag(device, FU_PXI_DEVICE_FLAG_IS_HPAC) !=
 		   fu_pxi_firmware_is_hpac(FU_PXI_FIRMWARE(firmware))) {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_INVALID_FILE,
-			    "The firmware is incompatible with the device");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_FILE,
+				    "firmware is incompatible with the device");
 		return NULL;
 	}
 
@@ -192,7 +192,7 @@ fu_pxi_receiver_device_check_crc(FuDevice *device, guint16 checksum, GError **er
 	/* ota check crc command */
 	fu_byte_array_append_uint8(ota_cmd, 0x3); /* ota command length */
 	fu_byte_array_append_uint8(ota_cmd, FU_PXI_DEVICE_CMD_FW_OTA_CHECK_CRC); /* ota command */
-	fu_byte_array_append_uint16(ota_cmd, checksum, G_LITTLE_ENDIAN);	 /* checkesum */
+	fu_byte_array_append_uint16(ota_cmd, checksum, G_LITTLE_ENDIAN);	 /* checksum */
 
 	/* increase the serial number */
 	self->sn++;
@@ -802,19 +802,19 @@ fu_pxi_receiver_device_setup(FuDevice *device, GError **error)
 	FuPxiReceiverDevice *self = FU_PXI_RECEIVER_DEVICE(device);
 
 	if (!fu_pxi_receiver_device_setup_guid(self, error)) {
-		g_prefix_error(error, "failed to setup GUID: ");
+		g_prefix_error_literal(error, "failed to setup GUID: ");
 		return FALSE;
 	}
 	if (!fu_pxi_receiver_device_fw_ota_init_new(self, 0x0000, error)) {
-		g_prefix_error(error, "failed to OTA init new: ");
+		g_prefix_error_literal(error, "failed to OTA init new: ");
 		return FALSE;
 	}
 	if (!fu_pxi_receiver_device_fw_ota_ini_new_check(self, error)) {
-		g_prefix_error(error, "failed to OTA init new check: ");
+		g_prefix_error_literal(error, "failed to OTA init new check: ");
 		return FALSE;
 	}
 	if (!fu_pxi_receiver_device_check_peripherals(self, error)) {
-		g_prefix_error(error, "failed to add wireless module: ");
+		g_prefix_error_literal(error, "failed to add wireless module: ");
 		return FALSE;
 	}
 
@@ -838,10 +838,10 @@ fu_pxi_receiver_device_probe(FuDevice *device, GError **error)
 	if (iface_nr == NULL)
 		return FALSE;
 	if (g_strcmp0(iface_nr, "01") != 0) {
-		g_set_error(error,
-			    FWUPD_ERROR,
-			    FWUPD_ERROR_NOT_SUPPORTED,
-			    "only USB interface 1 supported");
+		g_set_error_literal(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_SUPPORTED,
+				    "only USB interface 1 supported");
 		return FALSE;
 	}
 
@@ -865,7 +865,7 @@ fu_pxi_receiver_device_init(FuPxiReceiverDevice *self)
 {
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UNSIGNED_PAYLOAD);
-	fu_device_add_icon(FU_DEVICE(self), "usb-receiver");
+	fu_device_add_icon(FU_DEVICE(self), FU_DEVICE_ICON_USB_RECEIVER);
 	fu_device_set_version_format(FU_DEVICE(self), FWUPD_VERSION_FORMAT_TRIPLET);
 	fu_device_build_vendor_id_u16(FU_DEVICE(self), "USB", 0x093A);
 	fu_device_add_protocol(FU_DEVICE(self), "com.pixart.rf");

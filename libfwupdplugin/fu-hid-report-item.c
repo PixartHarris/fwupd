@@ -9,11 +9,9 @@
 #include "config.h"
 
 #include "fu-byte-array.h"
-#include "fu-bytes.h"
 #include "fu-common.h"
 #include "fu-hid-report-item.h"
 #include "fu-input-stream.h"
-#include "fu-mem-private.h"
 #include "fu-partial-input-stream.h"
 #include "fu-string.h"
 
@@ -108,7 +106,7 @@ fu_hid_report_item_parse(FuFirmware *firmware,
 		}
 		partial_stream = fu_partial_input_stream_new(stream, 1, data_size, error);
 		if (partial_stream == NULL) {
-			g_prefix_error(error, "failed to cut HID payload: ");
+			g_prefix_error_literal(error, "failed to cut HID payload: ");
 			return FALSE;
 		}
 		if (!fu_firmware_set_stream(firmware, partial_stream, error))
